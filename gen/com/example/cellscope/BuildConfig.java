@@ -1,5 +1,5 @@
 /** Automatically generated file. DO NOT MODIFY */
-package com.example.takephoto;
+package com.example.cellscope;
 
 public final class BuildConfig {
     public final static boolean DEBUG = true;
