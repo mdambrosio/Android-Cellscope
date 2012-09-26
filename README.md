@@ -1,1 +1,0 @@
-Place holder project, all code from: http://www.vogella.com/articles/AndroidCamera/article.html#questions
