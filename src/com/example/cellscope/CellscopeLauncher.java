@@ -20,6 +20,7 @@ import android.view.SurfaceHolder;
 
 /*
  * Lots of code from Android's camera tutorial:
+ * Added a comment by Matthew Bakalar
  * http://developer.android.com/training/camera/cameradirect.html
  * 
  * It's implemented differently in the tutorial in a way
