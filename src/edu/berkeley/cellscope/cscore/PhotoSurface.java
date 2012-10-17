@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import com.example.cellscope.R;
+import edu.berkeley.cellscope.cscore.R;
 
 import android.content.Context;
 import android.hardware.Camera;
