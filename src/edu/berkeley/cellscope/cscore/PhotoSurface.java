@@ -24,7 +24,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 
 public class PhotoSurface extends SurfaceView {
-	CellscopeLauncher activity;
+	CameraActivity activity;
 	
 	/*
 	 * Interface that lets application access and modify
@@ -123,7 +123,7 @@ public class PhotoSurface extends SurfaceView {
 	 * It sets the display to show mSurfaceView
 	 */
 	
-	public PhotoSurface(CellscopeLauncher context) {
+	public PhotoSurface(CameraActivity context) {
 		super(context);
 		activity = context;
 		 mHolder = this.getHolder();

@@ -4,5 +4,9 @@
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
     <string name="title_activity_cellscope_launcher">CellscopeLauncher</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="usernameHint">username</string>
+    <string name="passwordHint">password</string>
+    <string name="loginButtonText">login</string>
 
 </resources>

@@ -2,10 +2,12 @@
     package="edu.berkeley.cellscope.cscore"
     android:versionCode="1"
     android:versionName="1.0" >
-	<uses-feature android:name="android.hardware.camera" />
-     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-	<uses-permission android:name="android.permission.CAMERA" />
-	
+
+    <uses-feature android:name="android.hardware.camera" />
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <uses-sdk
         android:minSdkVersion="8"
         android:targetSdkVersion="15" />
@@ -18,6 +20,15 @@
             android:name=".CellscopeLauncher"
             android:label="@string/title_activity_cellscope_launcher"
             android:screenOrientation="portrait" >
+        </activity>
+        <activity
+            android:name="CameraActivity"
+            android:label="camera_activity"
+            android:screenOrientation="portrait" >
+        </activity>
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/title_activity_login" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
