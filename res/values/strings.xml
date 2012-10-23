@@ -8,5 +8,6 @@
     <string name="usernameHint">username</string>
     <string name="passwordHint">password</string>
     <string name="loginButtonText">login</string>
+    <string name="title_activity_gallery">GalleryActivity</string>
 
 </resources>
