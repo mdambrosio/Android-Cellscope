@@ -21,20 +21,27 @@
             android:label="@string/title_activity_cellscope_launcher"
             android:screenOrientation="portrait" >
         </activity>
+        
         <activity
             android:name="CameraActivity"
             android:label="camera_activity"
             android:screenOrientation="portrait" >
         </activity>
+        
         <activity
             android:name=".LoginActivity"
             android:label="@string/title_activity_login" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".LibraryActivity"
+            android:label="@string/title_activity_gallery" >
+        </activity>
+        
     </application>
 
 </manifest>
