@@ -34,6 +34,10 @@ public class PhotoSurface extends SurfaceView {
     boolean previewRunning;
     Camera mCamera;
     
+    /* Designates where images will be saved.
+     */
+    public static File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyCameraApp");
+    
     /*
      * surfaceChanged() is automatically called whenever the screen changes,
      * including when the app is started.
@@ -63,6 +67,7 @@ public class PhotoSurface extends SurfaceView {
 						break;
 					case Surface.ROTATION_180:
 						parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
+						mCamera.setDisplayOrientation(270);
 						break;
 					case Surface.ROTATION_270:
 						parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
@@ -106,6 +111,7 @@ public class PhotoSurface extends SurfaceView {
 	        	 System.out.println("Error accessing file: " + e.getMessage());
 	        }
 	        stopCameraPreview();
+	        activity.finish();
 	       // startCameraPreview();
 	    }
 	};
@@ -195,8 +201,7 @@ public class PhotoSurface extends SurfaceView {
 	    // To be safe, you should check that the SDCard is mounted
 	    // using Environment.getExternalStorageState() before doing this.
 
-	    File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-	              Environment.DIRECTORY_PICTURES), "MyCameraApp");
+	    
 	    // This location works best if you want the created images to be shared
 	    // between applications and persist after your app has been uninstalled.
 
