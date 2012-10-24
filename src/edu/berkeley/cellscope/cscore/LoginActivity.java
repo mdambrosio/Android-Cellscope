@@ -1,5 +1,8 @@
 package edu.berkeley.cellscope.cscore;
 
+import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.DaoManager;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,6 +15,11 @@ public class LoginActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        
+        // Setup ORM
+        Dao<CSPicture, String> accountDao =
+        		  DaoManager.createDao(connectionSource, CSPicture.class);
+        
     }
 
     @Override
