@@ -1,5 +1,6 @@
 package edu.berkeley.cellscope.cscore;
 
+import com.j256.ormlite.android.AndroidConnectionSource;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
