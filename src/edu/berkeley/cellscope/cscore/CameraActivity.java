@@ -10,7 +10,7 @@ public class CameraActivity extends Activity {
 	 */
 	PhotoSurface mSurfaceView; 
 	
-	
+	// On create the surface view
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         System.out.println("Launching Cellscope...");

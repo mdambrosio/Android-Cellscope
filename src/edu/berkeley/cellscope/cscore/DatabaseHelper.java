@@ -23,7 +23,7 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	// any time you make changes to your database objects, you may have to increase the database version
 	private static final int DATABASE_VERSION = 1;
 
-	// the DAO object we use to access the SimpleData table
+	// the DAO object we use to access the CSPicture table
 	private Dao<CSPicture, String> simpleDao = null;
 	private RuntimeExceptionDao<CSPicture, String> simpleRuntimeDao = null;
 
@@ -39,21 +39,21 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	public void onCreate(SQLiteDatabase db, ConnectionSource connectionSource) {
 		try {
 			Log.i(DatabaseHelper.class.getName(), "onCreate");
-			TableUtils.createTable(connectionSource, SimpleData.class);
+			TableUtils.createTable(connectionSource, CSPicture.class);
 		} catch (SQLException e) {
 			Log.e(DatabaseHelper.class.getName(), "Can't create database", e);
 			throw new RuntimeException(e);
 		}
 
 		// here we try inserting data in the on-create as a test
-		RuntimeExceptionDao<SimpleData, Integer> dao = getSimpleDataDao();
+		RuntimeExceptionDao<CSPicture, String> dao = getCSPictureDao();
 		long millis = System.currentTimeMillis();
 		// create some entries in the onCreate
-		SimpleData simple = new SimpleData(millis);
-		dao.create(simple);
-		simple = new SimpleData(millis + 1);
-		dao.create(simple);
-		Log.i(DatabaseHelper.class.getName(), "created new entries in onCreate: " + millis);
+		// CSPicture simple = new CSPicture();
+		// dao.create(simple);
+		// simple = new CSPicture();
+		// dao.create(simple);
+		// Log.i(DatabaseHelper.class.getName(), "created new entries in onCreate: " + millis);
 	}
 
 	/**
@@ -64,7 +64,7 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	public void onUpgrade(SQLiteDatabase db, ConnectionSource connectionSource, int oldVersion, int newVersion) {
 		try {
 			Log.i(DatabaseHelper.class.getName(), "onUpgrade");
-			TableUtils.dropTable(connectionSource, SimpleData.class, true);
+			TableUtils.dropTable(connectionSource, CSPicture.class, true);
 			// after we drop the old databases, we create the new ones
 			onCreate(db, connectionSource);
 		} catch (SQLException e) {
@@ -74,23 +74,23 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	}
 
 	/**
-	 * Returns the Database Access Object (DAO) for our SimpleData class. It will create it or just give the cached
+	 * Returns the Database Access Object (DAO) for our CSPicture class. It will create it or just give the cached
 	 * value.
 	 */
-	public Dao<SimpleData, Integer> getDao() throws SQLException {
+	public Dao<CSPicture, String> getDao() throws SQLException {
 		if (simpleDao == null) {
-			simpleDao = getDao(SimpleData.class);
+			simpleDao = getDao(CSPicture.class);
 		}
 		return simpleDao;
 	}
 
 	/**
-	 * Returns the RuntimeExceptionDao (Database Access Object) version of a Dao for our SimpleData class. It will
+	 * Returns the RuntimeExceptionDao (Database Access Object) version of a Dao for our CSPicture class. It will
 	 * create it or just give the cached value. RuntimeExceptionDao only through RuntimeExceptions.
 	 */
-	public RuntimeExceptionDao<SimpleData, Integer> getSimpleDataDao() {
+	public RuntimeExceptionDao<CSPicture, String> getCSPictureDao() {
 		if (simpleRuntimeDao == null) {
-			simpleRuntimeDao = getRuntimeExceptionDao(SimpleData.class);
+			simpleRuntimeDao = getRuntimeExceptionDao(CSPicture.class);
 		}
 		return simpleRuntimeDao;
 	}

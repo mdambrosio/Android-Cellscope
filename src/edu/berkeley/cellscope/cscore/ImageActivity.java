@@ -25,7 +25,7 @@ public class ImageActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.activity_image, menu);
+    	
         return true;
     }
 

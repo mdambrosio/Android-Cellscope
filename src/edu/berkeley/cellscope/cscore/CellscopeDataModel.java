@@ -11,6 +11,9 @@ public class CellscopeDataModel {
 		 // this uses h2 by default but change to match your database
         String databaseUrl = "jdbc:h2:mem:account";
         // create a connection source to our database
+        
+        /*
+        
         ConnectionSource connectionSource = 
             new AndroidConnectionSource(databaseUrl);
 
@@ -20,5 +23,8 @@ public class CellscopeDataModel {
 
         // if you need to create the 'accounts' table make this call
         TableUtils.createTable(connectionSource, CSPicture.class);
+	
+	*/
+	
 	}
 }

@@ -17,8 +17,9 @@ public class LoginActivity extends Activity {
         setContentView(R.layout.activity_login);
         
         // Setup ORM
-        Dao<CSPicture, String> accountDao =
-        		  DaoManager.createDao(connectionSource, CSPicture.class);
+        // Dao<CSPicture, String> accountDao =
+        //		  DaoManager.createDao(connectionSource, CSPicture.class);
+        // How do we fix this?
         
     }
 

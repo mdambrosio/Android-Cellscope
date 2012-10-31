@@ -9,5 +9,7 @@
     <string name="passwordHint">password</string>
     <string name="loginButtonText">login</string>
     <string name="title_activity_gallery">GalleryActivity</string>
+    <string name="title_activity_image_viewer">ImageViewer</string>
+    <string name="title_activity_image">ImageActivity</string>
 
 </resources>
