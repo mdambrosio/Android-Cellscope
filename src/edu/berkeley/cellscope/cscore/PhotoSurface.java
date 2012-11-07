@@ -9,6 +9,7 @@ import java.util.Date;
 
 import edu.berkeley.cellscope.cscore.R;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
@@ -37,6 +38,10 @@ public class PhotoSurface extends SurfaceView {
     /* Designates where images will be saved.
      */
     public static File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyCameraApp");
+    static {
+    	if (!mediaStorageDir.exists())
+    		mediaStorageDir.mkdir();
+    }
     
     /*
      * surfaceChanged() is automatically called whenever the screen changes,
@@ -149,16 +154,18 @@ public class PhotoSurface extends SurfaceView {
 		return true;
 	}
 	
+	@SuppressLint("NewApi")
 	boolean safeCameraOpen() {
         boolean qOpened = false;
         System.out.println("Opening camera...");
         try {
             releaseCameraAndPreview();
-            mCamera = Camera.open(); /* This is the important thing!
+            mCamera = Camera.open(0); /* This is the important thing!
             							It makes an instance of a Camera object that
             							lets the application do stuff with the hardware.
             							*/
             System.out.println("   " + mCamera);
+            System.out.println("   " + Camera.getNumberOfCameras());
             qOpened = (mCamera != null);
         } catch (Exception e) {
         	System.out.println("Failed to open Camera!");
