@@ -50,9 +50,9 @@ public class CameraActivity extends Activity {
 	 public static File videoStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyVideoApp");
 	 static {
 		 if (!mediaStorageDir.exists())
-			 mediaStorageDir.mkdir();
+			 mediaStorageDir.mkdirs();
 		 if (!videoStorageDir.exists())
-			 videoStorageDir.mkdir();
+			 videoStorageDir.mkdirs();
 	 }
     /*
      * surfaceChanged() is automatically called whenever the screen changes,
