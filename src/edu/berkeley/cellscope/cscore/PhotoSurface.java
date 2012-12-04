@@ -7,10 +7,10 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import edu.berkeley.cellscope.cscore.R;
-
-import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
@@ -37,12 +37,6 @@ public class PhotoSurface extends SurfaceView {
     
     /* Designates where images will be saved.
      */
-    public static File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyCameraApp");
-    static {
-    	if (!mediaStorageDir.exists())
-    		mediaStorageDir.mkdir();
-    }
-    
     /*
      * surfaceChanged() is automatically called whenever the screen changes,
      * including when the app is started.
@@ -64,24 +58,27 @@ public class PhotoSurface extends SurfaceView {
 		    Camera.Size mPreviewSize = getPreviewSize(parameters, width, height);
 		    parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
 			try {
-				int orientation = display.getRotation(); 
+				int orientation = display.getRotation();
+				int rotation = 0;
 				switch (orientation) {
 					case Surface.ROTATION_0:
-						parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
-						mCamera.setDisplayOrientation(90);
+						//parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
+						rotation = 90;
 						break;
 					case Surface.ROTATION_180:
-						parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
-						mCamera.setDisplayOrientation(270);
+						//parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
+						rotation = 270;
 						break;
 					case Surface.ROTATION_270:
-						parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
-						mCamera.setDisplayOrientation(180);
+						//parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+						rotation = 180;
 						break;
 					case Surface.ROTATION_90:
-						parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+						System.out.println("case 4");
+						rotation = 0;
 						break;
 				}
+				mCamera.setDisplayOrientation(rotation);
 				mCamera.setParameters(parameters);
 				mCamera.setPreviewDisplay(mHolder);
 			} catch (IOException e) {
@@ -97,15 +94,12 @@ public class PhotoSurface extends SurfaceView {
 	public static final int MEDIA_TYPE_IMAGE = 1;
 	public static final int MEDIA_TYPE_VIDEO = 2;
 	PictureCallback mPicture = new PictureCallback() {
-
 	    public void onPictureTaken(byte[] data, Camera camera) {
-	        File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-	        System.out.println(data);
+	       /* File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
 	        if (pictureFile == null){
 	            System.out.println("Error creating media file, check storage permissions: ");
 	            return;
 	        }
-
 	        try {
 	            FileOutputStream fos = new FileOutputStream(pictureFile);
 	            fos.write(data);
@@ -114,7 +108,43 @@ public class PhotoSurface extends SurfaceView {
 	           System.out.println("File not found: " + e.getMessage());
 	        } catch (IOException e) {
 	        	 System.out.println("Error accessing file: " + e.getMessage());
+	        }*/
+	    	
+	    	Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+	    	int rotation = 0;
+	    	if (bitmap.getHeight() < bitmap.getWidth())
+	    		rotation = 90;
+	    	Bitmap rotatedBitmap;
+	    	if (rotation != 0) {
+	    		 Matrix matrix = new Matrix();
+	             matrix.postRotate(rotation);
+	             rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+	            		 bitmap.getHeight(), matrix, true);
+	    	}
+	    	else
+	    		rotatedBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth(),
+	    				 bitmap.getHeight(), true);
+	    	
+	    	File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+	        if (pictureFile == null){
+	            System.out.println("Error creating media file, check storage permissions: ");
+	            return;
 	        }
+	        try {
+	            FileOutputStream fos = new FileOutputStream(pictureFile);
+	            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+	            //fos.write(data);
+	            fos.close();
+	            bitmap.recycle();
+	            bitmap = null;
+	            rotatedBitmap.recycle();
+	            rotatedBitmap = null;
+	        } catch (FileNotFoundException e) {
+	           System.out.println("File not found: " + e.getMessage());
+	        } catch (IOException e) {
+	        	 System.out.println("Error accessing file: " + e.getMessage());
+	        }
+	        
 	        stopCameraPreview();
 	        activity.finish();
 	       // startCameraPreview();
@@ -154,18 +184,16 @@ public class PhotoSurface extends SurfaceView {
 		return true;
 	}
 	
-	@SuppressLint("NewApi")
 	boolean safeCameraOpen() {
         boolean qOpened = false;
         System.out.println("Opening camera...");
         try {
             releaseCameraAndPreview();
-            mCamera = Camera.open(0); /* This is the important thing!
+            mCamera = Camera.open(); /* This is the important thing!
             							It makes an instance of a Camera object that
             							lets the application do stuff with the hardware.
             							*/
             System.out.println("   " + mCamera);
-            System.out.println("   " + Camera.getNumberOfCameras());
             qOpened = (mCamera != null);
         } catch (Exception e) {
         	System.out.println("Failed to open Camera!");
@@ -213,21 +241,14 @@ public class PhotoSurface extends SurfaceView {
 	    // between applications and persist after your app has been uninstalled.
 
 	    // Create the storage directory if it does not exist
-	    if (! mediaStorageDir.exists()){
-	        if (! mediaStorageDir.mkdirs()){
-	            Log.d("MyCameraApp", "failed to create directory");
-	            return null;
-	        }
-	    }
-
 	    // Create a media file name
 	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	    File mediaFile;
 	    if (type == MEDIA_TYPE_IMAGE){
-	        mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+	        mediaFile = new File(CameraActivity.mediaStorageDir.getPath() + File.separator +
 	        "IMG_"+ timeStamp + ".jpg");
 	    } else if(type == MEDIA_TYPE_VIDEO) {
-	        mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+	        mediaFile = new File(CameraActivity.videoStorageDir.getPath() + File.separator +
 	        "VID_"+ timeStamp + ".mp4");
 	    } else {
 	        return null;

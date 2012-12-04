@@ -8,10 +8,11 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.STORAGE" />
-
+	<uses-permission android:name="android.permission.RECORD_AUDIO" />
+	
     <uses-sdk
         android:minSdkVersion="8"
-        android:targetSdkVersion="15" />
+        android:targetSdkVersion="8" />
 
     <application
         android:icon="@drawable/ic_launcher"
@@ -25,6 +26,7 @@
         <activity
             android:name="CameraActivity"
             android:label="camera_activity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:screenOrientation="portrait" >
         </activity>
         <activity
@@ -36,9 +38,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+       
         <activity
-            android:name=".LibraryActivity"
-            android:label="@string/title_activity_gallery" >
+            android:name=".PhotoLibraryActivity"
+            android:label="@string/title_activity_photo_gallery">
+        </activity>
+        
+        <activity
+            android:name=".VideoLibraryActivity"
+            android:label="@string/title_activity_video_gallery">
         </activity>
         <activity
             android:name=".ImageActivity"

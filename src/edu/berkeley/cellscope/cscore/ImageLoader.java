@@ -1,171 +1,182 @@
 package edu.berkeley.cellscope.cscore;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Collections;
-import java.util.Map;
-import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
-import android.app.Activity;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.media.ThumbnailUtils;
+import android.os.AsyncTask;
+import android.provider.MediaStore;
 import android.widget.ImageView;
 
-public class ImageLoader {MemoryCache memoryCache=new MemoryCache();
-FileCache fileCache;
-private Map<ImageView, String> imageViews=Collections.synchronizedMap(new WeakHashMap<ImageView, String>());
-ExecutorService executorService; 
-
-public ImageLoader(Context context){
-    fileCache=new FileCache(context);
-    executorService=Executors.newFixedThreadPool(5);
-}
-
-final int stub_id = R.drawable.image_bg;
-public void DisplayImage(String url, ImageView imageView)
-{
-    imageViews.put(imageView, url);
-    Bitmap bitmap=memoryCache.get(url);
-    if(bitmap!=null)
-        imageView.setImageBitmap(bitmap);
-    else
-    {
-        queuePhoto(url, imageView);
-        imageView.setImageResource(stub_id);
-    }
-}
-
-private void queuePhoto(String url, ImageView imageView)
-{
-    PhotoToLoad p=new PhotoToLoad(url, imageView);
-    executorService.submit(new PhotosLoader(p));
-}
-
-private Bitmap getBitmap(String url)
-{
-    File f=fileCache.getFile(url);
-
-    //from SD cache
-    Bitmap b = decodeFile(f);
-    if(b!=null)
-        return b;
-	return null;
-
-    //from web
-    //try {
-     //   Bitmap bitmap=null;
-       // URL imageUrl = new URL(url);
-        //HttpURLConnection conn = (HttpURLConnection)imageUrl.openConnection();
-        //conn.setConnectTimeout(30000);
-        //conn.setReadTimeout(30000);
-        //conn.setInstanceFollowRedirects(true);
-        //InputStream is=conn.getInputStream();
-        //OutputStream os = new FileOutputStream(f);
-        //Utils.CopyStream(is, os);
-        //os.close();
-        //bitmap = decodeFile(f);
-        //return bitmap;
-    //} catch (Exception ex){
-       //ex.printStackTrace();
-       //return null;
-    //}
-}
-
-//decodes image and scales it to reduce memory consumption
-private Bitmap decodeFile(File f){
-    try {
-        //decode image size
-        BitmapFactory.Options o = new BitmapFactory.Options();
-        o.inJustDecodeBounds = true;
-        BitmapFactory.decodeStream(new FileInputStream(f),null,o);
-
-        //Find the correct scale value. It should be the power of 2.
-        final int REQUIRED_SIZE=70;
-        int width_tmp=o.outWidth, height_tmp=o.outHeight;
-        int scale=1;
-        while(true){
-            if(width_tmp/2<REQUIRED_SIZE || height_tmp/2<REQUIRED_SIZE)
-                break;
-            width_tmp/=2;
-            height_tmp/=2;
-            scale*=2;
-        }
-
-        //decode with inSampleSize
-        BitmapFactory.Options o2 = new BitmapFactory.Options();
-        o2.inSampleSize=scale;
-        return BitmapFactory.decodeStream(new FileInputStream(f), null, o2);
-    } catch (FileNotFoundException e) {}
-    return null;
-}
-
-//Task for the queue
-private class PhotoToLoad
-{
-    public String url;
-    public ImageView imageView;
-    public PhotoToLoad(String u, ImageView i){
-        url=u;
-        imageView=i;
-    }
-}
-
-class PhotosLoader implements Runnable {
-    PhotoToLoad photoToLoad;
-    PhotosLoader(PhotoToLoad photoToLoad){
-        this.photoToLoad=photoToLoad;
-    }
-
-    public void run() {
-        if(imageViewReused(photoToLoad))
-            return;
-        Bitmap bmp=getBitmap(photoToLoad.url);
-        memoryCache.put(photoToLoad.url, bmp);
-        if(imageViewReused(photoToLoad))
-            return;
-        BitmapDisplayer bd=new BitmapDisplayer(bmp, photoToLoad);
-        Activity a=(Activity)photoToLoad.imageView.getContext();
-        a.runOnUiThread(bd);
-    }
-}
-
-boolean imageViewReused(PhotoToLoad photoToLoad){
-    String tag=imageViews.get(photoToLoad.imageView);
-    if(tag==null || !tag.equals(photoToLoad.url))
-        return true;
-    return false;
-}
-
-//Used to display bitmap in the UI thread
-class BitmapDisplayer implements Runnable
-{
-    Bitmap bitmap;
-    PhotoToLoad photoToLoad;
-    public BitmapDisplayer(Bitmap b, PhotoToLoad p){bitmap=b;photoToLoad=p;}
-    public void run()
-    {
-        if(imageViewReused(photoToLoad))
-            return;
-        if(bitmap!=null)
-            photoToLoad.imageView.setImageBitmap(bitmap);
-        else
-            photoToLoad.imageView.setImageResource(stub_id);
-    }
-}
-
-public void clearCache() {
-    memoryCache.clear();
-    fileCache.clear();
-}
-
+public class ImageLoader {
 	
+	public static Bitmap placeHolderBitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ALPHA_8);
+	
+	public static void loadVideoThumbnail(ImageView imageView, ArrayList<File> files, int position, int width, int height, BitmapCache cache) {
+		if (cancelPotentialWork(position, files, imageView)) {
+	        final VideoBitmapWorkerTask task = new VideoBitmapWorkerTask(imageView, files, width, height, cache);
+	        final AsyncDrawable asyncDrawable =
+	                new AsyncDrawable(placeHolderBitmap, task);
+	        imageView.setImageDrawable(asyncDrawable);
+	        task.execute(position);
+	    }
+	}
+	
+	public static void loadPhotoThumbnail(ImageView imageView, ArrayList<File> files, int position, int width, int height, BitmapCache cache) {
+		if (cancelPotentialWork(position, files, imageView)) {
+	        final BitmapWorkerTask task = new BitmapWorkerTask(imageView, files, width, height, cache);
+	        final AsyncDrawable asyncDrawable =
+	                new AsyncDrawable(placeHolderBitmap, task);
+	        imageView.setImageDrawable(asyncDrawable);
+	        task.execute(position);
+	    }
+	}
+	
+	public static boolean cancelPotentialWork(int position, ArrayList<File> files, ImageView imageView) {
+	    final BitmapWorkerTask bitmapWorkerTask = getBitmapWorkerTask(imageView);
+
+	    if (bitmapWorkerTask != null) {
+	        if (files != bitmapWorkerTask.files || position != bitmapWorkerTask.position) {
+	            // Cancel previous task
+	            bitmapWorkerTask.cancel(true);
+	        } else {
+	            // The same work is already in progress
+	            return false;
+	        }
+	    }
+	    // No task associated with the ImageView, or an existing task was cancelled
+	    return true;
+	}
+	
+	private static BitmapWorkerTask getBitmapWorkerTask(ImageView imageView) {
+       if (imageView != null) {
+           final Drawable drawable = imageView.getDrawable();
+           if (drawable instanceof AsyncDrawable) {
+               final AsyncDrawable asyncDrawable = (AsyncDrawable) drawable;
+               return asyncDrawable.getBitmapWorkerTask();
+           }
+        }
+        return null;
+    }
+	
+	private static Bitmap decodeSampledBitmapFromImageFile(String path, int reqWidth, int reqHeight) {
+		final BitmapFactory.Options options = new BitmapFactory.Options();
+		// First decode with inJustDecodeBounds=true to check dimensions
+		options.inJustDecodeBounds = true;
+		BitmapFactory.decodeFile(path, options);
+		options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+		// Decode bitmap with inSampleSize set
+	    options.inJustDecodeBounds = false;
+	    return BitmapFactory.decodeFile(path, options);
+	}
+	
+	private static Bitmap decodeSampledBitmapFromVideoFile(String path, int reqWidth, int reqHeight) {
+		Bitmap original = ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MICRO_KIND);
+		if (original == null)
+			return placeHolderBitmap;
+		Bitmap scaled = Bitmap.createScaledBitmap(original, reqWidth, reqHeight, false);
+		original.recycle();
+		return scaled;
+	}
+	
+	//Calculates scaled down  image size
+	private static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+	    // Raw height and width of image
+	    final int height = options.outHeight;
+	    final int width = options.outWidth;
+	    int inSampleSize = 1;
+	
+	    if (height > reqHeight || width > reqWidth) {
+	        if (width > height) {
+	            inSampleSize = Math.round((float)height / (float)reqHeight);
+	        } else {
+	            inSampleSize = Math.round((float)width / (float)reqWidth);
+	        }
+	    }
+	    return inSampleSize;
+	}
+	
+	static class BitmapWorkerTask extends AsyncTask<Integer, Void, Bitmap> {
+		protected final BitmapCache cache;
+		protected final WeakReference<ImageView> imageViewReference;
+		protected final ArrayList<File> files;
+		protected final int width, height;
+	    protected int position = 0;
+
+	    public BitmapWorkerTask(ImageView imageView, ArrayList<File> fileList, int width, int height, BitmapCache imageCache) {
+	    	cache = imageCache;
+	        // Use a WeakReference to ensure the ImageView can be garbage collected
+	        imageViewReference = new WeakReference<ImageView>(imageView);
+	        files = fileList;
+	        this.width = width;
+	        this.height = height;
+	    }
+
+	    // Decode image in background.
+	    @Override
+	    protected Bitmap doInBackground(Integer... params) {
+	        position = params[0];
+	        Bitmap bmp = cache.getBitmap(position);
+	        if (bmp == null) {
+	        	bmp = decodeSampledBitmapFromImageFile(files.get(position).getPath(), width, height);
+	        	cache.addBitmap(position, bmp);
+	        }
+	        return bmp;
+	    }
+
+	    // Once complete, see if ImageView is still around and set bitmap.
+	    @Override
+	    protected void onPostExecute(Bitmap bitmap) {
+	    	 if (isCancelled()) {
+	             bitmap = null;
+	         }
+
+	         if (imageViewReference != null && bitmap != null) {
+	             final ImageView imageView = imageViewReference.get();
+	             final BitmapWorkerTask bitmapWorkerTask = getBitmapWorkerTask(imageView);
+	             if (this == bitmapWorkerTask && imageView != null) {
+	                 imageView.setImageBitmap(bitmap);
+	             }
+	         }
+	    }
+	}
+	
+	static class VideoBitmapWorkerTask extends BitmapWorkerTask {
+
+		public VideoBitmapWorkerTask(ImageView imageView,
+				ArrayList<File> fileList, int width, int height,
+				BitmapCache imageCache) {
+			super(imageView, fileList, width, height, imageCache);
+		}
+		
+		protected Bitmap doInBackground(Integer... params) {
+	        position = params[0];
+	        Bitmap bmp = cache.getBitmap(position);
+	        if (bmp == null) {
+	        	bmp = decodeSampledBitmapFromVideoFile(files.get(position).getPath(), width, height);
+	        	cache.addBitmap(position, bmp);
+	        }
+	        return bmp;
+	    }
+
+	}
+	
+	static class AsyncDrawable extends BitmapDrawable {
+	    private final WeakReference<BitmapWorkerTask> bitmapWorkerTaskReference;
+
+	    @SuppressWarnings("deprecation")
+		public AsyncDrawable(Bitmap bitmap, BitmapWorkerTask bitmapWorkerTask) {
+	        super(bitmap);
+	        bitmapWorkerTaskReference = new WeakReference<BitmapWorkerTask>(bitmapWorkerTask);
+	    }
+
+	    public BitmapWorkerTask getBitmapWorkerTask() {
+	        return bitmapWorkerTaskReference.get();
+	    }
+	}
 }

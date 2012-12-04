@@ -38,13 +38,17 @@ public class CameraActivity extends Activity {
 	Camera mCamera;
 	MediaRecorder recorder;
 	boolean previewRunning;
+	boolean cameraBusy;
 	Activity activity;
-	TextView zoomText;
 	float pY;
 	boolean videoState; //false for camera, true for video
 	boolean recording;
 	ImageButton takePhoto;
 	ImageButton switchMode;
+	ImageButton zoomIn;
+	ImageButton zoomOut;
+	TextView zoomText;
+	
 	// On create the surface view
 	 public static File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyCameraApp");
 	 public static File videoStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyVideoApp");
@@ -163,9 +167,8 @@ public class CameraActivity extends Activity {
 	        }
 	        
 	        stopCameraPreview();
-	        releaseCameraAndPreview();
-	        activity.finish();
-	       // startCameraPreview();
+	        startCameraPreview();
+	        cameraBusy = false;
 	    }
 	};
 	
@@ -178,12 +181,14 @@ public class CameraActivity extends Activity {
 	View.OnTouchListener touchListener = new View.OnTouchListener() {
 		
 		public boolean onTouch(View v, MotionEvent event) {
+			if (cameraBusy)
+				return true;
 			if (event.getPointerCount() == 1){
 				int action = event.getActionMasked();
 				
 				 if (action == MotionEvent.ACTION_MOVE) {
 					float y = event.getY();
-					zoom((int)((y - pY)/4));
+					zoom((int)((pY-y)/4));
 					pY = y;
 				}
 				else {
@@ -211,8 +216,10 @@ public class CameraActivity extends Activity {
 	    mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	    zoomText = (TextView)findViewById(R.id.zoomtext);
 	    zoomText.setText("100%");
-	    takePhoto = (ImageButton)findViewById(R.id.takePhotoButton);;
+	    takePhoto = (ImageButton)findViewById(R.id.takePhotoButton);
 	    switchMode = (ImageButton)findViewById(R.id.switchCameraMode);
+	    zoomIn = (ImageButton)findViewById(R.id.zoomInButton);
+	    zoomOut = (ImageButton)findViewById(R.id.zoomOutButton);
     }
     
     /*
@@ -228,6 +235,8 @@ public class CameraActivity extends Activity {
     
     public void onPause() {
     	super.onPause();
+    	if (recording)
+    		stopRecording();
     	stopCameraPreview();
     	releaseCameraAndPreview();
     }
@@ -324,13 +333,25 @@ public class CameraActivity extends Activity {
 	}
 	
 	public void takePhoto(View v) {
-		if (!videoState)
+		if (cameraBusy)
+			return;
+		if (!videoState) {
+			cameraBusy = true;
 			mCamera.takePicture(mShutter, null, mPicture);
+		}
 		else {
 			if (!recording) {
+				takePhoto.setImageResource(R.drawable.stop);
+				switchMode.setVisibility(View.INVISIBLE);
+				zoomIn.setVisibility(View.INVISIBLE);
+				zoomOut.setVisibility(View.INVISIBLE);
 				startRecording();
 			}
 			else {
+				takePhoto.setImageResource(R.drawable.record);
+				switchMode.setVisibility(View.VISIBLE);
+				zoomIn.setVisibility(View.VISIBLE);
+				zoomOut.setVisibility(View.VISIBLE);
 				stopRecording();
 			}
 		}
@@ -340,20 +361,13 @@ public class CameraActivity extends Activity {
 		mCamera.unlock();
 		recorder = new MediaRecorder();
 		recorder.setCamera(mCamera);
-		//recorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
-		//recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-		//recorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_LOW));
-	//	recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-		//recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-	//	recorder.setVideoEncoder(MediaRecorder.VideoEncoder.MPEG_4_SP);
-	/*	recorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
-        recorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT);
-        */
-        recorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
-        recorder.setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT);
-		System.out.println("OUTPUT " + getOutputMediaFile(MEDIA_TYPE_VIDEO).toString());
+		recorder.setVideoSource(MediaRecorder.VideoSource.DEFAULT);
+		CamcorderProfile profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH);
+		recorder.setOutputFormat(profile.fileFormat);
+		recorder.setVideoFrameRate(profile.videoFrameRate);
+		recorder.setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
+		recorder.setVideoEncodingBitRate(profile.videoBitRate);
+		recorder.setVideoEncoder(profile.videoCodec);
 		recorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString());
 		recorder.setPreviewDisplay(mHolder.getSurface());
 		try {
@@ -374,13 +388,15 @@ public class CameraActivity extends Activity {
 	}
 	
 	private void stopRecording() {
+		cameraBusy = true;
 		recorder.stop();
 		recorder.reset();
 		recorder.release();
 		mCamera.lock();
-		mCamera.stopPreview();
-		releaseCameraAndPreview();
-		activity.finish();
+		stopCameraPreview();
+		startCameraPreview();
+		recording = false;
+		cameraBusy = false;
 	}
 	
 	private void zoom(int step) {
@@ -399,14 +415,18 @@ public class CameraActivity extends Activity {
 	}
 	
 	public void zoomIn(View view) {
+		if (cameraBusy)
+			return;
 		zoom(10);
 	}
 	public void zoomOut(View view) {
+		if (cameraBusy)
+			return;
 		zoom(-10);
 	}
 	
 	public void switchMode(View view) {
-		if (recording)
+		if (recording || cameraBusy)
 			return;
 		videoState = !videoState;
 		if (videoState) {

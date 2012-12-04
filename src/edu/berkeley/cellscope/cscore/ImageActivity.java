@@ -17,7 +17,7 @@ public class ImageActivity extends Activity {
         setContentView(R.layout.activity_image);
         ImageView view = (ImageView)findViewById(R.id.image);
         Intent intent = getIntent();
-        String path = intent.getStringExtra(LibraryActivity.IMAGE_PATH);
+        String path = intent.getStringExtra(PhotoLibraryActivity.PATH_INFO);
         File file = new File(path);
         Uri imageUri = Uri.fromFile(file);
         view.setImageURI(imageUri);

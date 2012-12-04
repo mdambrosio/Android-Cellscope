@@ -29,8 +29,13 @@ public class CellscopeLauncher extends Activity {
     	startActivity(intent);
     }
     
-    public void goToLibrary(View v) {
-    	Intent intent = new Intent(this,LibraryActivity.class);
+    public void goToPhotoLibrary(View v) {
+    	Intent intent = new Intent(this,PhotoLibraryActivity.class);
+    	startActivity(intent);
+    }
+    
+    public void goToVideoLibrary(View v) {
+    	Intent intent = new Intent(this,VideoLibraryActivity.class);
     	startActivity(intent);
     }
 

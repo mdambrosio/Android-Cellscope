@@ -3,16 +3,12 @@
     <string name="app_name">Cellscope</string>
     <string name="hello_world">Hello world!</string>
     <string name="menu_settings">Settings</string>
-    <string name="title_activity_cellscope_launcher">CellscopeLauncher</string>
-    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_cellscope_launcher">Navigation</string>
+    <string name="title_activity_login">Cellscope Login</string>
     <string name="usernameHint">username</string>
     <string name="passwordHint">password</string>
     <string name="loginButtonText">login</string>
-    <string name="title_activity_gallery">GalleryActivity</string>
-    <string name="title_activity_image_viewer">ImageViewer</string>
-    <string name="title_activity_image">ImageActivity</string>
-    <string name="take_photo">save</string>
-    <string name="zoom_in">+</string>
-    <string name="zoom_out">-</string>
-
+    <string name="title_activity_photo_gallery">Photo Library</string>
+    <string name="title_activity_video_gallery">Video Library</string>
+    <string name="title_activity_image">Photo Viewer</string>
 </resources>
