@@ -82,7 +82,7 @@ public class CameraActivity extends Activity {
 			try {
 				int orientation = display.getRotation();
 				int rotation = 0;
-				switch (orientation) {
+			/*	switch (orientation) {
 					case Surface.ROTATION_0:
 						//parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
 						rotation = 90;
@@ -96,10 +96,9 @@ public class CameraActivity extends Activity {
 						rotation = 180;
 						break;
 					case Surface.ROTATION_90:
-						System.out.println("case 4");
 						rotation = 0;
 						break;
-				}
+				}*/
 				mCamera.setDisplayOrientation(rotation);
 				mCamera.setParameters(parameters);
 				mCamera.setPreviewDisplay(mHolder);
@@ -116,7 +115,7 @@ public class CameraActivity extends Activity {
 	
 	PictureCallback mPicture = new PictureCallback() {
 	    public void onPictureTaken(byte[] data, Camera camera) {
-	       /* File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+	        File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
 	        if (pictureFile == null){
 	            System.out.println("Error creating media file, check storage permissions: ");
 	            return;
@@ -129,8 +128,8 @@ public class CameraActivity extends Activity {
 	           System.out.println("File not found: " + e.getMessage());
 	        } catch (IOException e) {
 	        	 System.out.println("Error accessing file: " + e.getMessage());
-	        }*/
-	    	
+	        }
+	    	/*
 	    	Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
 	    	int rotation = 0;
 	    	if (bitmap.getHeight() < bitmap.getWidth())
@@ -164,7 +163,7 @@ public class CameraActivity extends Activity {
 	           System.out.println("File not found: " + e.getMessage());
 	        } catch (IOException e) {
 	        	 System.out.println("Error accessing file: " + e.getMessage());
-	        }
+	        }*/
 	        
 	        stopCameraPreview();
 	        startCameraPreview();
@@ -284,12 +283,12 @@ public class CameraActivity extends Activity {
 		return result;
 	}
 	/** Create a file Uri for saving an image or video */
-	private static Uri getOutputMediaFileUri(int type){
+	static Uri getOutputMediaFileUri(int type){
 	      return Uri.fromFile(getOutputMediaFile(type));
 	}
 
 	/** Create a File for saving an image or video */
-	private static File getOutputMediaFile(int type){
+	static File getOutputMediaFile(int type){
 	    // To be safe, you should check that the SDCard is mounted
 	    // using Environment.getExternalStorageState() before doing this.
 

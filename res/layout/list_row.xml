@@ -16,8 +16,8 @@
  
         <ImageView
             android:id="@+id/list_image"
-            android:layout_width="@dimen/thumbnail_width"
-            android:layout_height="@dimen/thumbnail_height"/>
+            android:layout_width="@dimen/thumbnail_size"
+            android:layout_height="@dimen/thumbnail_size"/>
  
     </LinearLayout>
     <TextView

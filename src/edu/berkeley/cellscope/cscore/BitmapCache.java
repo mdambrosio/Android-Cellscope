@@ -8,8 +8,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 
 public class BitmapCache {
-	private ArrayList<Integer> positions;
-	private ArrayList<Bitmap> bitmaps;
+	private volatile ArrayList<Integer> positions;
+	private volatile ArrayList<Bitmap> bitmaps;
 	int maxCacheSize;
 	int cacheSize;
 	public BitmapCache(Context context) {
@@ -22,13 +22,11 @@ public class BitmapCache {
 
 	    // Use 1/8th of the available memory for this memory cache.
 	    maxCacheSize = 1024 * 1024 * memClass / 8;
-	    System.out.println("Cache size " + cacheSize);
 
 	}
 	
 	public void addBitmap(int position, Bitmap bitmap) {
 		int byteCount = getBitmapByteCount(bitmap);
-		
 		if (cacheSize + byteCount >= maxCacheSize && !positions.isEmpty() && !bitmaps.isEmpty()) {
 			positions.remove(0);
 			Bitmap removed = bitmaps.remove(0);

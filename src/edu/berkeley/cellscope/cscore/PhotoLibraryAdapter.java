@@ -51,9 +51,8 @@ public class PhotoLibraryAdapter extends BaseAdapter {
         TextView title = (TextView)vi.findViewById(R.id.path); // title
         ImageView thumbnail =(ImageView)vi.findViewById(R.id.list_image); // thumb image
         title.setText(titles.get(position));
-        int width = (int) vi.getResources().getDimension(R.dimen.thumbnail_width);
-        int height = (int) vi.getResources().getDimension(R.dimen.thumbnail_height);
-        ImageLoader.loadPhotoThumbnail(thumbnail, files, position, width, height, cache);
+        int size = (int) vi.getResources().getDimension(R.dimen.thumbnail_size);
+        ImageLoader.loadPhotoThumbnail(thumbnail, files, position, size, cache);
         //thumbnail.setImageBitmap(ImageLoader.loadThumbnailImage(files.get(position).getPath(), width, height));
         //Uri imageUri = Uri.fromFile(files.get(position));
        // thumbnail.setImageURI(imageUri);

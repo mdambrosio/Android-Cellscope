@@ -29,7 +29,7 @@ public class LoginActivity extends Activity {
     
     public void doLogin(View v) {
     	// Dummy login
-    	Intent intent = new Intent(this,CellscopeLauncher.class);
+    	Intent intent = new Intent(this,MenuActivity.class);
     	startActivity(intent);
     }
 }

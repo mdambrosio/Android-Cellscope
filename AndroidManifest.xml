@@ -19,7 +19,7 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".CellscopeLauncher"
+            android:name=".MenuActivity"
             android:label="@string/title_activity_cellscope_launcher"
             android:screenOrientation="portrait" >
         </activity>
@@ -41,12 +41,14 @@
        
         <activity
             android:name=".PhotoLibraryActivity"
-            android:label="@string/title_activity_photo_gallery">
+            android:label="@string/title_activity_photo_gallery"
+             android:screenOrientation="portrait">
         </activity>
         
         <activity
             android:name=".VideoLibraryActivity"
-            android:label="@string/title_activity_video_gallery">
+            android:label="@string/title_activity_video_gallery"
+            android:screenOrientation="portrait">
         </activity>
         <activity
             android:name=".ImageActivity"

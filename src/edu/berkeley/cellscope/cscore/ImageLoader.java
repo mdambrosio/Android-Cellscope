@@ -6,6 +6,7 @@ import java.util.ArrayList;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.ThumbnailUtils;
@@ -17,9 +18,9 @@ public class ImageLoader {
 	
 	public static Bitmap placeHolderBitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ALPHA_8);
 	
-	public static void loadVideoThumbnail(ImageView imageView, ArrayList<File> files, int position, int width, int height, BitmapCache cache) {
+	public static void loadVideoThumbnail(ImageView imageView, ArrayList<File> files, int position, int size, BitmapCache cache) {
 		if (cancelPotentialWork(position, files, imageView)) {
-	        final VideoBitmapWorkerTask task = new VideoBitmapWorkerTask(imageView, files, width, height, cache);
+	        final VideoBitmapWorkerTask task = new VideoBitmapWorkerTask(imageView, files, size, cache);
 	        final AsyncDrawable asyncDrawable =
 	                new AsyncDrawable(placeHolderBitmap, task);
 	        imageView.setImageDrawable(asyncDrawable);
@@ -27,9 +28,9 @@ public class ImageLoader {
 	    }
 	}
 	
-	public static void loadPhotoThumbnail(ImageView imageView, ArrayList<File> files, int position, int width, int height, BitmapCache cache) {
+	public static void loadPhotoThumbnail(ImageView imageView, ArrayList<File> files, int position, int size, BitmapCache cache) {
 		if (cancelPotentialWork(position, files, imageView)) {
-	        final BitmapWorkerTask task = new BitmapWorkerTask(imageView, files, width, height, cache);
+	        final BitmapWorkerTask task = new BitmapWorkerTask(imageView, files, size, cache);
 	        final AsyncDrawable asyncDrawable =
 	                new AsyncDrawable(placeHolderBitmap, task);
 	        imageView.setImageDrawable(asyncDrawable);
@@ -64,22 +65,32 @@ public class ImageLoader {
         return null;
     }
 	
-	private static Bitmap decodeSampledBitmapFromImageFile(String path, int reqWidth, int reqHeight) {
+	private static Bitmap decodeSampledBitmapFromImageFile(String path, int reqSize) {
 		final BitmapFactory.Options options = new BitmapFactory.Options();
 		// First decode with inJustDecodeBounds=true to check dimensions
 		options.inJustDecodeBounds = true;
 		BitmapFactory.decodeFile(path, options);
-		options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+		options.inSampleSize = calculateInSampleSize(options, reqSize, reqSize);
 		// Decode bitmap with inSampleSize set
 	    options.inJustDecodeBounds = false;
-	    return BitmapFactory.decodeFile(path, options);
+	    Bitmap thumbnail = BitmapFactory.decodeFile(path, options);
+	    if (thumbnail.getWidth() > thumbnail.getHeight()) {
+	        Matrix matrix = new Matrix();
+	        matrix.postRotate(90);
+	        Bitmap raw = thumbnail;
+	        thumbnail = Bitmap.createBitmap(raw, 0, 0, raw.getWidth(), raw.getHeight(), matrix, true);
+	        raw.recycle();
+	        raw = null;
+	    }
+	    return thumbnail;
+		//return ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(path), reqSize, reqSize, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
 	}
 	
-	private static Bitmap decodeSampledBitmapFromVideoFile(String path, int reqWidth, int reqHeight) {
+	private static Bitmap decodeSampledBitmapFromVideoFile(String path, int reqSize) {
 		Bitmap original = ThumbnailUtils.createVideoThumbnail(path, MediaStore.Video.Thumbnails.MICRO_KIND);
 		if (original == null)
 			return placeHolderBitmap;
-		Bitmap scaled = Bitmap.createScaledBitmap(original, reqWidth, reqHeight, false);
+		Bitmap scaled = Bitmap.createScaledBitmap(original, reqSize, reqSize, false);
 		original.recycle();
 		return scaled;
 	}
@@ -105,25 +116,24 @@ public class ImageLoader {
 		protected final BitmapCache cache;
 		protected final WeakReference<ImageView> imageViewReference;
 		protected final ArrayList<File> files;
-		protected final int width, height;
+		protected final int size;
 	    protected int position = 0;
 
-	    public BitmapWorkerTask(ImageView imageView, ArrayList<File> fileList, int width, int height, BitmapCache imageCache) {
+	    public BitmapWorkerTask(ImageView imageView, ArrayList<File> fileList, int size, BitmapCache imageCache) {
 	    	cache = imageCache;
 	        // Use a WeakReference to ensure the ImageView can be garbage collected
 	        imageViewReference = new WeakReference<ImageView>(imageView);
 	        files = fileList;
-	        this.width = width;
-	        this.height = height;
+	        this.size = size;
 	    }
 
 	    // Decode image in background.
 	    @Override
 	    protected Bitmap doInBackground(Integer... params) {
-	        position = params[0];
+	    	position = params[0];
 	        Bitmap bmp = cache.getBitmap(position);
 	        if (bmp == null) {
-	        	bmp = decodeSampledBitmapFromImageFile(files.get(position).getPath(), width, height);
+	        	bmp = decodeSampledBitmapFromImageFile(files.get(position).getPath(), size);
 	        	cache.addBitmap(position, bmp);
 	        }
 	        return bmp;
@@ -149,16 +159,16 @@ public class ImageLoader {
 	static class VideoBitmapWorkerTask extends BitmapWorkerTask {
 
 		public VideoBitmapWorkerTask(ImageView imageView,
-				ArrayList<File> fileList, int width, int height,
+				ArrayList<File> fileList, int size,
 				BitmapCache imageCache) {
-			super(imageView, fileList, width, height, imageCache);
+			super(imageView, fileList, size, imageCache);
 		}
 		
 		protected Bitmap doInBackground(Integer... params) {
 	        position = params[0];
 	        Bitmap bmp = cache.getBitmap(position);
 	        if (bmp == null) {
-	        	bmp = decodeSampledBitmapFromVideoFile(files.get(position).getPath(), width, height);
+	        	bmp = decodeSampledBitmapFromVideoFile(files.get(position).getPath(), size);
 	        	cache.addBitmap(position, bmp);
 	        }
 	        return bmp;
