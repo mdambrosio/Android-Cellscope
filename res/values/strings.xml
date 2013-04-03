@@ -11,4 +11,5 @@
     <string name="title_activity_photo_gallery">Photo Library</string>
     <string name="title_activity_video_gallery">Video Library</string>
     <string name="title_activity_image">Photo Viewer</string>
+    <string name="title_activity_video">Video Viewer</string>
 </resources>

@@ -1,18 +1,21 @@
 package edu.berkeley.cellscope.cscore;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListView;
 
 public class VideoLibraryActivity extends Activity implements OnItemClickListener{
 	ListView view;
@@ -67,5 +70,20 @@ public class VideoLibraryActivity extends Activity implements OnItemClickListene
     }
     
 	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+		Intent intent = new Intent(this, VideoActivity.class);
+		intent.putExtra(PATH_INFO, directory.listFiles()[position].getPath());
+		startActivity(intent);
+		/*File file = directory.listFiles()[position];
+		MediaPlayer mediaPlayer = new MediaPlayer();
+		try {
+			mediaPlayer.setDataSource(getApplicationContext(), Uri.fromFile(file));
+			mediaPlayer.prepare();
+			mediaPlayer.start();
+		} catch (Exception e) {
+			System.out.println("Failed to load video.");
+		}
+		//mp.start();
+		
+		*/
 	}
 }

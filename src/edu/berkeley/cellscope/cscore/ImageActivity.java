@@ -6,13 +6,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
-import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.os.Bundle;
 import android.view.Menu;
 import android.widget.ImageView;
-import android.widget.ImageView.ScaleType;
 
 public class ImageActivity extends Activity {
 	
@@ -32,7 +29,9 @@ public class ImageActivity extends Activity {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-               
+		img = BitmapFactory.decodeFile(path);
+		view.setImageBitmap(img);
+         /*      
         Bitmap raw = BitmapFactory.decodeFile(path);
         Matrix matrix = new Matrix();
         matrix.postRotate(90);
@@ -40,7 +39,7 @@ public class ImageActivity extends Activity {
         view.setImageBitmap(img);
         raw.recycle();
         
-		/*img = BitmapFactory.decodeFile(path);
+		img = BitmapFactory.decodeFile(path);
 		view.setImageBitmap(img);
         view.setScaleType(ScaleType.MATRIX);   //required
         Matrix matrix=new Matrix();

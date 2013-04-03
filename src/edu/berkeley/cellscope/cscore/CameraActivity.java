@@ -9,9 +9,6 @@ import java.util.Date;
 
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
@@ -28,6 +25,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.AnimationUtils;
+import android.view.animation.RotateAnimation;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -82,7 +81,7 @@ public class CameraActivity extends Activity {
 			try {
 				int orientation = display.getRotation();
 				int rotation = 0;
-			/*	switch (orientation) {
+				switch (orientation) {
 					case Surface.ROTATION_0:
 						//parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
 						rotation = 90;
@@ -98,7 +97,7 @@ public class CameraActivity extends Activity {
 					case Surface.ROTATION_90:
 						rotation = 0;
 						break;
-				}*/
+				}
 				mCamera.setDisplayOrientation(rotation);
 				mCamera.setParameters(parameters);
 				mCamera.setPreviewDisplay(mHolder);
@@ -186,7 +185,7 @@ public class CameraActivity extends Activity {
 				int action = event.getActionMasked();
 				
 				 if (action == MotionEvent.ACTION_MOVE) {
-					float y = event.getY();
+					float y = event.getX();
 					zoom((int)((pY-y)/4));
 					pY = y;
 				}
@@ -214,7 +213,9 @@ public class CameraActivity extends Activity {
 	    mHolder.addCallback(mCallback);
 	    mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	    zoomText = (TextView)findViewById(R.id.zoomtext);
+	    RotateAnimation rotate= (RotateAnimation)AnimationUtils.loadAnimation(this,R.anim.rotate_textview);
 	    zoomText.setText("100%");
+	    zoomText.setAnimation(rotate);
 	    takePhoto = (ImageButton)findViewById(R.id.takePhotoButton);
 	    switchMode = (ImageButton)findViewById(R.id.switchCameraMode);
 	    zoomIn = (ImageButton)findViewById(R.id.zoomInButton);

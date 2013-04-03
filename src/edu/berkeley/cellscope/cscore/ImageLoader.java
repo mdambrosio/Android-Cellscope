@@ -6,7 +6,6 @@ import java.util.ArrayList;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.ThumbnailUtils;
@@ -17,10 +16,9 @@ import android.widget.ImageView;
 public class ImageLoader {
 	
 	public static Bitmap placeHolderBitmap = Bitmap.createBitmap(64, 64, Bitmap.Config.ALPHA_8);
-	
 	public static void loadVideoThumbnail(ImageView imageView, ArrayList<File> files, int position, int size, BitmapCache cache) {
 		if (cancelPotentialWork(position, files, imageView)) {
-	        final VideoBitmapWorkerTask task = new VideoBitmapWorkerTask(imageView, files, size, cache);
+	        final VideoBitmapWorkerTask task = new VideoBitmapWorkerTask(imageView, files, size, cache, position);
 	        final AsyncDrawable asyncDrawable =
 	                new AsyncDrawable(placeHolderBitmap, task);
 	        imageView.setImageDrawable(asyncDrawable);
@@ -29,12 +27,12 @@ public class ImageLoader {
 	}
 	
 	public static void loadPhotoThumbnail(ImageView imageView, ArrayList<File> files, int position, int size, BitmapCache cache) {
+		System.out.println("Queueing " + position);
 		if (cancelPotentialWork(position, files, imageView)) {
-	        final BitmapWorkerTask task = new BitmapWorkerTask(imageView, files, size, cache);
-	        final AsyncDrawable asyncDrawable =
-	                new AsyncDrawable(placeHolderBitmap, task);
+	        final BitmapWorkerTask task = new BitmapWorkerTask(imageView, files, size, cache, position);
+	        final AsyncDrawable asyncDrawable = new AsyncDrawable(placeHolderBitmap, task);
 	        imageView.setImageDrawable(asyncDrawable);
-	        task.execute(position);
+	        task.execute();
 	    }
 	}
 	
@@ -74,14 +72,14 @@ public class ImageLoader {
 		// Decode bitmap with inSampleSize set
 	    options.inJustDecodeBounds = false;
 	    Bitmap thumbnail = BitmapFactory.decodeFile(path, options);
-	    if (thumbnail.getWidth() > thumbnail.getHeight()) {
+	   /* if (thumbnail.getWidth() > thumbnail.getHeight()) {
 	        Matrix matrix = new Matrix();
 	        matrix.postRotate(90);
 	        Bitmap raw = thumbnail;
 	        thumbnail = Bitmap.createBitmap(raw, 0, 0, raw.getWidth(), raw.getHeight(), matrix, true);
 	        raw.recycle();
 	        raw = null;
-	    }
+	    }*/
 	    return thumbnail;
 		//return ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(path), reqSize, reqSize, ThumbnailUtils.OPTIONS_RECYCLE_INPUT);
 	}
@@ -119,29 +117,38 @@ public class ImageLoader {
 		protected final int size;
 	    protected int position = 0;
 
-	    public BitmapWorkerTask(ImageView imageView, ArrayList<File> fileList, int size, BitmapCache imageCache) {
+	    public BitmapWorkerTask(ImageView imageView, ArrayList<File> fileList, int size, BitmapCache imageCache, int pos) {
 	    	cache = imageCache;
 	        // Use a WeakReference to ensure the ImageView can be garbage collected
 	        imageViewReference = new WeakReference<ImageView>(imageView);
 	        files = fileList;
 	        this.size = size;
+	        this.position = pos;
+	    }
+	    
+	    public void execute() {
+	    	this.execute(position);
 	    }
 
 	    // Decode image in background.
 	    @Override
 	    protected Bitmap doInBackground(Integer... params) {
-	    	position = params[0];
+
+	    	System.out.println("Executing " + position);
+	    	int position = params[0];
 	        Bitmap bmp = cache.getBitmap(position);
 	        if (bmp == null) {
 	        	bmp = decodeSampledBitmapFromImageFile(files.get(position).getPath(), size);
 	        	cache.addBitmap(position, bmp);
 	        }
+	    	System.out.println("Execution done... " + position);
 	        return bmp;
 	    }
 
 	    // Once complete, see if ImageView is still around and set bitmap.
 	    @Override
 	    protected void onPostExecute(Bitmap bitmap) {
+	    	System.out.println("Completing " + position);
 	    	 if (isCancelled()) {
 	             bitmap = null;
 	         }
@@ -158,10 +165,8 @@ public class ImageLoader {
 	
 	static class VideoBitmapWorkerTask extends BitmapWorkerTask {
 
-		public VideoBitmapWorkerTask(ImageView imageView,
-				ArrayList<File> fileList, int size,
-				BitmapCache imageCache) {
-			super(imageView, fileList, size, imageCache);
+		public VideoBitmapWorkerTask(ImageView imageView, ArrayList<File> fileList, int size, BitmapCache imageCache, int position) {
+			super(imageView, fileList, size, imageCache, position);
 		}
 		
 		protected Bitmap doInBackground(Integer... params) {

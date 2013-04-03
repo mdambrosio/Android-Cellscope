@@ -27,7 +27,7 @@
             android:name="CameraActivity"
             android:label="camera_activity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
-            android:screenOrientation="portrait" >
+            android:screenOrientation="landscape" >
         </activity>
         <activity
             android:name=".LoginActivity"
@@ -53,6 +53,10 @@
         <activity
             android:name=".ImageActivity"
             android:label="@string/title_activity_image" >
+        </activity>
+        <activity
+            android:name=".VideoActivity"
+            android:label="@string/title_activity_video" >
         </activity>
     </application>
 
