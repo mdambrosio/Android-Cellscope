@@ -47,7 +47,9 @@ public class CameraActivity extends Activity {
 	ImageButton zoomIn;
 	ImageButton zoomOut;
 	TextView zoomText;
-	
+	double pinchDist;
+	private static final double firstTouchEvent = -1;
+	private static final double pinchSensitivity = 0.5;
 	// On create the surface view
 	 public static File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyCameraApp");
 	 public static File videoStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyVideoApp");
@@ -181,16 +183,16 @@ public class CameraActivity extends Activity {
 		public boolean onTouch(View v, MotionEvent event) {
 			if (cameraBusy)
 				return true;
-			if (event.getPointerCount() == 1){
-				int action = event.getActionMasked();
-				
-				 if (action == MotionEvent.ACTION_MOVE) {
-					float y = event.getX();
-					zoom((int)((pY-y)/4));
-					pY = y;
+			if (event.getPointerCount() == 2){
+				if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+					double newDist = Math.sqrt( Math.pow(event.getX(0) - event.getX(1), 2) + Math.pow(event.getY(0) - event.getY(1), 2));
+					if (pinchDist != firstTouchEvent) {
+						zoom((int)((newDist-pinchDist) * pinchSensitivity));
+					}
+					pinchDist = newDist;
 				}
 				else {
-					pY = event.getY();
+					pinchDist = firstTouchEvent;
 				}
 			}
 			return true;
@@ -202,10 +204,7 @@ public class CameraActivity extends Activity {
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        System.out.println("Launching Cellscope...");
         activity = this;
-        //mSurfaceView = new PhotoSurface(this);
-    	//setContentView(mSurfaceView);
         setContentView(R.layout.activity_photo);
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
         mSurfaceView.setOnTouchListener(touchListener);
@@ -213,13 +212,14 @@ public class CameraActivity extends Activity {
 	    mHolder.addCallback(mCallback);
 	    mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 	    zoomText = (TextView)findViewById(R.id.zoomtext);
-	    RotateAnimation rotate= (RotateAnimation)AnimationUtils.loadAnimation(this,R.anim.rotate_textview);
+	   // RotateAnimation rotate= (RotateAnimation)AnimationUtils.loadAnimation(this,R.anim.rotate_textview);
 	    zoomText.setText("100%");
-	    zoomText.setAnimation(rotate);
+	   // zoomText.setAnimation(rotate);
 	    takePhoto = (ImageButton)findViewById(R.id.takePhotoButton);
 	    switchMode = (ImageButton)findViewById(R.id.switchCameraMode);
 	    zoomIn = (ImageButton)findViewById(R.id.zoomInButton);
 	    zoomOut = (ImageButton)findViewById(R.id.zoomOutButton);
+	    pinchDist = firstTouchEvent;
     }
     
     /*

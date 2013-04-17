@@ -13,8 +13,8 @@
     <TextView
         android:id="@+id/zoomtext"
         style="@style/zoomOverlayText"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentBottom="true" />
 

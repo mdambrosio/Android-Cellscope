@@ -3,14 +3,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
-
-    <edu.berkeley.cellscope.cscore.ZoomableImageView
-        android:id="@+id/image_view"
+    
+	<VideoView
+	    android:id="@+id/video"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true"
-        tools:context=".ImageActivity"
+        tools:context=".VideoActivity"
         android:contentDescription="temp"/>
-
+    
 </RelativeLayout>

@@ -1,36 +1,24 @@
 package edu.berkeley.cellscope.cscore;
 
-import java.io.IOException;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.media.ExifInterface;
 import android.os.Bundle;
 import android.view.Menu;
-import android.widget.ImageView;
 
 public class ImageActivity extends Activity {
 	
-	private Bitmap img;
+	ZoomableImageView view;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image);
-        final ImageView view = (ImageView)findViewById(R.id.image);
+        view = (ZoomableImageView)findViewById(R.id.image_view);
         Intent intent = getIntent();
         String path = intent.getStringExtra(PhotoLibraryActivity.PATH_INFO);
-       
-        ExifInterface exif = null;
-		try {
-			exif = new ExifInterface(path);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		img = BitmapFactory.decodeFile(path);
-		view.setImageBitmap(img);
+        view.setImage(path);
+		//img = BitmapFactory.decodeFile(path);
+		//view.setImageBitmap(img);
          /*      
         Bitmap raw = BitmapFactory.decodeFile(path);
         Matrix matrix = new Matrix();
@@ -68,13 +56,6 @@ public class ImageActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
     	
         return true;
-    }
-    
-    @Override
-    public void onDestroy() {
-    	super.onDestroy();
-    	img.recycle();
-    	img = null;
     }
 
     
