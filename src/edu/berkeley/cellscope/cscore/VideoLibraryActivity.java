@@ -20,6 +20,9 @@ public class VideoLibraryActivity extends Activity implements OnItemClickListene
 	VideoLibraryAdapter adapter;
 	BitmapCache cache;
 	static File directory = CameraActivity.videoStorageDir;
+	int selectedItem;
+	private ArrayList<File> fileList;
+    private ArrayList<String> fileNames; 
 	public static String PATH_INFO = "path";
 	
     @Override
@@ -31,8 +34,8 @@ public class VideoLibraryActivity extends Activity implements OnItemClickListene
         
         File[] files = directory.listFiles();
         int len = files.length;
-        ArrayList<File> fileList = new ArrayList<File>(len);
-        ArrayList<String> fileNames = new ArrayList<String>(len);
+        fileList = new ArrayList<File>(len);
+         fileNames = new ArrayList<String>(len);
         //ArrayList<File> adapter = new ArrayList<File>();
         for (File f: files) {
         	fileList.add(f);
@@ -67,9 +70,10 @@ public class VideoLibraryActivity extends Activity implements OnItemClickListene
     }
     
 	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+		selectedItem = position;
 		Intent intent = new Intent(this, VideoActivity.class);
 		intent.putExtra(PATH_INFO, directory.listFiles()[position].getPath());
-		startActivity(intent);
+		startActivityForResult(intent, 1);
 		/*File file = directory.listFiles()[position];
 		MediaPlayer mediaPlayer = new MediaPlayer();
 		try {
@@ -82,5 +86,18 @@ public class VideoLibraryActivity extends Activity implements OnItemClickListene
 		//mp.start();
 		
 		*/
+	}
+	
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == 1) {
+			if(resultCode == RESULT_OK){//file was deleted
+				System.out.println("RESULT OK");
+				File f = fileList.remove(selectedItem);
+				f.delete();
+				fileNames.remove(selectedItem);
+				cache.removeItem(selectedItem);
+				adapter.notifyDataSetChanged();
+			}
+		}
 	}
 }

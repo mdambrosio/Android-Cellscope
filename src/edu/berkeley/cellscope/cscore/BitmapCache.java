@@ -8,8 +8,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 
 public class BitmapCache {
-	private volatile ArrayList<Integer> positions;
-	private volatile ArrayList<Bitmap> bitmaps;
+	volatile ArrayList<Integer> positions;
+	volatile ArrayList<Bitmap> bitmaps;
 	int maxCacheSize;
 	int cacheSize;
 	public BitmapCache(Context context) {
@@ -52,5 +52,14 @@ public class BitmapCache {
 		byte[] ba = bao.toByteArray();
 		int size = ba.length;
 		return size;
+	}
+	
+	public void removeItem(int item) {
+		int index = positions.indexOf(item);
+		positions.remove(index);
+		bitmaps.remove(index);
+		int size = positions.size();
+		for (int i = index; i < size; i ++)
+			positions.set(i, positions.get(i) - 1);
 	}
 }

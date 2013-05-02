@@ -21,6 +21,9 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
 	BitmapCache cache;
 	static File directory = CameraActivity.mediaStorageDir;
 	public static String PATH_INFO = "path";
+	int selectedItem;
+	private ArrayList<File> fileList;
+    private ArrayList<String> fileNames; 
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -31,8 +34,8 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
         
         File[] files = directory.listFiles();
         int len = files.length;
-        ArrayList<File> fileList = new ArrayList<File>(len);
-        ArrayList<String> fileNames = new ArrayList<String>(len);
+        fileList = new ArrayList<File>(len);
+        fileNames = new ArrayList<String>(len);
         //ArrayList<File> adapter = new ArrayList<File>();
         for (File f: files) {
         	fileList.add(f);
@@ -48,6 +51,7 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
         
         list.setOnItemClickListener(this);
     }
+  
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -67,8 +71,23 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
     }
     
 	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+		selectedItem = position;
 		Intent intent = new Intent(this, ImageActivity.class);
 		intent.putExtra(PATH_INFO, directory.listFiles()[position].getPath());
-		startActivity(intent);
+		startActivityForResult(intent, 1);
 	}
+	
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == 1) {
+			if(resultCode == RESULT_OK){//file was deleted
+				System.out.println("RESULT OK");
+				File f = fileList.remove(selectedItem);
+				f.delete();
+				fileNames.remove(selectedItem);
+				cache.removeItem(selectedItem);
+				adapter.notifyDataSetChanged();
+			}
+		}
+	}
+
 }

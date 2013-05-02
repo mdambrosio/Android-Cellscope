@@ -56,7 +56,8 @@
         </activity>
         <activity
             android:name=".VideoActivity"
-            android:label="@string/title_activity_video" >
+            android:label="@string/title_activity_video"
+            android:screenOrientation="landscape">
         </activity>
     </application>
 

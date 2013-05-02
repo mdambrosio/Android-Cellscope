@@ -2,15 +2,22 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical" >
-    
+    android:orientation="horizontal" >
+    
 	<VideoView
-	    android:id="@+id/video"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        tools:context=".VideoActivity"
-        android:contentDescription="temp"/>
+	    android:id="@+id/videoView"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:layout_above="@+id/videoSeek"
+	    android:layout_centerHorizontal="true"
+	    tools:context=".VideoActivity" />
+
+	<SeekBar
+	    android:id="@+id/videoSeek"
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:layout_alignParentBottom="true"
+	    android:layout_alignParentLeft="true"
+	    android:layout_margin="20dp" />
     
 </RelativeLayout>

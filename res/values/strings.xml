@@ -12,4 +12,5 @@
     <string name="title_activity_video_gallery">Video Library</string>
     <string name="title_activity_image">Photo Viewer</string>
     <string name="title_activity_video">Video Viewer</string>
+    <string name="delete_button">Delete</string>
 </resources>

@@ -1,21 +1,24 @@
 package edu.berkeley.cellscope.cscore;
 
+import java.io.File;
+
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuItem;
 
 public class ImageActivity extends Activity {
 	
 	ZoomableImageView view;
+	String path;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image);
         view = (ZoomableImageView)findViewById(R.id.image_view);
         Intent intent = getIntent();
-        String path = intent.getStringExtra(PhotoLibraryActivity.PATH_INFO);
+        path = intent.getStringExtra(PhotoLibraryActivity.PATH_INFO);
         view.setImage(path);
 		//img = BitmapFactory.decodeFile(path);
 		//view.setImageBitmap(img);
@@ -54,9 +57,15 @@ public class ImageActivity extends Activity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-    	
+        getMenuInflater().inflate(R.menu.activity_image, menu);
         return true;
     }
-
+    
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	Intent returnIntent = new Intent();
+    	setResult(RESULT_OK, returnIntent); 
+    	finish();
+    	return true;
+    }
     
 }
