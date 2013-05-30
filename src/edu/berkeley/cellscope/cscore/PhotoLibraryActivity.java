@@ -72,7 +72,7 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
     
 	public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 		selectedItem = position;
-		Intent intent = new Intent(this, ImageActivity.class);
+		Intent intent = new Intent(this, PhotoActivity.class);
 		intent.putExtra(PATH_INFO, directory.listFiles()[position].getPath());
 		startActivityForResult(intent, 1);
 	}

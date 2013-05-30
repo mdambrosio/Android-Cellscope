@@ -8,7 +8,11 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import android.app.Activity;
-import android.content.Context;
+import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
@@ -17,18 +21,23 @@ import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
-import android.view.Display;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
-import android.view.WindowManager;
-import android.view.animation.AnimationUtils;
-import android.view.animation.RotateAnimation;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
+
+/**
+ * This activity runs the camera, allowing either photos or video to be taken.
+ */
 
 public class CameraActivity extends Activity {
 	//PhotoSurface mSurfaceView; 
@@ -39,18 +48,87 @@ public class CameraActivity extends Activity {
 	boolean previewRunning;
 	boolean cameraBusy;
 	Activity activity;
-	float pY;
+	double touchX, touchY;
 	boolean videoState; //false for camera, true for video
-	boolean recording;
-	ImageButton takePhoto;
-	ImageButton switchMode;
-	ImageButton zoomIn;
-	ImageButton zoomOut;
+	boolean recording; //true when the video camera is running
+	boolean forceUpdateCamera;
+	ImageButton takePhoto, switchMode, zoomIn, zoomOut;
 	TextView zoomText;
 	double pinchDist;
 	private static final double firstTouchEvent = -1;
 	private static final double pinchSensitivity = 0.5;
-	// On create the surface view
+	private static final double PAN_THRESHOLD = 25;
+	
+	//Bluetooth stuff
+
+    private MenuItem mMenuItemConnect;
+    private static BluetoothSerialService mSerialService = null;
+    private boolean mEnablingBT;
+    
+    private int panState;
+    private static final int xRightMotor = BluetoothActivity.xRightMotor;
+    private static final int xLeftMotor = BluetoothActivity.xLeftMotor;
+    private static final int yBackMotor = BluetoothActivity.yBackMotor;
+    private static final int yForwardMotor = BluetoothActivity.yForwardMotor;
+    private static final int zUpMotor = BluetoothActivity.zUpMotor;
+    private static final int zDownMotor = BluetoothActivity.zDownMotor;
+    private static final int stopMotor = 0;
+	
+	// Intent request codes
+    private static final int REQUEST_CONNECT_DEVICE = 1;
+    private static final int REQUEST_ENABLE_BT = 2;
+	
+
+    // Name of the connected device
+    private String mConnectedDeviceName = null;
+    
+	private BluetoothAdapter mBluetoothAdapter = null;
+
+    private boolean mLocalEcho = false;
+    private boolean bluetoothEnabled = false;
+    private boolean proceedWithConnection = true;
+    TextView bluetoothNameLabel;
+    
+    // Message types sent from the BluetoothReadService Handler
+    public static final int MESSAGE_STATE_CHANGE = 1;
+    public static final int MESSAGE_READ = 2;
+    public static final int MESSAGE_WRITE = 3;
+    public static final int MESSAGE_DEVICE_NAME = 4;
+    public static final int MESSAGE_TOAST = 5;	
+
+    // Key names received from the BluetoothChatService Handler
+    public static final String DEVICE_NAME = "device_name";
+    public static final String TOAST = "toast";
+
+
+    /**
+     * Set to true to add debugging code and logging.
+     */
+    public static final boolean DEBUG = true;
+
+    /**
+     * Set to true to log each character received from the remote process to the
+     * android log, which makes it easier to debug some kinds of problems with
+     * emulating escape sequences and control codes.
+     */
+    public static final boolean LOG_CHARACTERS_FLAG = DEBUG && true;
+
+    /**
+     * Set to true to log unknown escape sequences.
+     */
+    public static final boolean LOG_UNKNOWN_ESCAPE_SEQUENCES = DEBUG && true;
+
+    /**
+     * The tag we use when logging, so that our messages can be distinguished
+     * from other messages in the log. Public because it's used by several
+     * classes.
+     */
+	public static final String LOG_TAG = "CellScope";
+	
+
+	public static final int MEDIA_TYPE_IMAGE = 1;
+	public static final int MEDIA_TYPE_VIDEO = 2;
+	// Create the storage directories
 	 public static File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyCameraApp");
 	 public static File videoStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "MyVideoApp");
 	 static {
@@ -59,11 +137,89 @@ public class CameraActivity extends Activity {
 		 if (!videoStorageDir.exists())
 			 videoStorageDir.mkdirs();
 	 }
+	 
+	// The Handler that gets information back from the BluetoothService
+	    private final Handler mHandlerBT = new Handler() {
+	    	
+	        @Override
+	        public void handleMessage(Message msg) {        	
+	            switch (msg.what) {
+	            case MESSAGE_STATE_CHANGE:
+	                if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+	                switch (msg.arg1) {
+	                case BluetoothSerialService.STATE_CONNECTED:
+	                    if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTED");
+	                	if (mMenuItemConnect != null) {
+	                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
+	                		mMenuItemConnect.setTitle(R.string.disconnect);
+	                	}
+	                	
+	                	//Replace my input variable to the bluetooth device below
+	//------           	mInputManager.showSoftInput(mEmulatorView, InputMethodManager.SHOW_IMPLICIT);
+	                	
+	                	bluetoothNameLabel.setText(R.string.title_connected_to);
+	                	bluetoothNameLabel.append(mConnectedDeviceName);
+                		bluetoothEnabled = true;
+	                    break;
+	                    
+	                case BluetoothSerialService.STATE_CONNECTING:
+	                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTING");
+	                	bluetoothNameLabel.setText(R.string.title_connecting);
+	                    break;
+	                    
+	                case BluetoothSerialService.STATE_LISTEN:
+	                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_LISTEN");
+	                case BluetoothSerialService.STATE_NONE:
+	                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_NONE");
+	                	if (mMenuItemConnect != null) {
+	                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
+	                		mMenuItemConnect.setTitle(R.string.connect);
+	                	}
+
+	            		//I have to replace this line with whatever I am using as an input to the bluetooth device
+	//-----                	mInputManager.hideSoftInputFromWindow(mEmulatorView.getWindowToken(), 0);
+	                	bluetoothNameLabel.setText(R.string.title_not_connected);
+                		bluetoothEnabled = false;
+	                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTED/CACA");
+
+	                    break;
+	                }
+	                break;
+	            case MESSAGE_WRITE:
+	            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_WRITE " + msg.arg1);
+	            	if (mLocalEcho) {
+	            		byte[] writeBuf = (byte[]) msg.obj;
+	            		//mEmulatorView.write(writeBuf, msg.arg1);
+	            	}
+	                
+	                break;
+	                
+	            case MESSAGE_READ:
+	            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_READ " + msg.arg1);
+	            	byte[] readBuf = (byte[]) msg.obj;              
+	                //mEmulatorView.write(readBuf, msg.arg1);
+	                
+	                break;
+	                
+	            case MESSAGE_DEVICE_NAME:
+	            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_DEVICE_NAME: " + msg.arg1);
+	            	// save the connected device's name
+	                mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+	                Toast.makeText(getApplicationContext(), "Connected to "
+	                               + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+	                break;
+	            case MESSAGE_TOAST:
+	            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_TOAST: " + msg.arg1);
+	            	Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
+	                               Toast.LENGTH_SHORT).show();
+	                break;
+	            }
+	        }
+	    };
+	 
     /*
      * surfaceChanged() is automatically called whenever the screen changes,
      * including when the app is started.
-     * Currently, the app is set so that it starts in portrait mode and cannot
-     * switch to landscape, so this is only called once at the start.
      * 
      * This method sets the camera to display the preview on mSurfaceView,
      * sets the preview to the appropriate size,
@@ -72,20 +228,19 @@ public class CameraActivity extends Activity {
     SurfaceHolder.Callback mCallback = new SurfaceHolder.Callback() {
 		public void surfaceCreated(SurfaceHolder holder) {}
 		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-			System.out.println("Surface changed...");
 			if (previewRunning)
 				stopCameraPreview();
-			Display display = ((WindowManager)(activity.getSystemService(Context.WINDOW_SERVICE))).getDefaultDisplay();
+			setCameraParameters();
+			/*Display display = ((WindowManager)(activity.getSystemService(Context.WINDOW_SERVICE))).getDefaultDisplay();
 			Camera.Parameters parameters = mCamera.getParameters();
-		    Camera.Size mPreviewSize = getPreviewSize(parameters, width, height);
-		    System.out.println(parameters);
+		  //  Camera.Size mPreviewSize = getPreviewSize(parameters, width, height);
 		  //  parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
 			try {
 				int orientation = display.getRotation();
 				int rotation = 0;
 				switch (orientation) {
 					case Surface.ROTATION_0:
-						//parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width);
+						//parameters.setPreviewSize(mPreviewSize.height, mPreviewSize.width); //No need to resize the picture
 						rotation = 90;
 						break;
 					case Surface.ROTATION_180:
@@ -107,13 +262,17 @@ public class CameraActivity extends Activity {
 				e.printStackTrace();
 			}
 			
-			mCamera.setParameters(parameters);
+			mCamera.setParameters(parameters);*/
 		    startCameraPreview();
 		}
 		
 		public void surfaceDestroyed(SurfaceHolder holder) {}
 	};
 	
+	
+	/**
+	 * Called as the picture is being taken. Contains code for saving the picture data to an image file.
+	 */
 	PictureCallback mPicture = new PictureCallback() {
 	    public void onPictureTaken(byte[] data, Camera camera) {
 	        File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
@@ -130,63 +289,38 @@ public class CameraActivity extends Activity {
 	        } catch (IOException e) {
 	        	 System.out.println("Error accessing file: " + e.getMessage());
 	        }
-	    	/*
-	    	Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-	    	int rotation = 0;
-	    	if (bitmap.getHeight() < bitmap.getWidth())
-	    		rotation = 90;
-	    	Bitmap rotatedBitmap;
-	    	if (rotation != 0) {
-	    		 Matrix matrix = new Matrix();
-	             matrix.postRotate(rotation);
-	             rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
-	            		 bitmap.getHeight(), matrix, true);
-	    	}
-	    	else
-	    		rotatedBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth(),
-	    				 bitmap.getHeight(), true);
-	    	
-	    	File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-	        if (pictureFile == null){
-	            System.out.println("Error creating media file, check storage permissions: ");
-	            return;
-	        }
-	        try {
-	            FileOutputStream fos = new FileOutputStream(pictureFile);
-	            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-	            //fos.write(data);
-	            fos.close();
-	            bitmap.recycle();
-	            bitmap = null;
-	            rotatedBitmap.recycle();
-	            rotatedBitmap = null;
-	        } catch (FileNotFoundException e) {
-	           System.out.println("File not found: " + e.getMessage());
-	        } catch (IOException e) {
-	        	 System.out.println("Error accessing file: " + e.getMessage());
-	        }*/
-	        
 	        stopCameraPreview();
 	        startCameraPreview();
 	        cameraBusy = false;
 	    }
 	};
 	
+	/*
+	 * onShutter() is called as the picture is taken.
+	 */
 	ShutterCallback mShutter = new ShutterCallback() {
 		public void onShutter() {
 			
 		}
 	};
 	
+	
+	/*
+	 * Controls responses to touching the screen
+	 */
 	View.OnTouchListener touchListener = new View.OnTouchListener() {
-		
 		public boolean onTouch(View v, MotionEvent event) {
 			if (cameraBusy)
 				return true;
-			if (event.getPointerCount() == 2){
-				if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+			
+			int pointers = event.getPointerCount();
+			int action = event.getActionMasked();
+			int newState = stopMotor;
+			//Pinch zoom
+			if (pointers == 2){
+				if (action == MotionEvent.ACTION_MOVE) {
 					double newDist = Math.sqrt( Math.pow(event.getX(0) - event.getX(1), 2) + Math.pow(event.getY(0) - event.getY(1), 2));
-					if (pinchDist != firstTouchEvent) {
+					if (pinchDist != firstTouchEvent) { //Prevents jumping
 						zoom((int)((newDist-pinchDist) * pinchSensitivity));
 					}
 					pinchDist = newDist;
@@ -195,17 +329,64 @@ public class CameraActivity extends Activity {
 					pinchDist = firstTouchEvent;
 				}
 			}
+			
+			else if (bluetoothEnabled && pointers == 1) {
+				if (action == MotionEvent.ACTION_DOWN) {
+					touchX = event.getX();
+					touchY = event.getY();
+				}
+				else if (action == MotionEvent.ACTION_MOVE) {
+					double x = event.getX() - touchX;
+					double y = event.getY() - touchY;
+					double absX = Math.abs(x);
+					double absY = Math.abs(y);
+					if (absX >= absY && absX >= PAN_THRESHOLD) {
+						newState = x > 0 ? xRightMotor : xLeftMotor;
+					}
+					else if (absY > absX && absY > PAN_THRESHOLD) {
+						newState = y > 0 ? yForwardMotor : yBackMotor;
+					}
+				}
+				else if (action == MotionEvent.ACTION_UP) {
+					newState = stopMotor;
+					touchX = touchY = firstTouchEvent;
+				}
+			}
+			
+			/*
+			else if (bluetoothEnabled && pointers == 3) {
+				if (action == MotionEvent.ACTION_DOWN) {
+					touchY = (event.getY(0) + event.getY(1) + event.getY(2)) / 3;
+					System.out.println(touchY);
+				}
+				else if (action == MotionEvent.ACTION_MOVE) {
+					double y = (event.getY(0) + event.getY(1) + event.getY(2)) / 3;
+					y -= touchY;
+					System.out.println(y);
+					if (Math.abs(y) >= PAN_THRESHOLD)
+						newState = y > 0 ? zUpMotor : zDownMotor;
+				}
+				else if (action == MotionEvent.ACTION_UP) {
+					touchY = firstTouchEvent;
+					newState = stopMotor;
+				}
+			}*/
+			
+
+			if (bluetoothEnabled && newState != panState) {
+				panState = newState;
+				byte[] buffer = new byte[1];
+	        	buffer[0] = (byte)panState;
+	        	mSerialService.write(buffer);	
+			}
 			return true;
 		}
 	};
-	
-	public static final int MEDIA_TYPE_IMAGE = 1;
-	public static final int MEDIA_TYPE_VIDEO = 2;
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = this;
-        setContentView(R.layout.activity_photo);
+        setContentView(R.layout.activity_camera);
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
         mSurfaceView.setOnTouchListener(touchListener);
         mHolder = mSurfaceView.getHolder();
@@ -220,17 +401,44 @@ public class CameraActivity extends Activity {
 	    zoomIn = (ImageButton)findViewById(R.id.zoomInButton);
 	    zoomOut = (ImageButton)findViewById(R.id.zoomOutButton);
 	    pinchDist = firstTouchEvent;
+	    
+	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
+
+
+		bluetoothNameLabel = (TextView) findViewById(R.id.bluetoothtext);
+
+		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		//BluetoothAdapter myBluetoothAdapter = null; //This was to test to see what the noBluetoothAdapter() method did
+		if (mBluetoothAdapter == null){
+			mMenuItemConnect.setEnabled(false);
+		}
+		
+		
     }
     
+    @Override
+    public void onStart() {
+    	super.onStart();
+		mEnablingBT = false;
+		forceUpdateCamera = false;
+    }
     /*
      * This is automatically called when the application is opened
      * or resumed.
      */
     public void onResume() {
     	super.onResume();
-    	System.out.println("Surface resuming...");
-    	if (safeCameraOpen())
-    		startCameraPreview();
+    	if (!safeCameraOpen())
+    		return;
+    	/* Set up the camera parameters. Not doing this will cause the preview to stay black.
+    	 * Usually this is done in surfaceChanged in SurfaceHolder.Callback,
+    	 * but surfaceChange is not called when resuming from non-fullscreen Activities such as dialogs.
+    	 * Setting forceUpdateCamera to true whenever these kinds of Activities completes gets around this*/
+    	if (forceUpdateCamera) {
+    		setCameraParameters();
+    		forceUpdateCamera = false;
+    	}
+		startCameraPreview();
     }
     
     public void onPause() {
@@ -241,19 +449,35 @@ public class CameraActivity extends Activity {
     	releaseCameraAndPreview();
     }
     
+    public void onDestroy() {
+    	super.onDestroy();
+        if (mSerialService != null)
+        	mSerialService.stop();
+    }
+    
+    private void setCameraParameters() {
+    	Camera.Parameters parameters = mCamera.getParameters();
+		try {
+			int rotation = 0;
+			mCamera.setDisplayOrientation(rotation);
+			mCamera.setParameters(parameters);
+			mCamera.setPreviewDisplay(mHolder);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		mCamera.setParameters(parameters);
+    }
+    
     boolean safeCameraOpen() {
         boolean qOpened = false;
-        System.out.println("Opening camera...");
         try {
             releaseCameraAndPreview();
             mCamera = Camera.open(); /* This is the important thing!
             							It makes an instance of a Camera object that
             							lets the application do stuff with the hardware.
             							*/
-            System.out.println("   " + mCamera);
             qOpened = (mCamera != null);
         } catch (Exception e) {
-        	System.out.println("Failed to open Camera!");
             Log.e(activity.getString(R.string.app_name), "failed to open Camera");
             e.printStackTrace();
         }
@@ -371,16 +595,12 @@ public class CameraActivity extends Activity {
 		recorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString());
 		recorder.setPreviewDisplay(mHolder.getSurface());
 		try {
-			System.out.println("Preparing recorder");
 			recorder.prepare();
-			System.out.println("Starting recorder");
 			recorder.start();
 			recording = true;
 		} catch (IllegalStateException e) {
-			System.out.println("Error preparing recorder");
 			e.printStackTrace();
 		} catch (IOException e) {
-			System.out.println("Error preparing video output");
 			e.printStackTrace();
 		}
 		
@@ -437,5 +657,110 @@ public class CameraActivity extends Activity {
 			switchMode.setImageResource(R.drawable.record);
 			takePhoto.setImageResource(R.drawable.camera);
 		}
+	}
+	
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_bluetooth, menu);
+        mMenuItemConnect = menu.getItem(0);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case R.id.connect:
+        	proceedWithConnection = true;
+        	if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
+        		if (!mEnablingBT) { // If we are turning on the BT we cannot check if it's enable
+        		    if ( (mBluetoothAdapter != null)  && (!mBluetoothAdapter.isEnabled()) ) {
+                		proceedWithConnection = false;           	
+                        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                        builder.setMessage(R.string.alert_dialog_turn_on_bt)
+                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setTitle(R.string.alert_dialog_warning_title)
+                            .setCancelable( false )
+                            .setPositiveButton(R.string.alert_dialog_yes, new DialogInterface.OnClickListener() {
+                            	public void onClick(DialogInterface dialog, int id) {
+                            		mEnablingBT = true;
+                            		Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                            		startActivityForResult(enableIntent, REQUEST_ENABLE_BT);			
+                            	}
+                            })
+                            .setNegativeButton(R.string.alert_dialog_no, new DialogInterface.OnClickListener() {
+                            	public void onClick(DialogInterface dialog, int id) {
+                            	}
+                            });
+                        AlertDialog alert = builder.create();
+                        alert.show();
+        		    }		
+        		
+        		    if (mSerialService != null) {
+        		    	// Only if the state is STATE_NONE, do we know that we haven't started already
+        		    	if (mSerialService.getState() == BluetoothSerialService.STATE_NONE) {
+        		    		// Start the Bluetooth chat services
+        		    		mSerialService.start();
+        		    	}
+        		    }
+        		}
+        		if (proceedWithConnection) {
+	        		// Launch the DeviceListActivity to see devices and do scan
+	        		Intent serverIntent = new Intent(this, DeviceListActivity.class);
+	        		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+        		}
+        	}
+        	else
+            	if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
+            		mSerialService.stop();
+		    		mSerialService.start();
+            	}
+            return true;
+        //case R.id.preferences:
+        	//doPreferences();
+            //return true;
+        //case R.id.menu_special_keys:
+            //doDocumentKeys();
+            //return true;
+        }
+        return false;
+    }
+    
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(DEBUG) Log.d(LOG_TAG, "onActivityResult " + resultCode);
+        switch (requestCode) {
+        
+        case REQUEST_CONNECT_DEVICE:
+            forceUpdateCamera = true;
+            // When DeviceListActivity returns with a device to connect
+            if (resultCode == Activity.RESULT_OK) {
+                // Get the device MAC address
+                String address = data.getExtras()
+                                     .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+                // Get the BLuetoothDevice object
+                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address); //I deleted "m." before the method getRemoteDevice()
+                // Attempt to connect to the device
+                mSerialService.connect(device);
+            }
+            break;
+
+        case REQUEST_ENABLE_BT:
+            // When the request to enable Bluetooth returns
+            if (resultCode != Activity.RESULT_OK) {
+                Log.d(LOG_TAG, "BT not enabled");
+                forceUpdateCamera = true;
+                mEnablingBT = false;
+                //finishDialogNoBluetooth();                
+            }
+            else {
+            	Intent serverIntent = new Intent(this, DeviceListActivity.class);
+            	startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+            }
+        }
+    }
+    
+	public int getConnectionState() {
+		return mSerialService.getState();
 	}
 }

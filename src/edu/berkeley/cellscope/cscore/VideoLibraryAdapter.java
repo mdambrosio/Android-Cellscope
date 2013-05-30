@@ -18,7 +18,7 @@ public class VideoLibraryAdapter extends PhotoLibraryAdapter {
 	public View getView(int position, View convertView, ViewGroup parent) {
         View vi = convertView;
         if(convertView==null)
-            vi = inflater.inflate(R.layout.list_row, null);
+            vi = inflater.inflate(R.layout.library_list_row, null);
  
         TextView title = (TextView)vi.findViewById(R.id.path); // title
         ImageView thumbnail =(ImageView)vi.findViewById(R.id.list_image); // thumb image

@@ -7,6 +7,12 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.Bitmap;
 
+/**
+ * This class stores Bitmaps loaded as thumbnails by the Library activities, acting
+ * as a temporary cache for images that no longer appear on screen.
+ * The index of each bitmap corresponds to the index of its position on the list.
+ */
+
 public class BitmapCache {
 	volatile ArrayList<Integer> positions;
 	volatile ArrayList<Bitmap> bitmaps;
@@ -25,6 +31,7 @@ public class BitmapCache {
 
 	}
 	
+	//If the size of the cache exceeds its limit, the cache is emptied starting with bitmaps at the front.
 	public void addBitmap(int position, Bitmap bitmap) {
 		int byteCount = getBitmapByteCount(bitmap);
 		if (cacheSize + byteCount >= maxCacheSize && !positions.isEmpty() && !bitmaps.isEmpty()) {
@@ -46,6 +53,7 @@ public class BitmapCache {
 		return bitmaps.get(index);
 	}
 	
+	//Calculates bitmap size.
 	public static int getBitmapByteCount(Bitmap bitmap) {
 		ByteArrayOutputStream bao = new ByteArrayOutputStream();
 		bitmap.compress(Bitmap.CompressFormat.PNG, 100, bao);
