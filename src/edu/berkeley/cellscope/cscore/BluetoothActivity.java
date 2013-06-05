@@ -36,12 +36,12 @@ public class BluetoothActivity extends Activity implements OnTouchListener {
     private Button zDownButton;
     
     //Assign bytes and their variable names that will transmit
-    static final int xRightMotor = 1;
-    static final int xLeftMotor = 2;
-    static final int yBackMotor = 3;
-    static final int yForwardMotor = 4;
-    static final int zUpMotor = 5;
-    static final int zDownMotor = 6;
+    public static final int xRightMotor = 1;
+    public static final int xLeftMotor = 2;
+    public static final int yBackMotor = 3;
+    public static final int yForwardMotor = 4;
+    public static final int zUpMotor = 5;
+    public static final int zDownMotor = 6;
 	
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
