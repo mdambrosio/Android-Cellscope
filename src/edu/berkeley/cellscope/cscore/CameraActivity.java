@@ -11,8 +11,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
@@ -59,8 +62,10 @@ public class CameraActivity extends Activity {
 	TextView zoomText;
 	
 	private static final double firstTouchEvent = -1;
-	private static final double pinchSensitivity = 0.5;
 	private static final double PAN_THRESHOLD = 25;
+	
+	private static final String TAG = "Camera";
+	private static final int COMPRESSION_QUALITY = 90;
 	
 	//Bluetooth stuff
 
@@ -278,20 +283,25 @@ public class CameraActivity extends Activity {
 	 */
 	PictureCallback mPicture = new PictureCallback() {
 	    public void onPictureTaken(byte[] data, Camera camera) {
-	        File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-	        if (pictureFile == null){
+	        File fileName = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+	        if (fileName == null){
 	            System.out.println("Error creating media file, check storage permissions: ");
 	            return;
 	        }
-	        try {
-	            FileOutputStream fos = new FileOutputStream(pictureFile);
-	            fos.write(data);
-	            fos.close();
-	        } catch (FileNotFoundException e) {
-	           System.out.println("File not found: " + e.getMessage());
-	        } catch (IOException e) {
-	        	 System.out.println("Error accessing file: " + e.getMessage());
-	        }
+	        Log.i(TAG, "Saving a bitmap to file: " + fileName.getPath());
+            Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
+            try {
+                FileOutputStream out = new FileOutputStream(fileName);
+                picture.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, out);
+                picture.recycle();
+                out.close();
+                toast("Picture saved as " + fileName.getName());
+//             	FileOutputStream fos = new FileOutputStream(fileName);
+// 	            fos.write(data);
+// 	            fos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 	        stopCameraPreview();
 	        startCameraPreview();
 	        cameraBusy = false;
@@ -806,5 +816,13 @@ public class CameraActivity extends Activity {
 		    height = size.y;	
 		}
 	    return Math.hypot(width, height);
+	}
+	
+
+	private void toast(String message) {
+		Context context = getApplicationContext();
+		int duration = Toast.LENGTH_SHORT;
+		Toast toast = Toast.makeText(context, message, duration);
+		toast.show();
 	}
 }

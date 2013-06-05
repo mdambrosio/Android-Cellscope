@@ -12,6 +12,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.Toast;
 
 public class OpenCVCameraView extends JavaCameraView {
 	private static final String TAG = "OpenCvCameraView";
@@ -31,23 +32,21 @@ public class OpenCVCameraView extends JavaCameraView {
         Log.i(TAG, "Taking picture");
         PictureCallback callback = new PictureCallback() {
 
-            private File mPictureFileName = fileName;
-
             public void onPictureTaken(byte[] data, Camera camera) {
                 Log.i(TAG, "Saving a bitmap to file: " + fileName.getPath());
                 Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
                 try {
-                    FileOutputStream out = new FileOutputStream(mPictureFileName);
+                    FileOutputStream out = new FileOutputStream(fileName);
                     picture.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, out);
                     picture.recycle();
                     out.close();
+                    toast("Picture saved as " + fileName.getName());
    //             	FileOutputStream fos = new FileOutputStream(fileName);
    // 	            fos.write(data);
    // 	            fos.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                System.out.println("restarting preview...");
                 //mCamera.stopPreview();
                 mCamera.startPreview();
             }
@@ -76,5 +75,12 @@ public class OpenCVCameraView extends JavaCameraView {
 		if (!parameters.isZoomSupported())
 			return 0;
 		return parameters.getMaxZoom();
+	}
+	
+	private void toast(String message) {
+		Context context = activity.getApplicationContext();
+		int duration = Toast.LENGTH_SHORT;
+		Toast toast = Toast.makeText(context, message, duration);
+		toast.show();
 	}
 }
