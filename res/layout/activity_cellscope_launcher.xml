@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:text="Photo Library"
         android:onClick="goToPhotoLibrary"/>
-
+    
     <Button
         android:id="@+id/button4"
         android:layout_width="match_parent"

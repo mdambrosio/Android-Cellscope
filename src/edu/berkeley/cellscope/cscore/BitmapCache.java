@@ -62,12 +62,18 @@ public class BitmapCache {
 		return size;
 	}
 	
+	
 	public void removeItem(int item) {
+		System.out.println("REMOVING ITEM " + item);
 		int index = positions.indexOf(item);
+		Bitmap removed = bitmaps.remove(index);
 		positions.remove(index);
-		bitmaps.remove(index);
+		removed.recycle();
 		int size = positions.size();
-		for (int i = index; i < size; i ++)
-			positions.set(i, positions.get(i) - 1);
+		for (int i = 0; i < size; i ++) {
+			int pos = positions.get(i);
+			if (pos > item)
+				positions.set(i, pos - 1);
+		}
 	}
 }

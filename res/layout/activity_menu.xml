@@ -5,37 +5,38 @@
     android:orientation="vertical" >
 
     <Button
-        android:id="@+id/button0"
+        android:id="@+id/button_camera"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Capture Image" 
+        android:text="@string/title_activity_camera" 
         android:onClick="goToCamera"/>
-    <!-- 
-	<Button
-        android:id="@+id/button1"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Capture Video" 
-        android:onClick="goToVideoRecorder"/>
-        -->
+    
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/button_photolib"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Photo Library"
+        android:text="@string/title_activity_photo"
         android:onClick="goToPhotoLibrary"/>
-
+    
     <Button
-        android:id="@+id/button4"
+        android:id="@+id/button_videolib"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Video Library"
+        android:text="@string/title_activity_video"
         android:onClick="goToVideoLibrary"/>
 
     <Button
-        android:id="@+id/button3"
+        android:id="@+id/button_bluetooth"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Settings" />
+        android:text="@string/title_activity_bluetooth"
+        android:onClick="goToBluetooth"/>
+    
+    <Button
+        android:id="@+id/button_opencv_camera"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/title_activity_opencv_camera"
+        android:onClick="goToOpenCVCamera"/>
 
 </LinearLayout>

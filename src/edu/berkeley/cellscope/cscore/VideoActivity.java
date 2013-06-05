@@ -92,6 +92,7 @@ public class VideoActivity extends Activity implements Runnable {
 			if (video.isPlaying()) {
 				seek.setProgress(video.getCurrentPosition());
 				seek.setMax((int)(video.getDuration() / TIMESTEP) * TIMESTEP);
+				//System.out.println(seek.getMax() + " " + seek.getProgress());
 			}
 			try {
 				Thread.sleep(TIMESTEP);

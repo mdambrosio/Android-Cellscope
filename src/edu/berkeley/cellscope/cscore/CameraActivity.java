@@ -13,17 +13,20 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Point;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -54,7 +57,7 @@ public class CameraActivity extends Activity {
 	boolean forceUpdateCamera;
 	ImageButton takePhoto, switchMode, zoomIn, zoomOut;
 	TextView zoomText;
-	double pinchDist;
+	
 	private static final double firstTouchEvent = -1;
 	private static final double pinchSensitivity = 0.5;
 	private static final double PAN_THRESHOLD = 25;
@@ -309,6 +312,11 @@ public class CameraActivity extends Activity {
 	 * Controls responses to touching the screen
 	 */
 	View.OnTouchListener touchListener = new View.OnTouchListener() {
+		double pinchDist;
+		int lastZoom;
+		double screenDiagonal;
+		double maxZoom;
+		
 		public boolean onTouch(View v, MotionEvent event) {
 			if (cameraBusy)
 				return true;
@@ -318,12 +326,22 @@ public class CameraActivity extends Activity {
 			int newState = stopMotor;
 			//Pinch zoom
 			if (pointers == 2){
+				if (maxZoom == 0)
+					maxZoom = mCamera.getParameters().getMaxZoom();
+				if (screenDiagonal == 0)
+					screenDiagonal = getScreenDiagonal(CameraActivity.this);
+				
+				double newDist = Math.hypot(event.getX(0) - event.getX(1), event.getY(0) - event.getY(1));
 				if (action == MotionEvent.ACTION_MOVE) {
-					double newDist = Math.sqrt( Math.pow(event.getX(0) - event.getX(1), 2) + Math.pow(event.getY(0) - event.getY(1), 2));
 					if (pinchDist != firstTouchEvent) { //Prevents jumping
-						zoom((int)((newDist-pinchDist) * pinchSensitivity));
+						int newZoom = (int)((newDist-pinchDist) / screenDiagonal * maxZoom * 2);
+						zoom(newZoom - lastZoom);
+						lastZoom = newZoom;
 					}
-					pinchDist = newDist;
+					else {
+						pinchDist = newDist;
+						lastZoom = 0;
+					}
 				}
 				else {
 					pinchDist = firstTouchEvent;
@@ -400,7 +418,6 @@ public class CameraActivity extends Activity {
 	    switchMode = (ImageButton)findViewById(R.id.switchCameraMode);
 	    zoomIn = (ImageButton)findViewById(R.id.zoomInButton);
 	    zoomOut = (ImageButton)findViewById(R.id.zoomOutButton);
-	    pinchDist = firstTouchEvent;
 	    
 	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
 
@@ -508,12 +525,12 @@ public class CameraActivity extends Activity {
 		return result;
 	}
 	/** Create a file Uri for saving an image or video */
-	static Uri getOutputMediaFileUri(int type){
+	public static Uri getOutputMediaFileUri(int type){
 	      return Uri.fromFile(getOutputMediaFile(type));
 	}
 
 	/** Create a File for saving an image or video */
-	static File getOutputMediaFile(int type){
+	public static File getOutputMediaFile(int type){
 	    // To be safe, you should check that the SDCard is mounted
 	    // using Environment.getExternalStorageState() before doing this.
 
@@ -556,7 +573,8 @@ public class CameraActivity extends Activity {
 		previewRunning = false;
 	}
 	
-	public void takePhoto(View v) {
+	public synchronized void takePhoto(View v) {
+		System.out.println("take photo - " + cameraBusy);
 		if (cameraBusy)
 			return;
 		if (!videoState) {
@@ -565,23 +583,27 @@ public class CameraActivity extends Activity {
 		}
 		else {
 			if (!recording) {
+				startRecording();
 				takePhoto.setImageResource(R.drawable.stop);
 				switchMode.setVisibility(View.INVISIBLE);
 				zoomIn.setVisibility(View.INVISIBLE);
 				zoomOut.setVisibility(View.INVISIBLE);
-				startRecording();
 			}
 			else {
+				stopRecording();
 				takePhoto.setImageResource(R.drawable.record);
 				switchMode.setVisibility(View.VISIBLE);
 				zoomIn.setVisibility(View.VISIBLE);
 				zoomOut.setVisibility(View.VISIBLE);
-				stopRecording();
 			}
 		}
 	}
 	
 	private void startRecording() {
+		if (cameraBusy)
+			return;
+		System.out.println("start - lock enabled");
+		cameraBusy = true;
 		mCamera.unlock();
 		recorder = new MediaRecorder();
 		recorder.setCamera(mCamera);
@@ -598,16 +620,20 @@ public class CameraActivity extends Activity {
 			recorder.prepare();
 			recorder.start();
 			recording = true;
+			System.out.println("start - lock disabled");
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
-		
+		cameraBusy = false;
 	}
 	
 	private void stopRecording() {
+		System.out.println(cameraBusy + " " + recording);
+		if (cameraBusy || !recording)
+			return;
+		System.out.println("stop - lock enabled");
 		cameraBusy = true;
 		recorder.stop();
 		recorder.reset();
@@ -617,6 +643,8 @@ public class CameraActivity extends Activity {
 		startCameraPreview();
 		recording = false;
 		cameraBusy = false;
+
+		System.out.println("stop - lock disabled");
 	}
 	
 	private void zoom(int step) {
@@ -762,5 +790,21 @@ public class CameraActivity extends Activity {
     
 	public int getConnectionState() {
 		return mSerialService.getState();
+	}
+	
+	public static double getScreenDiagonal(Activity activity) {
+		int width, height;
+		Display display = activity.getWindowManager().getDefaultDisplay();
+		if (Build.VERSION.SDK_INT < 13) {
+			width = display.getWidth();
+			height = display.getHeight();
+		}
+		else {
+		    Point size = new Point();
+		    display.getSize(size);
+		    width = size.x;
+		    height = size.y;	
+		}
+	    return Math.hypot(width, height);
 	}
 }

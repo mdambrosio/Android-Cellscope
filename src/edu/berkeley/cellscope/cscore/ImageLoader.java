@@ -27,7 +27,6 @@ public class ImageLoader {
 	}
 	
 	public static void loadPhotoThumbnail(ImageView imageView, ArrayList<File> files, int position, int size, BitmapCache cache) {
-		System.out.println("Queueing " + position);
 		if (cancelPotentialWork(position, files, imageView)) {
 	        final BitmapWorkerTask task = new BitmapWorkerTask(imageView, files, size, cache, position);
 	        final AsyncDrawable asyncDrawable = new AsyncDrawable(placeHolderBitmap, task);
@@ -134,21 +133,18 @@ public class ImageLoader {
 	    @Override
 	    protected Bitmap doInBackground(Integer... params) {
 
-	    	System.out.println("Executing " + position);
 	    	int position = params[0];
 	        Bitmap bmp = cache.getBitmap(position);
 	        if (bmp == null) {
 	        	bmp = decodeSampledBitmapFromImageFile(files.get(position).getPath(), size);
 	        	cache.addBitmap(position, bmp);
 	        }
-	    	System.out.println("Execution done... " + position);
 	        return bmp;
 	    }
 
 	    // Once complete, see if ImageView is still around and set bitmap.
 	    @Override
 	    protected void onPostExecute(Bitmap bitmap) {
-	    	System.out.println("Completing " + position);
 	    	 if (isCancelled()) {
 	             bitmap = null;
 	         }

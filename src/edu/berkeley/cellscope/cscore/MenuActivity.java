@@ -2,9 +2,9 @@ package edu.berkeley.cellscope.cscore;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 
 public class MenuActivity extends Activity {
     
@@ -42,6 +42,11 @@ public class MenuActivity extends Activity {
     
     public void goToBluetooth(View v) {
     	Intent intent = new Intent(this, BluetoothActivity.class);
+    	startActivity(intent);
+    }
+    
+    public void goToOpenCVCamera(View v) {
+    	Intent intent = new Intent(this, OpenCVCameraActivity.class);
     	startActivity(intent);
     }
 }
