@@ -320,7 +320,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			if (action == MotionEvent.ACTION_MOVE) {
 				if (pinchDist != firstTouchEvent) { //Prevents jumping
 					int newZoom = (int)((newDist-pinchDist) / screenDiagonal * maxZoom * 2);
-					System.out.println(lastZoom + " " + newZoom);
 					mOpenCvCameraView.zoom(newZoom - lastZoom);
 					lastZoom = newZoom;
 				}
@@ -381,7 +380,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			panState = newState;
 			byte[] buffer = new byte[1];
         	buffer[0] = (byte)panState;
-        	mSerialService.write(buffer);	
+        	mSerialService.write(buffer);
 		}
 		return true;
 	}
