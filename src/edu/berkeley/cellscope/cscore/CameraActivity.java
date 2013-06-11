@@ -818,6 +818,18 @@ public class CameraActivity extends Activity {
 	    return Math.hypot(width, height);
 	}
 	
+	public static double getScreenHeight(Activity activity) {
+		Display display = activity.getWindowManager().getDefaultDisplay();
+		if (Build.VERSION.SDK_INT < 13) {
+			return display.getHeight();
+		}
+		else {
+		    Point size = new Point();
+		    display.getSize(size);
+		    return size.y;	
+		}
+	}
+	
 
 	private void toast(String message) {
 		Context context = getApplicationContext();

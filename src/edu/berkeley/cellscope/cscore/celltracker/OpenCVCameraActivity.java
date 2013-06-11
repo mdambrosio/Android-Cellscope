@@ -45,10 +45,12 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	int lastZoom;
 	double screenDiagonal;
 	double maxZoom;
+	double zZone;
 	
 	public static File mediaStorageDir = CameraActivity.mediaStorageDir;
 	private static final int firstTouchEvent = -1;
 	private static final double PAN_THRESHOLD = 25;
+	private static final double Z_CONTROL_ZONE = 0.1;
 	
 	private static final int COMPRESSION_QUALITY = 90;
 	
@@ -233,6 +235,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    zoomText.setText("100%");
 	    
 	    screenDiagonal = CameraActivity.getScreenDiagonal(this);
+	    zZone = CameraActivity.getScreenHeight(this) * Z_CONTROL_ZONE;
 	    maxZoom = -1;
 	    
 	    mOpenCvCameraView.setOnTouchListener(this);
@@ -347,7 +350,11 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 					newState = x > 0 ? xRightMotor : xLeftMotor;
 				}
 				else if (absY > absX && absY > PAN_THRESHOLD) {
-					newState = y > 0 ? yForwardMotor : yBackMotor;
+					System.out.println(touchX + " " + zZone);
+					if (touchX < zZone)
+						newState = y > 0 ? zUpMotor : zDownMotor;
+					else
+						newState = y > 0 ? yForwardMotor : yBackMotor;
 				}
 			}
 			else if (action == MotionEvent.ACTION_UP) {
@@ -355,6 +362,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 				touchX = touchY = firstTouchEvent;
 			}
 		}
+
 		
 		/*
 		else if (bluetoothEnabled && pointers == 3) {
