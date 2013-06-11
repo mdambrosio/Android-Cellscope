@@ -1,5 +1,10 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -10,7 +15,6 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import android.os.Bundle;
-import android.util.Log;
 
 public class PanTrackActivity extends OpenCVCameraActivity {
 	private Mat mRgba;
@@ -19,47 +23,89 @@ public class PanTrackActivity extends OpenCVCameraActivity {
 	private Mat template;
 	private Rect roi;
 	private Point roiCorner1, roiCorner2;
+	private volatile Point result, corner;
+	private int frame;
 	private boolean allocate;
 	private int width, height;
+	private PositionCalculator currentTask;
+	private PositionCalculation calculation;
+	private ExecutorService calcThread;
+	private volatile int activeThreads;
 	private static final String TAG = "Pan Tracker";
 	private static Scalar RED = new Scalar(255, 0, 0, 255);
 	private static Scalar GREEN = new Scalar(0, 255, 0, 255);
 	private static Scalar BLUE = new Scalar(0, 0, 255, 255);
-	private static final double SAMPLE_SIZE = 0.4;
+	private static final int TRACK_INTERVAL = 1; //Minimum number of frames between every update
+	//A larger sample size will give greater accuracy for slow pans, but cannot detect fast pans
+	private static final double SAMPLE_SIZE_Y = 0.4; 
+	private static final double SAMPLE_SIZE_X = 0.6;
+	private static final int THREAD_CAP = 1;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		allocate = true;
+		activeThreads = 0;
 	}
 	
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
         mRgba = inputFrame.rgba();
+        frame ++;
+
         if (allocate) {
         	currImg = new Mat();
         	lastImg = new Mat();
         	template = new Mat();
             width = mRgba.cols();
             height = mRgba.rows();
-            roiCorner1 = new Point((int) (width / 2 - width * SAMPLE_SIZE / 2), (int) (height / 2 - height * SAMPLE_SIZE / 2));
-            roiCorner2 = new Point(roiCorner1.x + (int)(width * SAMPLE_SIZE), roiCorner1.y + (int)(height * SAMPLE_SIZE));
+            roiCorner1 = new Point((int) (width / 2 - width * SAMPLE_SIZE_X / 2), (int) (height / 2 - height * SAMPLE_SIZE_Y / 2));
+            roiCorner2 = new Point(roiCorner1.x + (int)(width * SAMPLE_SIZE_X), roiCorner1.y + (int)(height * SAMPLE_SIZE_Y));
             roi = new Rect(roiCorner1, roiCorner2);
+            result = new Point();
+            corner = new Point();
+            calculation = new PositionCalculation(currImg, lastImg);
+            calcThread = Executors.newSingleThreadExecutor();
         }
         
-        mRgba.copyTo(currImg);
-        if (!allocate) {
-        	currImg.submat(roi).copyTo(template);
-        	Point result = locate(lastImg, template);
-            Point corner = new Point(result.x + (int)(width * SAMPLE_SIZE), result.y + (int)(height * SAMPLE_SIZE));
-        	Core.rectangle(mRgba, roiCorner1, roiCorner2, GREEN);
-        	Core.rectangle(mRgba, result, corner, BLUE);
-        	Log.e(TAG, "Panned " + (result.x - roiCorner1.x) + " along x and " + (result.y - roiCorner1.y)+ " along y" );
+        if (frame == TRACK_INTERVAL) {
+        	frame = 0;
+        	
+        	//currImg = mRgba;
+
+    		synchronized(calculation) {
+    			mRgba.copyTo(currImg);
+    		}
+            if (!allocate) {
+            	/*if (currentTask == null || currentTask.isDone()) {
+            		currentTask = new PositionCalculator(calculation);
+            		currentTask.run();
+            		System.out.println(currentTask.isDone());
+            	}*/
+            	if (!threadCapReached()) {
+            		calcThread.execute(calculation);
+            		updateThreadCount(1);
+            	}
+            }
+            else {
+            	allocate = false;
+            	mRgba.copyTo(lastImg);
+            }
+            //lastImg = currImg;
         }
-        else
-        	allocate = false;
-        currImg.copyTo(lastImg);
+        
+
+    	Core.rectangle(mRgba, roiCorner1, roiCorner2, GREEN);
+    	Core.rectangle(mRgba, result, corner, BLUE);
         return mRgba;
     }
+	
+	private synchronized boolean threadCapReached() {
+		return activeThreads == THREAD_CAP;
+	}
+	
+	private synchronized void updateThreadCount(int i) {
+		activeThreads += i;
+	}
 	
 	private Point locate(Mat img, Mat templ) {
 		int result_cols =  img.cols() - templ.cols() + 1;
@@ -69,6 +115,42 @@ public class PanTrackActivity extends OpenCVCameraActivity {
 		Core.normalize(result, result, 0, 1, Core.NORM_MINMAX, -1);
 		Core.MinMaxLocResult minMax = Core.minMaxLoc(result);
 		return minMax.maxLoc;
+	}
+	
+	private class PositionCalculator extends FutureTask<Point> {
+		public PositionCalculator(Callable<Point> callable) {
+			super(callable);
+		}
+	}
+	
+	private class PositionCalculation implements Callable<Point>, Runnable {
+		Mat curr, last;
+		public PositionCalculation(Mat currImg, Mat lastImg) {
+			curr = new Mat();
+			last = new Mat();
+		}
+		public Point call() {
+			synchronized (calculation) {
+				currImg.copyTo(curr);
+				lastImg.copyTo(last);
+                currImg.copyTo(lastImg);
+			}
+			curr.submat(roi).copyTo(template);
+        	Point location = locate(last, template);
+        	result.x = location.x;
+        	result.y = location.y;
+            corner.x = result.x + (int)(width * SAMPLE_SIZE_X);
+            corner.y = result.y + (int)(height * SAMPLE_SIZE_Y);
+        	System.out.println("Panned " + (result.x - roiCorner1.x) + " along x and " + (result.y - roiCorner1.y)+ " along y" );
+    		updateThreadCount(-1);
+            return result;
+		}
+		public void run() {
+			call();
+		}
+		
+		
+		
 	}
 
 }
