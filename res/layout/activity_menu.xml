@@ -38,5 +38,13 @@
         android:layout_height="wrap_content"
         android:text="@string/title_activity_opencv_camera"
         android:onClick="goToOpenCVCamera"/>
+    
+    <Button
+        android:id="@+id/button_pan_track"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pan Track"
+        android:onClick="goToPanTrack"/>
+    
 
 </LinearLayout>

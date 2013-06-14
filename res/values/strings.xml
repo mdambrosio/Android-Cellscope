@@ -17,6 +17,7 @@
     <string name="title_activity_bluetooth">Bluetooth</string>
     <string name="title_activity_opencv_camera">OpenCV Camera</string>
     <string name="delete_button">Delete</string>
+    <string name="menu_delete_all">Delete All</string>
     <string name="action_settings">Settings</string>
     <string name="motor">Motor</string>
     <string name="xRightMotor">Right</string>
@@ -49,6 +50,10 @@
 
     <!-- Options Menu -->
     <string name="connect">Connect device</string>
+    <string name="track_pan_enable">Enable pan tracking</string>
+    <string name="track_pan_disable">Disable pan tracking</string>
+    
+    <string name="calibrate">Calibrate stage</string>
     <string name="disconnect">Disconnect device</string>
     <string name="preferences">Preferences</string>
     <string name="special_keys">Special keys</string>
@@ -78,5 +83,6 @@
     <string name="default_value_controlkey_preference">0</string>
     <string name="title_activity_device_list">DeviceListActivity</string>
     <string name="title_activity_open_cvcamera">OpenCVCameraActivity</string>
+    <string name="title_activity_pan_track">PanTrack</string>
 
 </resources>

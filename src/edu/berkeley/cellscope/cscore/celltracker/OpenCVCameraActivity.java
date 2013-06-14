@@ -26,20 +26,23 @@ import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import edu.berkeley.cellscope.cscore.BluetoothActivity;
 import edu.berkeley.cellscope.cscore.BluetoothSerialService;
 import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.DeviceListActivity;
 import edu.berkeley.cellscope.cscore.R;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, View.OnTouchListener {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, View.OnTouchListener, PannableStage {
 
 	private static final String TAG = "OpenCV_Camera";
 	
 	private OpenCVCameraView mOpenCvCameraView;
-	TextView zoomText;
+	protected TextView zoomText;
+	protected ImageButton takePicture, toggleTimelapse, zoomIn, zoomOut;
+
+	protected Mat mRgba;
 	
 	double pinchDist;
 	int lastZoom;
@@ -47,28 +50,25 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	double maxZoom;
 	double zZone;
 	
+	long timeElapsed;
+	long currentTime;
+	boolean timelapseOn = false;
+	
 	public static File mediaStorageDir = CameraActivity.mediaStorageDir;
 	private static final int firstTouchEvent = -1;
 	private static final double PAN_THRESHOLD = 25;
 	private static final double Z_CONTROL_ZONE = 0.1;
 	
-	private static final int COMPRESSION_QUALITY = 90;
-	
 	//Bluetooth stuff
 
-    private MenuItem mMenuItemConnect;
+    protected MenuItem mMenuItemConnect;
     private static BluetoothSerialService mSerialService = null;
     private boolean mEnablingBT;
     
     private int panState;
     private float touchX, touchY;
-    private static final int xRightMotor = BluetoothActivity.xRightMotor;
-    private static final int xLeftMotor = BluetoothActivity.xLeftMotor;
-    private static final int yBackMotor = BluetoothActivity.yBackMotor;
-    private static final int yForwardMotor = BluetoothActivity.yForwardMotor;
-    private static final int zUpMotor = BluetoothActivity.zUpMotor;
-    private static final int zDownMotor = BluetoothActivity.zDownMotor;
-    private static final int stopMotor = 0;
+    
+    private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
 	
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
@@ -149,10 +149,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 switch (msg.arg1) {
                 case BluetoothSerialService.STATE_CONNECTED:
                     if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTED");
-                	if (mMenuItemConnect != null) {
-                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
-                		mMenuItemConnect.setTitle(R.string.disconnect);
-                	}
+                    updateMenuDisconnect();
                 	
                 	//Replace my input variable to the bluetooth device below
 //------           	mInputManager.showSoftInput(mEmulatorView, InputMethodManager.SHOW_IMPLICIT);
@@ -171,10 +168,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_LISTEN");
                 case BluetoothSerialService.STATE_NONE:
                 	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_NONE");
-                	if (mMenuItemConnect != null) {
-                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
-                		mMenuItemConnect.setTitle(R.string.connect);
-                	}
+                	updateMenuConnect();
 
             		//I have to replace this line with whatever I am using as an input to the bluetooth device
 //-----                	mInputManager.hideSoftInputFromWindow(mEmulatorView.getWindowToken(), 0);
@@ -187,16 +181,16 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 break;
             case MESSAGE_WRITE:
             	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_WRITE " + msg.arg1);
-            	if (mLocalEcho) {
-            		byte[] writeBuf = (byte[]) msg.obj;
+            	//if (mLocalEcho) {
+            		//byte[] writeBuf = (byte[]) msg.obj;
             		//mEmulatorView.write(writeBuf, msg.arg1);
-            	}
+            	//}
                 
                 break;
                 
             case MESSAGE_READ:
             	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_READ " + msg.arg1);
-            	byte[] readBuf = (byte[]) msg.obj;              
+            	//byte[] readBuf = (byte[]) msg.obj;              
                 //mEmulatorView.write(readBuf, msg.arg1);
                 
                 break;
@@ -217,6 +211,20 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         }
     };
 
+    protected void updateMenuDisconnect() {
+    	if (mMenuItemConnect != null) {
+    		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
+    		mMenuItemConnect.setTitle(R.string.disconnect);
+    	}
+    }
+    
+    protected void updateMenuConnect() {
+    	if (mMenuItemConnect != null) {
+    		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
+    		mMenuItemConnect.setTitle(R.string.connect);
+    	}
+    }
+
     public OpenCVCameraActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
@@ -231,6 +239,11 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         mOpenCvCameraView.setCvCameraViewListener(this);
         mOpenCvCameraView.setActivity(this);
 	    
+        takePicture = (ImageButton)findViewById(R.id.opencv_takePhotoButton);
+        toggleTimelapse = (ImageButton)findViewById(R.id.opencv_timelapse);
+        zoomIn = (ImageButton)findViewById(R.id.opencv_zoomInButton);
+        zoomOut = (ImageButton)findViewById(R.id.opencv_zoomOutButton);
+        
         zoomText = (TextView)findViewById(R.id.opencv_zoomtext);
 	    zoomText.setText("100%");
 	    
@@ -296,12 +309,52 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		return inputFrame.rgba();
+		mRgba = inputFrame.rgba();
+		initialFrame();
+		if (timelapseOn)
+			timelapse();
+		return mRgba;
 	}
-
-	public void takePhoto(View view) {
+	
+	public void initialFrame() {
+		
+	}
+	
+	public boolean timelapse() {
+		if (currentTime != -1) {
+			long newTime = System.currentTimeMillis();
+			timeElapsed += newTime - currentTime;
+			if (timeElapsed > TIMELAPSE_INTERVAL) {
+				takePhoto();
+				timeElapsed -= TIMELAPSE_INTERVAL;
+			}
+			currentTime = newTime;
+		}
+		else
+			currentTime = System.currentTimeMillis();
+		return false;
+	}
+	
+	public void toggleTimelapse(View v) {
+		if (!timelapseOn) {
+			toggleTimelapse.setImageResource(R.drawable.stop);
+			timelapseOn = true;
+			timeElapsed = 0;
+			currentTime = -1;
+		}
+		else {
+			toggleTimelapse.setImageResource(R.drawable.record);
+			timelapseOn = false;
+		}
+	}
+	
+	public void takePhoto() {
 		File file = CameraActivity.getOutputMediaFile(CameraActivity.MEDIA_TYPE_IMAGE);
 		mOpenCvCameraView.takePicture(file);
+	}
+	
+	public void takePhoto(View view) {
+		takePhoto();
 	}
 	
 	public void zoomIn(View view) {
@@ -350,7 +403,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 					newState = x > 0 ? xRightMotor : xLeftMotor;
 				}
 				else if (absY > absX && absY > PAN_THRESHOLD) {
-					System.out.println(touchX + " " + zZone);
 					if (touchX < zZone)
 						newState = y > 0 ? zUpMotor : zDownMotor;
 					else
@@ -362,8 +414,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 				touchX = touchY = firstTouchEvent;
 			}
 		}
-
 		
+		panStage(newState);
 		/*
 		else if (bluetoothEnabled && pointers == 3) {
 			if (action == MotionEvent.ACTION_DOWN) {
@@ -383,14 +435,17 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			}
 		}*/
 		
-
+		return true;
+	}
+	
+	public void panStage(int newState) {
 		if (bluetoothEnabled && newState != panState) {
 			panState = newState;
 			byte[] buffer = new byte[1];
         	buffer[0] = (byte)panState;
         	mSerialService.write(buffer);
 		}
-		return true;
+		System.out.println("Pan " + newState);
 	}
 	
 	@Override
@@ -403,61 +458,58 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-        case R.id.connect:
-        	proceedWithConnection = true;
-        	if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
-        		if (!mEnablingBT) { // If we are turning on the BT we cannot check if it's enable
-        		    if ( (mBluetoothAdapter != null)  && (!mBluetoothAdapter.isEnabled()) ) {
-                		proceedWithConnection = false;           	
-                        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                        builder.setMessage(R.string.alert_dialog_turn_on_bt)
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setTitle(R.string.alert_dialog_warning_title)
-                            .setCancelable( false )
-                            .setPositiveButton(R.string.alert_dialog_yes, new DialogInterface.OnClickListener() {
-                            	public void onClick(DialogInterface dialog, int id) {
-                            		mEnablingBT = true;
-                            		Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                            		startActivityForResult(enableIntent, REQUEST_ENABLE_BT);			
-                            	}
-                            })
-                            .setNegativeButton(R.string.alert_dialog_no, new DialogInterface.OnClickListener() {
-                            	public void onClick(DialogInterface dialog, int id) {
-                            	}
-                            });
-                        AlertDialog alert = builder.create();
-                        alert.show();
-        		    }		
-        		
-        		    if (mSerialService != null) {
-        		    	// Only if the state is STATE_NONE, do we know that we haven't started already
-        		    	if (mSerialService.getState() == BluetoothSerialService.STATE_NONE) {
-        		    		// Start the Bluetooth chat services
-        		    		mSerialService.start();
-        		    	}
-        		    }
-        		}
-        		if (proceedWithConnection) {
-	        		// Launch the DeviceListActivity to see devices and do scan
-	        		Intent serverIntent = new Intent(this, DeviceListActivity.class);
-	        		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-        		}
-        	}
-        	else
-            	if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
-            		mSerialService.stop();
-		    		mSerialService.start();
-            	}
+       	if (item.getItemId() == R.id.connect) {
+        	connectBluetooth();
             return true;
-        //case R.id.preferences:
-        	//doPreferences();
-            //return true;
-        //case R.id.menu_special_keys:
-            //doDocumentKeys();
-            //return true;
         }
         return false;
+    }
+    
+    public void connectBluetooth() {
+    	proceedWithConnection = true;
+    	if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
+    		if (!mEnablingBT) { // If we are turning on the BT we cannot check if it's enable
+    		    if ( (mBluetoothAdapter != null)  && (!mBluetoothAdapter.isEnabled()) ) {
+            		proceedWithConnection = false;           	
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setMessage(R.string.alert_dialog_turn_on_bt)
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setTitle(R.string.alert_dialog_warning_title)
+                        .setCancelable( false )
+                        .setPositiveButton(R.string.alert_dialog_yes, new DialogInterface.OnClickListener() {
+                        	public void onClick(DialogInterface dialog, int id) {
+                        		mEnablingBT = true;
+                        		Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                        		startActivityForResult(enableIntent, REQUEST_ENABLE_BT);			
+                        	}
+                        })
+                        .setNegativeButton(R.string.alert_dialog_no, new DialogInterface.OnClickListener() {
+                        	public void onClick(DialogInterface dialog, int id) {
+                        	}
+                        });
+                    AlertDialog alert = builder.create();
+                    alert.show();
+    		    }		
+    		
+    		    if (mSerialService != null) {
+    		    	// Only if the state is STATE_NONE, do we know that we haven't started already
+    		    	if (mSerialService.getState() == BluetoothSerialService.STATE_NONE) {
+    		    		// Start the Bluetooth chat services
+    		    		mSerialService.start();
+    		    	}
+    		    }
+    		}
+    		if (proceedWithConnection) {
+        		// Launch the DeviceListActivity to see devices and do scan
+        		Intent serverIntent = new Intent(this, DeviceListActivity.class);
+        		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+    		}
+    	}
+    	else
+        	if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
+        		mSerialService.stop();
+	    		mSerialService.start();
+        	}
     }
     
     public void onActivityResult(int requestCode, int resultCode, Intent data) {

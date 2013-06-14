@@ -66,6 +66,9 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
             case android.R.id.home:
                 NavUtils.navigateUpFromSameTask(this);
                 return true;
+            case R.id.menu_delete_all:
+            	deleteAll();
+            	return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -81,13 +84,24 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
 		if (requestCode == 1) {
 			if(resultCode == RESULT_OK){//file was deleted
 				System.out.println("RESULT OK");
-				File f = fileList.remove(selectedItem);
-				f.delete();
-				fileNames.remove(selectedItem);
-				cache.removeItem(selectedItem);
+				deleteItem(selectedItem);
 				adapter.notifyDataSetChanged();
 			}
 		}
+	}
+	
+	public void deleteItem(int item) {
+		File f = fileList.remove(item);
+		f.delete();
+		fileNames.remove(item);
+		cache.removeItem(item);
+	}
+	
+	public void deleteAll() {
+		while (!fileList.isEmpty()) {
+			deleteItem(0);
+		}
+		adapter.notifyDataSetChanged();
 	}
 
 }
