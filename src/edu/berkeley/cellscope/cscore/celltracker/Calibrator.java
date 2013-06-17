@@ -29,7 +29,7 @@ public class Calibrator implements PanTracker.TrackerCallback {
 	private static int Y_NEG = 3;
 	private static int DONE = 4;
 	
-	private static final int TIME = 3000; //milliseconds
+	private static final int TIME = 8000; //milliseconds
 	private static final TimeUnit UNIT = TimeUnit.MILLISECONDS;
 	
 	public Calibrator(PannableStage stage, PanTracker pt) {

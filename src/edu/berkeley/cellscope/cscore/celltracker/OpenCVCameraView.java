@@ -51,7 +51,10 @@ public class OpenCVCameraView extends JavaCameraView {
                 mCamera.startPreview();
             }
         };
-
+        Camera.Parameters params = mCamera.getParameters();
+        Camera.Size size = params.getPreviewSize();
+        params.setPictureSize(size.width, size.height);
+        mCamera.setParameters(params);
         mCamera.takePicture(null, null, callback);
     }
     

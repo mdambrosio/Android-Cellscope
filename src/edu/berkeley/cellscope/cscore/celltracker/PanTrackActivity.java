@@ -88,26 +88,24 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	}
 	
 	@Override
-    protected void updateMenuDisconnect() {
-		super.updateMenuDisconnect();
+    protected void bluetoothConnected() {
+		super.bluetoothConnected();
 		if (mMenuItemCalibrate != null) {
 			mMenuItemCalibrate.setEnabled(true);
 		}
     }
     
 	@Override
-    protected void updateMenuConnect() {
-		super.updateMenuConnect();
+    protected void bluetoothDisconnected() {
+		super.bluetoothDisconnected();
 		if (mMenuItemCalibrate != null) {
 			//mMenuItemCalibrate.setEnabled(false);
 		}
     }
 	
 	@Override
-	public boolean onTouch(View v, MotionEvent event) {
-		if (calibrator.isCalibrating())
-			return false;
-		return super.onTouch(v, event);
+	public boolean panAvailable() {
+		return super.panAvailable() && !calibrator.isCalibrating();
 	}
 	
 	public void hideControls() {

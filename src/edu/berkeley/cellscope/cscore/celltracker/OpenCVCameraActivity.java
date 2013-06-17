@@ -1,6 +1,8 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
 import java.io.File;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -22,7 +24,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
@@ -34,39 +35,32 @@ import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.DeviceListActivity;
 import edu.berkeley.cellscope.cscore.R;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, View.OnTouchListener, PannableStage {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage {
 
 	private static final String TAG = "OpenCV_Camera";
 	
 	private OpenCVCameraView mOpenCvCameraView;
 	protected TextView zoomText;
 	protected ImageButton takePicture, toggleTimelapse, zoomIn, zoomOut;
-
 	protected Mat mRgba;
 	
-	double pinchDist;
-	int lastZoom;
-	double screenDiagonal;
-	double maxZoom;
-	double zZone;
+	private TouchPanner controls;
 	
 	long timeElapsed;
 	long currentTime;
 	boolean timelapseOn = false;
 	
 	public static File mediaStorageDir = CameraActivity.mediaStorageDir;
-	private static final int firstTouchEvent = -1;
-	private static final double PAN_THRESHOLD = 25;
-	private static final double Z_CONTROL_ZONE = 0.1;
 	
 	//Bluetooth stuff
 
     protected MenuItem mMenuItemConnect;
     private static BluetoothSerialService mSerialService = null;
     private boolean mEnablingBT;
+
+	protected ScheduledExecutorService stepperThread;
+	protected StageStepper stepper;
     
-    private int panState;
-    private float touchX, touchY;
     
     private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
 	
@@ -149,14 +143,11 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 switch (msg.arg1) {
                 case BluetoothSerialService.STATE_CONNECTED:
                     if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTED");
-                    updateMenuDisconnect();
+                    bluetoothConnected();
                 	
                 	//Replace my input variable to the bluetooth device below
 //------           	mInputManager.showSoftInput(mEmulatorView, InputMethodManager.SHOW_IMPLICIT);
                 	
-                	bluetoothNameLabel.setText(R.string.title_connected_to);
-                	bluetoothNameLabel.append(mConnectedDeviceName);
-            		bluetoothEnabled = true;
                     break;
                     
                 case BluetoothSerialService.STATE_CONNECTING:
@@ -168,7 +159,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_LISTEN");
                 case BluetoothSerialService.STATE_NONE:
                 	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_NONE");
-                	updateMenuConnect();
+                	bluetoothDisconnected();
 
             		//I have to replace this line with whatever I am using as an input to the bluetooth device
 //-----                	mInputManager.hideSoftInputFromWindow(mEmulatorView.getWindowToken(), 0);
@@ -211,17 +202,28 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         }
     };
 
-    protected void updateMenuDisconnect() {
+    protected void bluetoothConnected() {
     	if (mMenuItemConnect != null) {
     		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
     		mMenuItemConnect.setTitle(R.string.disconnect);
     	}
+    	bluetoothNameLabel.setText(R.string.title_connected_to);
+    	bluetoothNameLabel.append(mConnectedDeviceName);
+		bluetoothEnabled = true;
+		
+		stepperThread = Executors.newScheduledThreadPool(1);
+		//stepperThread.schedule(stepper, 0, TimeUnit.MILLISECONDS);
     }
     
-    protected void updateMenuConnect() {
+    protected void bluetoothDisconnected() {
     	if (mMenuItemConnect != null) {
     		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
     		mMenuItemConnect.setTitle(R.string.connect);
+    	}
+    	
+    	if (stepperThread != null) {
+    		stepperThread.shutdownNow();
+    		stepperThread = null;
     	}
     }
 
@@ -247,11 +249,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         zoomText = (TextView)findViewById(R.id.opencv_zoomtext);
 	    zoomText.setText("100%");
 	    
-	    screenDiagonal = CameraActivity.getScreenDiagonal(this);
-	    zZone = CameraActivity.getScreenHeight(this) * Z_CONTROL_ZONE;
-	    maxZoom = -1;
-	    
-	    mOpenCvCameraView.setOnTouchListener(this);
+	    controls = new TouchPanner(this, this);
+	    mOpenCvCameraView.setOnTouchListener(controls);
 	    
 	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
 
@@ -263,6 +262,9 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		if (mBluetoothAdapter == null){
 			mMenuItemConnect.setEnabled(false);
 		}
+		
+		byte[] stopCommand = new byte[]{stopMotor};
+		stepper = new StageStepper(stopCommand, stopCommand);
 		
 		
     }
@@ -363,89 +365,45 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	public void zoomOut(View view) {
 		mOpenCvCameraView.zoom(-10);
 	}
-
-	public boolean onTouch(View v, MotionEvent event) {
-		int pointers = event.getPointerCount();
-		int action = event.getActionMasked();
-		int newState = stopMotor;
-		//Pinch zoom
-		if (pointers == 2){
-			if (maxZoom == -1)
-				maxZoom = mOpenCvCameraView.getMaxZoom();
-			double newDist = Math.hypot(event.getX(0) - event.getX(1), event.getY(0) - event.getY(1));
-			if (action == MotionEvent.ACTION_MOVE) {
-				if (pinchDist != firstTouchEvent) { //Prevents jumping
-					int newZoom = (int)((newDist-pinchDist) / screenDiagonal * maxZoom * 2);
-					mOpenCvCameraView.zoom(newZoom - lastZoom);
-					lastZoom = newZoom;
-				}
-				else {
-					pinchDist = newDist;
-					lastZoom = 0;
-				}
-			}
-			else {
-				pinchDist = firstTouchEvent;
-			}
-		}
-		
-		else if (bluetoothEnabled && pointers == 1) {
-			if (action == MotionEvent.ACTION_DOWN) {
-				touchX = event.getX();
-				touchY = event.getY();
-			}
-			else if (action == MotionEvent.ACTION_MOVE) {
-				double x = event.getX() - touchX;
-				double y = event.getY() - touchY;
-				double absX = Math.abs(x);
-				double absY = Math.abs(y);
-				if (absX >= absY && absX >= PAN_THRESHOLD) {
-					newState = x > 0 ? xRightMotor : xLeftMotor;
-				}
-				else if (absY > absX && absY > PAN_THRESHOLD) {
-					if (touchX < zZone)
-						newState = y > 0 ? zUpMotor : zDownMotor;
-					else
-						newState = y > 0 ? yForwardMotor : yBackMotor;
-				}
-			}
-			else if (action == MotionEvent.ACTION_UP) {
-				newState = stopMotor;
-				touchX = touchY = firstTouchEvent;
-			}
-		}
-		
-		panStage(newState);
-		/*
-		else if (bluetoothEnabled && pointers == 3) {
-			if (action == MotionEvent.ACTION_DOWN) {
-				touchY = (event.getY(0) + event.getY(1) + event.getY(2)) / 3;
-				System.out.println(touchY);
-			}
-			else if (action == MotionEvent.ACTION_MOVE) {
-				double y = (event.getY(0) + event.getY(1) + event.getY(2)) / 3;
-				y -= touchY;
-				System.out.println(y);
-				if (Math.abs(y) >= PAN_THRESHOLD)
-					newState = y > 0 ? zUpMotor : zDownMotor;
-			}
-			else if (action == MotionEvent.ACTION_UP) {
-				touchY = firstTouchEvent;
-				newState = stopMotor;
-			}
-		}*/
-		
-		return true;
+	
+	public double getDiagonal() {
+		return CameraActivity.getScreenDiagonal(this);
+	}
+	
+	public double getMaxZoom() {
+		return mOpenCvCameraView.getMaxZoom();
+	}
+	
+	public void zoom(int amount) {
+		mOpenCvCameraView.zoom(amount);
+	}
+	
+	public boolean panAvailable() {
+		return bluetoothEnabled;
 	}
 	
 	public void panStage(int newState) {
-		if (bluetoothEnabled && newState != panState) {
-			panState = newState;
+		if (bluetoothEnabled) {
+			/*
+			if (panState == zUpMotor || panState == zDownMotor || panState == stopMotor) {
+				byte[] buffer = new byte[]{(byte)panState};
+				stepper.setFirst(buffer);
+				stepper.setSecond(buffer);
+				stepper.delayOne = stepper.delayTwo = 100;
+			}
+			else {
+				byte[] stop = new byte[]{(byte)stopMotor};
+				byte[] command = new byte[]{(byte)panState};
+				stepper.setFirst(stop);
+				stepper.setSecond(command);
+				stepper.delayOne = 200;
+				stepper.delayTwo = 5;
+			}
+			*/
 			byte[] buffer = new byte[1];
-        	buffer[0] = (byte)panState;
+        	buffer[0] = (byte)newState;
         	mSerialService.write(buffer);
 		}
-		System.out.println("Pan " + newState);
 	}
 	
 	@Override
@@ -547,5 +505,38 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     
 	public int getConnectionState() {
 		return mSerialService.getState();
+	}
+	
+	class StageStepper implements Runnable {
+		volatile byte[] one, two;
+		boolean switcher = true;
+		int delayOne, delayTwo;
+		
+		StageStepper(byte[] a, byte[] b) {
+			one = a;
+			two = b;
+		}
+		
+		public synchronized void run() {
+			if (mSerialService != null) {
+				if (switcher) {
+					mSerialService.write(one);
+					//stepperThread.schedule(this, delayOne, TimeUnit.MILLISECONDS);
+				}
+				else {
+					mSerialService.write(two);
+					//stepperThread.schedule(this, delayTwo, TimeUnit.MILLISECONDS);
+				}
+				switcher = !switcher;
+			}
+		}
+		
+		public synchronized void setFirst(byte[] b) {
+			one = b;
+		}
+		
+		public synchronized void setSecond(byte[] b) {
+			two = b;
+		}
 	}
 }
