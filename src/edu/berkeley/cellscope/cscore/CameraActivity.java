@@ -1,7 +1,6 @@
 package edu.berkeley.cellscope.cscore;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -33,19 +32,23 @@ import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
+import edu.berkeley.cellscope.cscore.celltracker.CompoundTouchListener;
+import edu.berkeley.cellscope.cscore.celltracker.PannableStage;
+import edu.berkeley.cellscope.cscore.celltracker.PinchZoomControl;
+import edu.berkeley.cellscope.cscore.celltracker.TouchPanControl;
+import edu.berkeley.cellscope.cscore.celltracker.ZoomablePreview;
 
 /**
  * This activity runs the camera, allowing either photos or video to be taken.
  */
 
-public class CameraActivity extends Activity {
+public class CameraActivity extends Activity implements PannableStage, ZoomablePreview {
 	//PhotoSurface mSurfaceView; 
 	SurfaceView mSurfaceView;
 	SurfaceHolder mHolder;
@@ -61,9 +64,6 @@ public class CameraActivity extends Activity {
 	ImageButton takePhoto, switchMode, zoomIn, zoomOut;
 	TextView zoomText;
 	
-	private static final double firstTouchEvent = -1;
-	private static final double PAN_THRESHOLD = 25;
-	
 	private static final String TAG = "Camera";
 	private static final int COMPRESSION_QUALITY = 90;
 	
@@ -72,15 +72,6 @@ public class CameraActivity extends Activity {
     private MenuItem mMenuItemConnect;
     private static BluetoothSerialService mSerialService = null;
     private boolean mEnablingBT;
-    
-    private int panState;
-    private static final int xRightMotor = BluetoothActivity.xRightMotor;
-    private static final int xLeftMotor = BluetoothActivity.xLeftMotor;
-    private static final int yBackMotor = BluetoothActivity.yBackMotor;
-    private static final int yForwardMotor = BluetoothActivity.yForwardMotor;
-    private static final int zUpMotor = BluetoothActivity.zUpMotor;
-    private static final int zDownMotor = BluetoothActivity.zDownMotor;
-    private static final int stopMotor = 0;
 	
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
@@ -318,105 +309,23 @@ public class CameraActivity extends Activity {
 	};
 	
 	
-	/*
-	 * Controls responses to touching the screen
-	 */
-	View.OnTouchListener touchListener = new View.OnTouchListener() {
-		double pinchDist;
-		int lastZoom;
-		double screenDiagonal;
-		double maxZoom;
-		
-		public boolean onTouch(View v, MotionEvent event) {
-			if (cameraBusy)
-				return true;
-			
-			int pointers = event.getPointerCount();
-			int action = event.getActionMasked();
-			int newState = stopMotor;
-			//Pinch zoom
-			if (pointers == 2){
-				if (maxZoom == 0)
-					maxZoom = mCamera.getParameters().getMaxZoom();
-				if (screenDiagonal == 0)
-					screenDiagonal = getScreenDiagonal(CameraActivity.this);
-				
-				double newDist = Math.hypot(event.getX(0) - event.getX(1), event.getY(0) - event.getY(1));
-				if (action == MotionEvent.ACTION_MOVE) {
-					if (pinchDist != firstTouchEvent) { //Prevents jumping
-						int newZoom = (int)((newDist-pinchDist) / screenDiagonal * maxZoom * 2);
-						zoom(newZoom - lastZoom);
-						lastZoom = newZoom;
-					}
-					else {
-						pinchDist = newDist;
-						lastZoom = 0;
-					}
-				}
-				else {
-					pinchDist = firstTouchEvent;
-				}
-			}
-			
-			else if (bluetoothEnabled && pointers == 1) {
-				if (action == MotionEvent.ACTION_DOWN) {
-					touchX = event.getX();
-					touchY = event.getY();
-				}
-				else if (action == MotionEvent.ACTION_MOVE) {
-					double x = event.getX() - touchX;
-					double y = event.getY() - touchY;
-					double absX = Math.abs(x);
-					double absY = Math.abs(y);
-					if (absX >= absY && absX >= PAN_THRESHOLD) {
-						newState = x > 0 ? xRightMotor : xLeftMotor;
-					}
-					else if (absY > absX && absY > PAN_THRESHOLD) {
-						newState = y > 0 ? yForwardMotor : yBackMotor;
-					}
-				}
-				else if (action == MotionEvent.ACTION_UP) {
-					newState = stopMotor;
-					touchX = touchY = firstTouchEvent;
-				}
-			}
-			
-			/*
-			else if (bluetoothEnabled && pointers == 3) {
-				if (action == MotionEvent.ACTION_DOWN) {
-					touchY = (event.getY(0) + event.getY(1) + event.getY(2)) / 3;
-					System.out.println(touchY);
-				}
-				else if (action == MotionEvent.ACTION_MOVE) {
-					double y = (event.getY(0) + event.getY(1) + event.getY(2)) / 3;
-					y -= touchY;
-					System.out.println(y);
-					if (Math.abs(y) >= PAN_THRESHOLD)
-						newState = y > 0 ? zUpMotor : zDownMotor;
-				}
-				else if (action == MotionEvent.ACTION_UP) {
-					touchY = firstTouchEvent;
-					newState = stopMotor;
-				}
-			}*/
-			
-
-			if (bluetoothEnabled && newState != panState) {
-				panState = newState;
-				byte[] buffer = new byte[1];
-	        	buffer[0] = (byte)panState;
-	        	mSerialService.write(buffer);	
-			}
-			return true;
+	public void panStage(int newState) {
+		if (bluetoothEnabled) {
+			byte[] buffer = new byte[1];
+        	buffer[0] = (byte)newState;
+        	mSerialService.write(buffer);
 		}
-	};
+	}
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = this;
         setContentView(R.layout.activity_camera);
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
-        mSurfaceView.setOnTouchListener(touchListener);
+        CompoundTouchListener compoundTouch = new CompoundTouchListener();
+        compoundTouch.addTouchListener(new TouchPanControl(this, this));
+        compoundTouch.addTouchListener(new PinchZoomControl(this, this));
+        mSurfaceView.setOnTouchListener(compoundTouch);
         mHolder = mSurfaceView.getHolder();
 	    mHolder.addCallback(mCallback);
 	    mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -657,7 +566,7 @@ public class CameraActivity extends Activity {
 		System.out.println("stop - lock disabled");
 	}
 	
-	private void zoom(int step) {
+	public void zoom(int step) {
 		Camera.Parameters parameters = mCamera.getParameters();
 		if (!parameters.isZoomSupported())
 			return;
@@ -837,4 +746,20 @@ public class CameraActivity extends Activity {
 		Toast toast = Toast.makeText(context, message, duration);
 		toast.show();
 	}
+
+	public boolean panAvailable() {
+		return bluetoothEnabled;
+	}
+
+	public double getDiagonal() {
+		return CameraActivity.getScreenDiagonal(this);
+	}
+	
+	public double getMaxZoom() {
+		Camera.Parameters parameters = mCamera.getParameters();
+		if (!parameters.isZoomSupported())
+			return 0;
+		return parameters.getMaxZoom();
+	}
+	
 }

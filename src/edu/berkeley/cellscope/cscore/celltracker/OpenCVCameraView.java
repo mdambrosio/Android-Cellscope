@@ -19,6 +19,7 @@ public class OpenCVCameraView extends JavaCameraView {
 	private static final int COMPRESSION_QUALITY = 90; //0-100
 	
 	private OpenCVCameraActivity activity;
+	private int minExposure, maxExposure;
 
 	public OpenCVCameraView(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -26,6 +27,24 @@ public class OpenCVCameraView extends JavaCameraView {
 	
 	public void setActivity(OpenCVCameraActivity activity) {
 		this.activity = activity;
+	}
+	
+	public void disableAutoFocus() {
+		Camera.Parameters params = mCamera.getParameters();
+		if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY))
+			params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
+		params.setAutoWhiteBalanceLock(false);
+		params.setAutoExposureLock(true);
+		params.setExposureCompensation(0);
+		minExposure = params.getMinExposureCompensation();
+		maxExposure = params.getMaxExposureCompensation();
+		mCamera.setParameters(params);
+	}
+	
+	@Override
+	public void enableView() {
+		super.enableView();
+		disableAutoFocus();
 	}
 
 	public void takePicture(final File fileName) {
@@ -55,6 +74,14 @@ public class OpenCVCameraView extends JavaCameraView {
         Camera.Size size = params.getPreviewSize();
         params.setPictureSize(size.width, size.height);
         mCamera.setParameters(params);
+        System.out.println("preview sizes");
+        for (Camera.Size s: params.getSupportedPreviewSizes()) {
+        	System.out.println(s.width + " " + s.height);
+        }
+        System.out.println("picture sizes");
+        for (Camera.Size s: params.getSupportedPictureSizes()) {
+        	System.out.println(s.width + " " + s.height);
+        }
         mCamera.takePicture(null, null, callback);
     }
     

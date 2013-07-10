@@ -16,9 +16,9 @@
         android:id="@+id/opencv_takePhotoButton"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:layout_alignParentRight="true"
+        android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
-        android:layout_marginRight="20dp"
+        android:layout_marginLeft="20dp"
         android:onClick="takePhoto"
         android:src="@drawable/camera" />
 
@@ -27,7 +27,7 @@
         style="@style/zoomOverlayText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
         android:layout_alignParentBottom="true" />
     
     <TextView
@@ -37,16 +37,6 @@
         android:layout_height="wrap_content"
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true" />
-
-    <ImageButton
-        android:id="@+id/opencv_zoomInButton"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_alignRight="@+id/opencv_takePhotoButton"
-        android:layout_below="@+id/opencv_takePhotoButton"
-        android:layout_marginTop="16dp"
-        android:onClick="zoomIn"
-        android:src="@drawable/zoomin" />
 
     <ImageButton
         android:id="@+id/opencv_zoomOutButton"
@@ -63,9 +53,19 @@
         android:layout_width="52dp"
         android:layout_height="52dp"
         android:layout_above="@+id/opencv_takePhotoButton"
-        android:layout_alignRight="@+id/opencv_takePhotoButton"
-        android:layout_marginBottom="16dp"
+        android:layout_alignLeft="@+id/opencv_takePhotoButton"
+        android:layout_marginBottom="15dp"
         android:onClick="toggleTimelapse"
         android:src="@drawable/record" />
+
+    <ImageButton
+        android:id="@+id/opencv_zoomInButton"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_alignLeft="@+id/opencv_takePhotoButton"
+        android:layout_below="@+id/opencv_takePhotoButton"
+        android:layout_marginTop="14dp"
+        android:onClick="zoomIn"
+        android:src="@drawable/zoomin" />
 
 </RelativeLayout>

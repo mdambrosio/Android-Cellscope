@@ -17,6 +17,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -35,7 +36,7 @@ import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.DeviceListActivity;
 import edu.berkeley.cellscope.cscore.R;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage, ZoomablePreview {
 
 	private static final String TAG = "OpenCV_Camera";
 	
@@ -44,7 +45,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	protected ImageButton takePicture, toggleTimelapse, zoomIn, zoomOut;
 	protected Mat mRgba;
 	
-	private TouchPanner controls;
 	
 	long timeElapsed;
 	long currentTime;
@@ -124,6 +124,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
                     mOpenCvCameraView.enableView();
+                    //mOpenCvCameraView.disableAutoFocus();
                     //mOpenCvCameraView.setOnTouchListener(OpenCVCameraActivity.this);
                 } break;
                 default:
@@ -249,8 +250,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         zoomText = (TextView)findViewById(R.id.opencv_zoomtext);
 	    zoomText.setText("100%");
 	    
-	    controls = new TouchPanner(this, this);
-	    mOpenCvCameraView.setOnTouchListener(controls);
+	    CompoundTouchListener compound = new CompoundTouchListener();
+	    compound.addTouchListener(new TouchPanControl(this, this));
+	    compound.addTouchListener(new PinchZoomControl(this, this));
+	    mOpenCvCameraView.setOnTouchListener(compound);
 	    
 	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
 

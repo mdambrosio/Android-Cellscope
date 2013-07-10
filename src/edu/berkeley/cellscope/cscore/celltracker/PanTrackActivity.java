@@ -124,9 +124,9 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
+		super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_calibrate, menu);
-        mMenuItemConnect = menu.getItem(0);
         mMenuItemTrackPan = menu.getItem(1);
         mMenuItemCalibrate = menu.getItem(2);
         //mMenuItemCalibrate.setEnabled(false);
