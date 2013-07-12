@@ -5,7 +5,9 @@
     android:versionName="1.0" >
 
     <uses-feature android:name="android.hardware.camera" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -78,6 +80,18 @@
             android:label="@string/title_activity_open_cvcamera"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.celltracker.PanTrackActivity"
+            android:label="@string/title_activity_pan_track"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.cameraui.PinchSelectActivity"
+            android:label="@string/pinch_control"
+            android:configChanges="orientation|keyboardHidden"
+            android:theme="@android:style/Theme.Dialog" >
         </activity>
     </application>
 
