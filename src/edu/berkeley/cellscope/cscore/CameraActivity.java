@@ -38,11 +38,11 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-import edu.berkeley.cellscope.cscore.celltracker.CompoundTouchListener;
-import edu.berkeley.cellscope.cscore.celltracker.PannableStage;
-import edu.berkeley.cellscope.cscore.celltracker.PinchZoomControl;
-import edu.berkeley.cellscope.cscore.celltracker.TouchPanControl;
-import edu.berkeley.cellscope.cscore.celltracker.ZoomablePreview;
+import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
+import edu.berkeley.cellscope.cscore.cameraui.PannableStage;
+import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
+import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
+import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 
 /**
  * This activity runs the camera, allowing either photos or video to be taken.
@@ -324,7 +324,7 @@ public class CameraActivity extends Activity implements PannableStage, ZoomableP
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
         CompoundTouchListener compoundTouch = new CompoundTouchListener();
         compoundTouch.addTouchListener(new TouchPanControl(this, this));
-        compoundTouch.addTouchListener(new PinchZoomControl(this, this));
+        compoundTouch.addTouchListener(new TouchZoomControl(this));
         mSurfaceView.setOnTouchListener(compoundTouch);
         mHolder = mSurfaceView.getHolder();
 	    mHolder.addCallback(mCallback);

@@ -5,6 +5,8 @@ import java.io.FileOutputStream;
 
 import org.opencv.android.JavaCameraView;
 
+import edu.berkeley.cellscope.cscore.R;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -34,7 +36,6 @@ public class OpenCVCameraView extends JavaCameraView {
 		if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY))
 			params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
 		params.setAutoWhiteBalanceLock(false);
-		params.setAutoExposureLock(true);
 		params.setExposureCompensation(0);
 		minExposure = params.getMinExposureCompensation();
 		maxExposure = params.getMaxExposureCompensation();
@@ -85,19 +86,18 @@ public class OpenCVCameraView extends JavaCameraView {
         mCamera.takePicture(null, null, callback);
     }
     
-	public void zoom(int step) {
+	public String zoom(int step) {
 		Camera.Parameters parameters = mCamera.getParameters();
 		if (!parameters.isZoomSupported())
-			return;
+			return "100%";
 		int zoom = parameters.getZoom() + step;
 		if (zoom > parameters.getMaxZoom())
 			zoom = parameters.getMaxZoom();
 		else if (zoom < 0)
 			zoom = 0;
 		parameters.setZoom(zoom);
-		String str= parameters.getZoomRatios().get(zoom) + "%";
-		activity.zoomText.setText(str);
 		mCamera.setParameters(parameters);
+		return parameters.getZoomRatios().get(zoom) + "%";
 	}
 	
 	public int getMaxZoom() {
@@ -112,5 +112,32 @@ public class OpenCVCameraView extends JavaCameraView {
 		int duration = Toast.LENGTH_SHORT;
 		Toast toast = Toast.makeText(context, message, duration);
 		toast.show();
+	}
+	
+	public int getMaxExposure() {
+		Camera.Parameters parameters = mCamera.getParameters();
+		return parameters.getMaxExposureCompensation();
+	}
+	
+	public int getMinExposure() {
+		Camera.Parameters parameters = mCamera.getParameters();
+		return parameters.getMinExposureCompensation();
+	}
+	
+	public String adjustExposure(int amount) {
+		Camera.Parameters parameters = mCamera.getParameters();
+		int current = parameters.getExposureCompensation();
+		current += amount;
+		int min = parameters.getMinExposureCompensation();
+		int max = parameters.getMaxExposureCompensation();
+		if (current < min)
+			current = min;
+		else if (current > max)
+			current = max;
+		parameters.setExposureCompensation(current);
+		mCamera.setParameters(parameters);
+		double exposure = parameters.getExposureCompensationStep() * parameters.getExposureCompensation();
+		exposure = (int)(exposure * 100) / 100d; //limit to two decimal places
+		return "" + exposure;
 	}
 }

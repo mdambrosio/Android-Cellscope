@@ -1,8 +1,8 @@
-package edu.berkeley.cellscope.cscore.celltracker;
+package edu.berkeley.cellscope.cscore.cameraui;
 
 import edu.berkeley.cellscope.cscore.BluetoothActivity;
 
-public interface PannableStage {
+public interface PannableStage extends TouchControllable {
     static final int xRightMotor = BluetoothActivity.xRightMotor;
     static final int xLeftMotor = BluetoothActivity.xLeftMotor;
     static final int yBackMotor = BluetoothActivity.yBackMotor;

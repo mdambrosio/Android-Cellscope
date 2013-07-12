@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.opencv.core.Point;
 
+import edu.berkeley.cellscope.cscore.cameraui.PannableStage;
 import edu.berkeley.cellscope.cscore.celltracker.PanTracker.TrackerCallback;
 
 public class Calibrator implements PanTracker.TrackerCallback {

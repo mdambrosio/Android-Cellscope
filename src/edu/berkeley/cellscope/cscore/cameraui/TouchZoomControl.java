@@ -1,21 +1,23 @@
-package edu.berkeley.cellscope.cscore.celltracker;
+package edu.berkeley.cellscope.cscore.cameraui;
 
-import android.app.Activity;
 import android.view.MotionEvent;
 import android.view.View;
 
-public class PinchZoomControl implements View.OnTouchListener {
-	ZoomablePreview stage;
-	double maxZoom, screenDiagonal, pinchDist;
-	int lastZoom;
+public class TouchZoomControl extends TouchControl {
+	private ZoomablePreview stage;
+	private double maxZoom, screenDiagonal, pinchDist;
+	private int lastZoom;
 	
 	private static final int firstTouchEvent = -1;
-	public PinchZoomControl(ZoomablePreview p, Activity activity) {
+	public TouchZoomControl(ZoomablePreview p) {
 		stage = p;
-		maxZoom = firstTouchEvent;
+		setEnabled(false);
+		pinchDist = maxZoom = firstTouchEvent;
 		screenDiagonal = stage.getDiagonal();
 	}
 	public boolean onTouch(View v, MotionEvent event) {
+		if (!enabled)
+			return false;
 		int pointers = event.getPointerCount();
 		int action = event.getActionMasked();
 		
@@ -42,5 +44,4 @@ public class PinchZoomControl implements View.OnTouchListener {
 		
 		return true;
 	}
-	
 }

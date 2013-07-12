@@ -1,24 +1,27 @@
-package edu.berkeley.cellscope.cscore.celltracker;
+package edu.berkeley.cellscope.cscore.cameraui;
 
 import android.app.Activity;
 import android.view.MotionEvent;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.CameraActivity;
 
-public class TouchPanControl implements View.OnTouchListener {
-	PannableStage stage;
-	double touchX, touchY;
-	double zZone;
-	int panState;
+public class TouchPanControl extends TouchControl {
+	private PannableStage stage;
+	private double touchX, touchY;
+	private double zZone;
+	private int panState;
 	
 	private static final int firstTouchEvent = -1;
 	public TouchPanControl(PannableStage p, Activity activity) {
+		setEnabled(false);
 		stage = p;
 		zZone = CameraActivity.getScreenHeight(activity) * PannableStage.Z_CONTROL_ZONE;
 	}
 	
 
 	public boolean onTouch(View v, MotionEvent event) {
+		if (!enabled)
+			return false;
 		int pointers = event.getPointerCount();
 		int action = event.getActionMasked();
 		int newState = PannableStage.stopMotor;
@@ -62,5 +65,5 @@ public class TouchPanControl implements View.OnTouchListener {
 	public int getState() {
 		return panState;
 	}
-
+	
 }

@@ -1,4 +1,4 @@
-package edu.berkeley.cellscope.cscore.celltracker;
+package edu.berkeley.cellscope.cscore.cameraui;
 
 import java.util.ArrayList;
 import java.util.List;

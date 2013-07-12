@@ -31,6 +31,14 @@
         android:layout_alignParentBottom="true" />
     
     <TextView
+        android:id="@+id/opencv_infotext"
+        style="@style/zoomOverlayText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true" />
+    
+    <TextView
         android:id="@+id/opencv_bluetoothtext"
         style="@style/zoomOverlayText"
         android:layout_width="wrap_content"

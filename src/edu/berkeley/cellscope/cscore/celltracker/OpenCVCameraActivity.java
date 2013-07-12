@@ -17,7 +17,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -34,16 +33,28 @@ import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.BluetoothSerialService;
 import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.DeviceListActivity;
+import edu.berkeley.cellscope.cscore.PinchSelectActivity;
 import edu.berkeley.cellscope.cscore.R;
+import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
+import edu.berkeley.cellscope.cscore.cameraui.ManualExposure;
+import edu.berkeley.cellscope.cscore.cameraui.PannableStage;
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
+import edu.berkeley.cellscope.cscore.cameraui.TouchExposureControl;
+import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
+import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
+import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage, ZoomablePreview {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage, ZoomablePreview, ManualExposure {
 
 	private static final String TAG = "OpenCV_Camera";
 	
 	private OpenCVCameraView mOpenCvCameraView;
 	protected TextView zoomText;
+	protected TextView infoText;
 	protected ImageButton takePicture, toggleTimelapse, zoomIn, zoomOut;
 	protected Mat mRgba;
+	
+	private TouchControl touchPan, touchZoom, touchExposure;
 	
 	
 	long timeElapsed;
@@ -54,7 +65,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	//Bluetooth stuff
 
-    protected MenuItem mMenuItemConnect;
+    protected MenuItem mMenuItemConnect, mMenuItemPinch;
     private static BluetoothSerialService mSerialService = null;
     private boolean mEnablingBT;
 
@@ -67,6 +78,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	// Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
+    private static final int REQUEST_PINCH_CONTROL = 3;
 	
 
     // Name of the connected device
@@ -250,9 +262,17 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         zoomText = (TextView)findViewById(R.id.opencv_zoomtext);
 	    zoomText.setText("100%");
 	    
+	    infoText = (TextView)findViewById(R.id.opencv_infotext);
+	    
 	    CompoundTouchListener compound = new CompoundTouchListener();
-	    compound.addTouchListener(new TouchPanControl(this, this));
-	    compound.addTouchListener(new PinchZoomControl(this, this));
+	    touchPan = new TouchPanControl(this, this);
+	    touchZoom = new TouchZoomControl(this);
+	    touchExposure = new TouchExposureControl(this);
+	    touchPan.setEnabled(true);
+	    touchZoom.setEnabled(true);
+	    compound.addTouchListener(touchPan);
+	    compound.addTouchListener(touchZoom);
+	    compound.addTouchListener(touchExposure);
 	    mOpenCvCameraView.setOnTouchListener(compound);
 	    
 	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
@@ -292,6 +312,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     {
         super.onResume();
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_5, this, mLoaderCallback);
+        System.out.println("RESUMED");
     }
     
     @Override
@@ -363,10 +384,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public void zoomIn(View view) {
-		mOpenCvCameraView.zoom(10);
+		zoom(10);
 	}
 	public void zoomOut(View view) {
-		mOpenCvCameraView.zoom(-10);
+		zoom(-10);
 	}
 	
 	public double getDiagonal() {
@@ -378,7 +399,21 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public void zoom(int amount) {
-		mOpenCvCameraView.zoom(amount);
+		String str = mOpenCvCameraView.zoom(amount);
+		zoomText.setText(str);
+	}
+	
+	public int getMaxExposure() {
+		return mOpenCvCameraView.getMaxExposure();
+	}
+	
+	public int getMinExposure() {
+		return mOpenCvCameraView.getMinExposure();
+	}
+	
+	public void adjustExposure(int amount) {
+		String str = mOpenCvCameraView.adjustExposure(amount);
+		infoText.setText(getString(R.string.exposure_label) + str);
 	}
 	
 	public boolean panAvailable() {
@@ -414,15 +449,22 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_bluetooth, menu);
         mMenuItemConnect = menu.getItem(0);
+        inflater.inflate(R.menu.menu_controls, menu);
+        mMenuItemPinch = menu.getItem(1);
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-       	if (item.getItemId() == R.id.connect) {
+    	int id = item.getItemId();
+       	if (id == R.id.connect) {
         	connectBluetooth();
             return true;
         }
+       	else if (id == R.id.menu_pinch) {
+       		Intent intent = new Intent(this, PinchSelectActivity.class);
+    		startActivityForResult(intent, REQUEST_PINCH_CONTROL);
+       	}
         return false;
     }
     
@@ -475,9 +517,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(DEBUG) Log.d(LOG_TAG, "onActivityResult " + resultCode);
-        switch (requestCode) {
-        
-        case REQUEST_CONNECT_DEVICE:
+        if (requestCode == REQUEST_CONNECT_DEVICE) {
             //forceUpdateCamera = true;
             // When DeviceListActivity returns with a device to connect
             if (resultCode == Activity.RESULT_OK) {
@@ -489,9 +529,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 // Attempt to connect to the device
                 mSerialService.connect(device);
             }
-            break;
-
-        case REQUEST_ENABLE_BT:
+        }
+        else if (requestCode == REQUEST_ENABLE_BT) {
             // When the request to enable Bluetooth returns
             if (resultCode != Activity.RESULT_OK) {
                 Log.d(LOG_TAG, "BT not enabled");
@@ -503,6 +542,18 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
             	Intent serverIntent = new Intent(this, DeviceListActivity.class);
             	startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
             }
+        }
+        
+        else if (requestCode == REQUEST_PINCH_CONTROL) {
+        	if (resultCode == PinchSelectActivity.SELECT_ZOOM) {
+        		touchZoom.setEnabled(true);
+        		touchExposure.setEnabled(false);
+        		infoText.setText("");
+        	}
+        	else if (resultCode == PinchSelectActivity.SELECT_EXPOSURE) {
+        		touchZoom.setEnabled(false);
+        		touchExposure.setEnabled(true);
+        	}
         }
     }
     
