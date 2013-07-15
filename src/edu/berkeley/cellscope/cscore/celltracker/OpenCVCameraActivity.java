@@ -56,6 +56,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	private TouchControl touchPan, touchZoom, touchExposure;
 	
+	private boolean maintainCamera; //Set to true for popup activities.
 	
 	long timeElapsed;
 	long currentTime;
@@ -303,8 +304,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     public void onPause()
     {
         super.onPause();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        if (mOpenCvCameraView != null && !maintainCamera)
+           mOpenCvCameraView.disableView();
+        else
+        	maintainCamera = false;
     }
 
     @Override
@@ -312,7 +315,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     {
         super.onResume();
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_5, this, mLoaderCallback);
-        System.out.println("RESUMED");
     }
     
     @Override
@@ -458,10 +460,12 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     public boolean onOptionsItemSelected(MenuItem item) {
     	int id = item.getItemId();
        	if (id == R.id.connect) {
+       		maintainCamera = true;
         	connectBluetooth();
             return true;
         }
        	else if (id == R.id.menu_pinch) {
+       		maintainCamera = true;
        		Intent intent = new Intent(this, PinchSelectActivity.class);
     		startActivityForResult(intent, REQUEST_PINCH_CONTROL);
        	}
@@ -518,7 +522,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(DEBUG) Log.d(LOG_TAG, "onActivityResult " + resultCode);
         if (requestCode == REQUEST_CONNECT_DEVICE) {
-            //forceUpdateCamera = true;
             // When DeviceListActivity returns with a device to connect
             if (resultCode == Activity.RESULT_OK) {
                 // Get the device MAC address
@@ -534,7 +537,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
             // When the request to enable Bluetooth returns
             if (resultCode != Activity.RESULT_OK) {
                 Log.d(LOG_TAG, "BT not enabled");
-                //forceUpdateCamera = true;
                 mEnablingBT = false;
                 //finishDialogNoBluetooth();                
             }

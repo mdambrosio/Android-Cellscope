@@ -140,4 +140,12 @@ public class OpenCVCameraView extends JavaCameraView {
 		exposure = (int)(exposure * 100) / 100d; //limit to two decimal places
 		return "" + exposure;
 	}
+	
+	public int getCurrentZoom() {
+		return mCamera.getParameters().getZoom();
+	}
+	
+	public int getCUrrentExposure() {
+		return mCamera.getParameters().getExposureCompensation();
+	}
 }
