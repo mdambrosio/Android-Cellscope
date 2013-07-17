@@ -81,7 +81,7 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	}
 	
 	@Override
-    protected void bluetoothConnected() {
+    public void bluetoothConnected() {
 		super.bluetoothConnected();
 		if (mMenuItemCalibrate != null) {
 			mMenuItemCalibrate.setEnabled(true);
@@ -89,7 +89,7 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
     }
     
 	@Override
-    protected void bluetoothDisconnected() {
+    public void bluetoothDisconnected() {
 		super.bluetoothDisconnected();
 		if (mMenuItemCalibrate != null) {
 			//mMenuItemCalibrate.setEnabled(false);
@@ -104,15 +104,11 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	public void hideControls() {
 		takePicture.setVisibility(View.INVISIBLE);
         toggleTimelapse.setVisibility(View.INVISIBLE);
-        zoomIn.setVisibility(View.INVISIBLE);
-        zoomOut.setVisibility(View.INVISIBLE);
 	}
 	
 	public void showControls() {
 		takePicture.setVisibility(View.VISIBLE);
         toggleTimelapse.setVisibility(View.VISIBLE);
-        zoomIn.setVisibility(View.VISIBLE);
-        zoomOut.setVisibility(View.VISIBLE);
 	}
 	
 	@Override
@@ -120,8 +116,8 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 		super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_calibrate, menu);
-        mMenuItemTrackPan = menu.getItem(1);
-        mMenuItemCalibrate = menu.getItem(2);
+        mMenuItemTrackPan = menu.getItem(2);
+        mMenuItemCalibrate = menu.getItem(3);
         //mMenuItemCalibrate.setEnabled(false);
         return true;
     }

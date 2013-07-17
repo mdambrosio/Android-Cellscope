@@ -12,68 +12,7 @@
         android:id="@+id/opencv_camera_view"
         opencv:show_fps="true"
         opencv:camera_id="back"/>
-    <ImageButton
-        android:id="@+id/opencv_takePhotoButton"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_alignParentLeft="true"
-        android:layout_centerVertical="true"
-        android:layout_marginLeft="20dp"
-        android:onClick="takePhoto"
-        android:src="@drawable/camera" />
-
-    <TextView
-        android:id="@+id/opencv_zoomtext"
-        style="@style/zoomOverlayText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true" />
-    
-    <TextView
-        android:id="@+id/opencv_infotext"
-        style="@style/zoomOverlayText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true" />
-    
-    <TextView
-        android:id="@+id/opencv_bluetoothtext"
-        style="@style/zoomOverlayText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true" />
-
-    <ImageButton
-        android:id="@+id/opencv_zoomOutButton"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_alignLeft="@+id/opencv_zoomInButton"
-        android:layout_below="@+id/opencv_zoomInButton"
-        android:layout_marginTop="16dp"
-        android:onClick="zoomOut"
-        android:src="@drawable/zoomout" />
-
-    <ImageButton
-        android:id="@+id/opencv_timelapse"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_above="@+id/opencv_takePhotoButton"
-        android:layout_alignLeft="@+id/opencv_takePhotoButton"
-        android:layout_marginBottom="15dp"
-        android:onClick="toggleTimelapse"
-        android:src="@drawable/record" />
-
-    <ImageButton
-        android:id="@+id/opencv_zoomInButton"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_alignLeft="@+id/opencv_takePhotoButton"
-        android:layout_below="@+id/opencv_takePhotoButton"
-        android:layout_marginTop="14dp"
-        android:onClick="zoomIn"
-        android:src="@drawable/zoomin" />
-
+    <include layout="@layout/camera_takepicture" />
+    <include layout="@layout/camera_infotext" />
+    <include layout="@layout/camera_bluetooth" />
 </RelativeLayout>

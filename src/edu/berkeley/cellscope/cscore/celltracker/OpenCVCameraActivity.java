@@ -1,8 +1,6 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
 import java.io.File;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -12,14 +10,8 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -29,11 +21,10 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
-import edu.berkeley.cellscope.cscore.BluetoothSerialService;
 import edu.berkeley.cellscope.cscore.CameraActivity;
-import edu.berkeley.cellscope.cscore.DeviceListActivity;
 import edu.berkeley.cellscope.cscore.R;
+import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnectable;
+import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnector;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
 import edu.berkeley.cellscope.cscore.cameraui.ManualExposure;
 import edu.berkeley.cellscope.cscore.cameraui.PannableStage;
@@ -44,16 +35,17 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage, ZoomablePreview, ManualExposure {
-
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage, ZoomablePreview, ManualExposure, BluetoothConnectable {
+	
+	BluetoothConnector btConnector;
 	private static final String TAG = "OpenCV_Camera";
 	
 	protected OpenCVCameraView cameraView;
-	protected TextView zoomText;
 	protected TextView infoText;
-	protected ImageButton takePicture, toggleTimelapse, zoomIn, zoomOut;
+	protected ImageButton takePicture, toggleTimelapse;
 	protected Mat mRgba;
 	private boolean firstFrame;
+    protected MenuItem mMenuItemConnect, mMenuItemPinch;
 	
 	protected CompoundTouchListener compoundTouch;
 	private TouchControl touchPan, touchZoom, touchExposure;
@@ -66,71 +58,14 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	public static File mediaStorageDir = CameraActivity.mediaStorageDir;
 	
-	//Bluetooth stuff
-
-    protected MenuItem mMenuItemConnect, mMenuItemPinch;
-    private static BluetoothSerialService mSerialService = null;
-    private boolean mEnablingBT;
-
-	protected ScheduledExecutorService stepperThread;
-	protected StageStepper stepper;
-    
-    
-    private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
 	
-	// Intent request codes
-    private static final int REQUEST_CONNECT_DEVICE = 1;
-    private static final int REQUEST_ENABLE_BT = 2;
     private static final int REQUEST_PINCH_CONTROL = 3;
 	
 
-    // Name of the connected device
-    private String mConnectedDeviceName = null;
-    
-	private BluetoothAdapter mBluetoothAdapter = null;
-
-    private boolean mLocalEcho = false;
-    private boolean bluetoothEnabled = false;
-    private boolean proceedWithConnection = true;
     TextView bluetoothNameLabel;
     
-    // Message types sent from the BluetoothReadService Handler
-    public static final int MESSAGE_STATE_CHANGE = 1;
-    public static final int MESSAGE_READ = 2;
-    public static final int MESSAGE_WRITE = 3;
-    public static final int MESSAGE_DEVICE_NAME = 4;
-    public static final int MESSAGE_TOAST = 5;	
 
-    // Key names received from the BluetoothChatService Handler
-    public static final String DEVICE_NAME = "device_name";
-    public static final String TOAST = "toast";
-
-
-    /**
-     * Set to true to add debugging code and logging.
-     */
-    public static final boolean DEBUG = true;
-
-    /**
-     * Set to true to log each character received from the remote process to the
-     * android log, which makes it easier to debug some kinds of problems with
-     * emulating escape sequences and control codes.
-     */
-    public static final boolean LOG_CHARACTERS_FLAG = DEBUG && true;
-
-    /**
-     * Set to true to log unknown escape sequences.
-     */
-    public static final boolean LOG_UNKNOWN_ESCAPE_SEQUENCES = DEBUG && true;
-
-    /**
-     * The tag we use when logging, so that our messages can be distinguished
-     * from other messages in the log. Public because it's used by several
-     * classes.
-     */
-	public static final String LOG_TAG = "CellScope";
-	
-	
+    private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -150,99 +85,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         }
     };
     
-    private final Handler mHandlerBT = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {        	
-            switch (msg.what) {
-            case MESSAGE_STATE_CHANGE:
-                if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
-                switch (msg.arg1) {
-                case BluetoothSerialService.STATE_CONNECTED:
-                    if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTED");
-                    bluetoothConnected();
-                	
-                	//Replace my input variable to the bluetooth device below
-//------           	mInputManager.showSoftInput(mEmulatorView, InputMethodManager.SHOW_IMPLICIT);
-                	
-                    break;
-                    
-                case BluetoothSerialService.STATE_CONNECTING:
-                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTING");
-                	bluetoothNameLabel.setText(R.string.title_connecting);
-                    break;
-                    
-                case BluetoothSerialService.STATE_LISTEN:
-                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_LISTEN");
-                case BluetoothSerialService.STATE_NONE:
-                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_NONE");
-                	bluetoothDisconnected();
-
-            		//I have to replace this line with whatever I am using as an input to the bluetooth device
-//-----                	mInputManager.hideSoftInputFromWindow(mEmulatorView.getWindowToken(), 0);
-                	bluetoothNameLabel.setText(R.string.title_not_connected);
-            		bluetoothEnabled = false;
-                	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE/STATE_CONNECTED/CACA");
-
-                    break;
-                }
-                break;
-            case MESSAGE_WRITE:
-            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_WRITE " + msg.arg1);
-            	//if (mLocalEcho) {
-            		//byte[] writeBuf = (byte[]) msg.obj;
-            		//mEmulatorView.write(writeBuf, msg.arg1);
-            	//}
-                
-                break;
-                
-            case MESSAGE_READ:
-            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_READ " + msg.arg1);
-            	//byte[] readBuf = (byte[]) msg.obj;              
-                //mEmulatorView.write(readBuf, msg.arg1);
-                
-                break;
-                
-            case MESSAGE_DEVICE_NAME:
-            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_DEVICE_NAME: " + msg.arg1);
-            	// save the connected device's name
-                mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                Toast.makeText(getApplicationContext(), "Connected to "
-                               + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                break;
-            case MESSAGE_TOAST:
-            	if(DEBUG) Log.i(LOG_TAG, "MESSAGE_TOAST: " + msg.arg1);
-            	Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
-                               Toast.LENGTH_SHORT).show();
-                break;
-            }
-        }
-    };
-
-    protected void bluetoothConnected() {
-    	if (mMenuItemConnect != null) {
-    		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
-    		mMenuItemConnect.setTitle(R.string.disconnect);
-    	}
-    	bluetoothNameLabel.setText(R.string.title_connected_to);
-    	bluetoothNameLabel.append(mConnectedDeviceName);
-		bluetoothEnabled = true;
-		
-		stepperThread = Executors.newScheduledThreadPool(1);
-		//stepperThread.schedule(stepper, 0, TimeUnit.MILLISECONDS);
-    }
-    
-    protected void bluetoothDisconnected() {
-    	if (mMenuItemConnect != null) {
-    		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
-    		mMenuItemConnect.setTitle(R.string.connect);
-    	}
-    	
-    	if (stepperThread != null) {
-    		stepperThread.shutdownNow();
-    		stepperThread = null;
-    	}
-    }
-
     public OpenCVCameraActivity() {
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
@@ -257,15 +99,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         cameraView.setCvCameraViewListener(this);
         cameraView.setActivity(this);
 	    
-        takePicture = (ImageButton)findViewById(R.id.opencv_takePhotoButton);
-        toggleTimelapse = (ImageButton)findViewById(R.id.opencv_timelapse);
-        zoomIn = (ImageButton)findViewById(R.id.opencv_zoomInButton);
-        zoomOut = (ImageButton)findViewById(R.id.opencv_zoomOutButton);
-        
-        zoomText = (TextView)findViewById(R.id.opencv_zoomtext);
-	    zoomText.setText("100%");
+        takePicture = (ImageButton)findViewById(R.id.takePhotoButton);
+        //toggleTimelapse = (ImageButton)findViewById(R.id.opencv_timelapse);
 	    
-	    infoText = (TextView)findViewById(R.id.opencv_infotext);
+	    infoText = (TextView)findViewById(R.id.infotext);
 	    
 	    compoundTouch = new CompoundTouchListener();
 	    touchPan = new TouchPanControl(this, this);
@@ -278,28 +115,17 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    compoundTouch.addTouchListener(touchExposure);
 	    cameraView.setOnTouchListener(compoundTouch);
 	    
-	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
 
+		bluetoothNameLabel = (TextView) findViewById(R.id.bluetoothtext);
 
-		bluetoothNameLabel = (TextView) findViewById(R.id.opencv_bluetoothtext);
-
-		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-		//BluetoothAdapter myBluetoothAdapter = null; //This was to test to see what the noBluetoothAdapter() method did
-		if (mBluetoothAdapter == null){
-			mMenuItemConnect.setEnabled(false);
-		}
-		
-		byte[] stopCommand = new byte[]{stopMotor};
-		stepper = new StageStepper(stopCommand, stopCommand);
-		
 		firstFrame = true;
+		btConnector = new BluetoothConnector(this, this);
     }
 	
-
     @Override
     public void onStart() {
     	super.onStart();
-		mEnablingBT = false;
+    	btConnector.onStart();
     }
 
     @Override
@@ -324,8 +150,32 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         super.onDestroy();
         if (cameraView != null)
             cameraView.disableView();
-        if (mSerialService != null)
-        	mSerialService.stop();
+        btConnector.stopBluetooth();
+    }
+    
+    public void bluetoothUnavailable() {
+		mMenuItemConnect.setEnabled(false);
+    }
+
+    public void bluetoothConnected() {
+    	if (mMenuItemConnect != null) {
+    		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
+    		mMenuItemConnect.setTitle(R.string.disconnect);
+    	}
+    	bluetoothNameLabel.setText(R.string.title_connected_to);
+    	bluetoothNameLabel.append(btConnector.getDeviceName());
+		//stepperThread.schedule(stepper, 0, TimeUnit.MILLISECONDS);
+    }
+    
+    public void bluetoothDisconnected() {
+    	if (mMenuItemConnect != null) {
+    		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
+    		mMenuItemConnect.setTitle(R.string.connect);
+    	}
+    }
+    
+    public void updateStatusMessage(int id) {
+     	bluetoothNameLabel.setText(id);
     }
 
 	public void onCameraViewStarted(int width, int height) {
@@ -407,7 +257,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	public void zoom(int amount) {
 		String str = cameraView.zoom(amount);
-		zoomText.setText(str);
+		infoText.setText(getString(R.string.zoom_label) + str);
 	}
 	
 	public int getMaxExposure() {
@@ -424,11 +274,15 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public boolean panAvailable() {
-		return bluetoothEnabled;
+		return btConnector.enabled();
 	}
 	
 	public void panStage(int newState) {
-		if (bluetoothEnabled) {
+		byte[] buffer = new byte[1];
+    	buffer[0] = (byte)newState;
+    	btConnector.write(buffer);
+    	/*
+		if (btConnector.enabled()) {
 			/*
 			if (panState == zUpMotor || panState == zDownMotor || panState == stopMotor) {
 				byte[] buffer = new byte[]{(byte)panState};
@@ -444,11 +298,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 				stepper.delayOne = 200;
 				stepper.delayTwo = 5;
 			}
-			*/
-			byte[] buffer = new byte[1];
-        	buffer[0] = (byte)newState;
-        	mSerialService.write(buffer);
-		}
+			
+		}*/
 	}
 	
 	@Override
@@ -466,7 +317,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     	int id = item.getItemId();
        	if (id == R.id.connect) {
        		maintainCamera = true;
-        	connectBluetooth();
+        	btConnector.connectBluetooth();
             return true;
         }
        	else if (id == R.id.menu_pinch) {
@@ -477,78 +328,13 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         return false;
     }
     
-    public void connectBluetooth() {
-    	proceedWithConnection = true;
-    	if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
-    		if (!mEnablingBT) { // If we are turning on the BT we cannot check if it's enable
-    		    if ( (mBluetoothAdapter != null)  && (!mBluetoothAdapter.isEnabled()) ) {
-            		proceedWithConnection = false;           	
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setMessage(R.string.alert_dialog_turn_on_bt)
-                        .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setTitle(R.string.alert_dialog_warning_title)
-                        .setCancelable( false )
-                        .setPositiveButton(R.string.alert_dialog_yes, new DialogInterface.OnClickListener() {
-                        	public void onClick(DialogInterface dialog, int id) {
-                        		mEnablingBT = true;
-                        		Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                        		startActivityForResult(enableIntent, REQUEST_ENABLE_BT);			
-                        	}
-                        })
-                        .setNegativeButton(R.string.alert_dialog_no, new DialogInterface.OnClickListener() {
-                        	public void onClick(DialogInterface dialog, int id) {
-                        	}
-                        });
-                    AlertDialog alert = builder.create();
-                    alert.show();
-    		    }		
-    		
-    		    if (mSerialService != null) {
-    		    	// Only if the state is STATE_NONE, do we know that we haven't started already
-    		    	if (mSerialService.getState() == BluetoothSerialService.STATE_NONE) {
-    		    		// Start the Bluetooth chat services
-    		    		mSerialService.start();
-    		    	}
-    		    }
-    		}
-    		if (proceedWithConnection) {
-        		// Launch the DeviceListActivity to see devices and do scan
-        		Intent serverIntent = new Intent(this, DeviceListActivity.class);
-        		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-    		}
-    	}
-    	else
-        	if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
-        		mSerialService.stop();
-	    		mSerialService.start();
-        	}
-    }
     
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(DEBUG) Log.d(LOG_TAG, "onActivityResult " + resultCode);
         if (requestCode == REQUEST_CONNECT_DEVICE) {
-            // When DeviceListActivity returns with a device to connect
-            if (resultCode == Activity.RESULT_OK) {
-                // Get the device MAC address
-                String address = data.getExtras()
-                                     .getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-                // Get the BLuetoothDevice object
-                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address); //I deleted "m." before the method getRemoteDevice()
-                // Attempt to connect to the device
-                mSerialService.connect(device);
-            }
+        	btConnector.queryResultConnect(resultCode, data);
         }
         else if (requestCode == REQUEST_ENABLE_BT) {
-            // When the request to enable Bluetooth returns
-            if (resultCode != Activity.RESULT_OK) {
-                Log.d(LOG_TAG, "BT not enabled");
-                mEnablingBT = false;
-                //finishDialogNoBluetooth();                
-            }
-            else {
-            	Intent serverIntent = new Intent(this, DeviceListActivity.class);
-            	startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-            }
+        	btConnector.queryResultEnabled(resultCode, data);
         }
         
         else if (requestCode == REQUEST_PINCH_CONTROL) {
@@ -563,41 +349,5 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         	}
         }
     }
-    
-	public int getConnectionState() {
-		return mSerialService.getState();
-	}
 	
-	class StageStepper implements Runnable {
-		volatile byte[] one, two;
-		boolean switcher = true;
-		int delayOne, delayTwo;
-		
-		StageStepper(byte[] a, byte[] b) {
-			one = a;
-			two = b;
-		}
-		
-		public synchronized void run() {
-			if (mSerialService != null) {
-				if (switcher) {
-					mSerialService.write(one);
-					//stepperThread.schedule(this, delayOne, TimeUnit.MILLISECONDS);
-				}
-				else {
-					mSerialService.write(two);
-					//stepperThread.schedule(this, delayTwo, TimeUnit.MILLISECONDS);
-				}
-				switcher = !switcher;
-			}
-		}
-		
-		public synchronized void setFirst(byte[] b) {
-			one = b;
-		}
-		
-		public synchronized void setSecond(byte[] b) {
-			two = b;
-		}
-	}
 }

@@ -36,7 +36,6 @@ public class OpenCVCameraView extends JavaCameraView {
 		Camera.Parameters params = mCamera.getParameters();
 		if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY))
 			params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
-		params.setAutoWhiteBalanceLock(false);
 		params.setExposureCompensation(0);
 		minExposure = params.getMinExposureCompensation();
 		maxExposure = params.getMaxExposureCompensation();

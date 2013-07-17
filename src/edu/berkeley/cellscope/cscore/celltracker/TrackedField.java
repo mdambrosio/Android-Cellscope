@@ -22,21 +22,17 @@ public class TrackedField {
 	private Mat display;
 	private Point center;
 	private int radius; //radius squared
-	private boolean displayUpdated;
 	private List<TrackedObject> objects;
 	private final Object lockUpdate, lockDisplay;
 	
-	ScheduledExecutorService updateThread;
+	private ScheduledExecutorService updateThread;
 
 	static final Scalar BLUE = new Scalar(0,0,255);
 	static final Scalar GREEN = new Scalar(0, 255, 0);
 	static final Scalar RED = new Scalar(255,0,0);
 	
 	private static final int MINIMUM_UPDATE_INTERVAL = 100; //milliseconds between updates
-	//TODO: If time required for an update exceeds this value, framerate drops greatly.
-	//The update thread will prevent the camera thread from sending new frames, which can cause a freeze.
-	//Convert to a non-scheduled thread that is manually restarted on completion, and enforce a minimum
-	//amount of time or number of frames in between tracking updates.
+	
 	public TrackedField(Mat img, Point fovCenter, int fovRadius) {
 		nextFrame = img;
 		currentField = new Mat();
@@ -46,7 +42,6 @@ public class TrackedField {
 		display = new Mat(currentField.size(), currentField.type());
 		img.copyTo(display);
 		Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
-		displayUpdated = false;
 		objects = new ArrayList<TrackedObject>();
 		lockDisplay = new Object();
 		lockUpdate = new Object();
@@ -59,7 +54,6 @@ public class TrackedField {
 					return;
 				cropRectToMat(region, currentField);
 				objects.add(new TrackedObject(region, currentField));
-				displayUpdated = false;
 			}
 		}
 	}
@@ -71,7 +65,7 @@ public class TrackedField {
 				update(nextFrame);
 			}
 		};
-		updateThread.scheduleAtFixedRate(updater, 0, MINIMUM_UPDATE_INTERVAL, TimeUnit.MILLISECONDS);
+		updateThread.scheduleWithFixedDelay(updater, 0, MINIMUM_UPDATE_INTERVAL, TimeUnit.MILLISECONDS);
 	}
 	
 	public void queueFrame(Mat frame) {
@@ -86,7 +80,6 @@ public class TrackedField {
 			//System.out.println("Beginning update...");
 			//newField.copyTo(display);
 			newField.copyTo(currentField);
-			displayUpdated = false;
 			Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
 			long time = System.currentTimeMillis();
 			long total = 0;
@@ -152,7 +145,6 @@ public class TrackedField {
 				//}
 				o.drawInfo(display);
 			}
-			displayUpdated = true;
 			return display;
 		}
 	}

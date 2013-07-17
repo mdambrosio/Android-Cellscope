@@ -89,16 +89,19 @@
         </activity>
         <activity
             android:name="edu.berkeley.cellscope.cscore.cameraui.PinchSelectActivity"
-            android:label="@string/pinch_control"
             android:configChanges="orientation|keyboardHidden"
+            android:label="@string/pinch_control"
             android:theme="@android:style/Theme.Dialog" >
         </activity>
-        
         <activity
             android:name="edu.berkeley.cellscope.cscore.celltracker.TrackedCameraActivity"
             android:label="TrackCam"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.InitialCameraActivity"
+            android:label="@string/title_activity_initial_camera" >
         </activity>
     </application>
 

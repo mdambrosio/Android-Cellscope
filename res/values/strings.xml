@@ -92,5 +92,6 @@
     <string name="title_activity_pan_track">PanTrack</string>
     <string name="title_activity_pinch_control_selection">PinchControlSelection</string>
     <string name="title_activity_pinch_select">PinchSelectActivity</string>
+    <string name="title_activity_initial_camera">InitialCameraActivity</string>
 
 </resources>

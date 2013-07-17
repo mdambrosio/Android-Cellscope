@@ -7,6 +7,7 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -196,8 +197,9 @@ public class TrackedObject {
 			}
 			if (roi != null)
 				Core.rectangle(display, roi.tl(), roi.br(), TrackedField.BLUE);
-			if (!tracked)
-				Core.rectangle(display, tBoundingBox.tl(), tBoundingBox.br(), TrackedField.RED);
+			if (!tracked) {
+				Core.rectangle(display, tBoundingBox.tl(), tBoundingBox.br(), new Scalar(255, (int)((tMatch - 0.5) * 255 * 4), 0));
+			}
 		}
 	}
 }

@@ -30,7 +30,7 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 	@Override
 	public void initialFrame() {
 		super.initialFrame();
-		field = new TrackedField(mRgba, new Point(400, 240), 240);
+		field = new TrackedField(mRgba, new Point(cameraView.width / 2, cameraView.height / 2), cameraView.height / 2);
 		field.initiateUpdateThread();
 	}
 	

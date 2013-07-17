@@ -152,7 +152,7 @@ public class BluetoothActivity extends Activity implements OnTouchListener {
         // Set up the window layout
 //        requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);    	
 
-    	setContentView(R.layout.activity_bluetooth);
+    	setContentView(R.layout.activity_bluetooth_tester);
 //        if (DEBUG)
 			Log.e(LOG_TAG, "ONCREATE/setupwindowlayout");
 //    	getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);

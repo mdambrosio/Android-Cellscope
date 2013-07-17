@@ -9,53 +9,6 @@
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
-
-    <TextView
-        android:id="@+id/zoomtext"
-        style="@style/zoomOverlayText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentBottom="true" />
-    
-   <TextView
-        android:id="@+id/bluetoothtext"
-        style="@style/zoomOverlayText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true" />
-
-    <ImageButton
-        android:id="@+id/takePhotoButton"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        android:layout_marginRight="20dp"
-        android:onClick="takePhoto"
-        android:src="@drawable/camera" />
-
-   <ImageButton
-        android:id="@+id/zoomOutButton"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_alignRight="@+id/takePhotoButton"
-        android:layout_below="@+id/takePhotoButton"
-        android:layout_marginTop="20dp"
-        android:onClick="zoomOut"
-        android:src="@drawable/zoomout" />
-
-    <ImageButton
-        android:id="@+id/zoomInButton"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:layout_above="@+id/takePhotoButton"
-        android:layout_alignRight="@+id/takePhotoButton"
-        android:layout_marginBottom="20dp"
-        android:onClick="zoomIn"
-        android:src="@drawable/zoomin" />
-
     <ImageButton
         android:id="@+id/switchCameraMode"
         android:layout_width="52dp"
@@ -64,5 +17,9 @@
          android:layout_alignParentLeft="true"
         android:onClick="switchMode"
         android:src="@drawable/record" />
+    
+    <include layout="@layout/camera_takepicture" />
+    <include layout="@layout/camera_zoom" />
+    <include layout="@layout/camera_bluetooth" />
 
 </RelativeLayout>
