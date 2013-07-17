@@ -10,8 +10,8 @@ public interface PannableStage extends TouchControllable {
     static final int zUpMotor = BluetoothActivity.zUpMotor;
     static final int zDownMotor = BluetoothActivity.zDownMotor;
     static final int stopMotor = 0;
-	static final double PAN_THRESHOLD = 25;
-	static final double Z_CONTROL_ZONE = 0.4;
+	static final double PAN_THRESHOLD = 50;
+	static final double Z_CONTROL_ZONE = 0.3;
 	
 	
 	public void panStage(int newStage);

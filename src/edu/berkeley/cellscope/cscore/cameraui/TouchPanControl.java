@@ -15,7 +15,7 @@ public class TouchPanControl extends TouchControl {
 	public TouchPanControl(PannableStage p, Activity activity) {
 		setEnabled(false);
 		stage = p;
-		zZone = CameraActivity.getScreenHeight(activity) * PannableStage.Z_CONTROL_ZONE;
+		zZone = CameraActivity.getScreenWidth(activity) * PannableStage.Z_CONTROL_ZONE;
 	}
 	
 
@@ -37,14 +37,14 @@ public class TouchPanControl extends TouchControl {
 				double absX = Math.abs(x);
 				double absY = Math.abs(y);
 				if (absX >= absY && absX >= PannableStage.PAN_THRESHOLD) {
-					newState = y > 0 ? PannableStage.yForwardMotor : PannableStage.yBackMotor;
+					newState = x > 0 ? PannableStage.yForwardMotor : PannableStage.yBackMotor;
 					//newState = x > 0 ? PannableStage.xRightMotor : PannableStage.xLeftMotor;
 				}
 				else if (absY > absX && absY > PannableStage.PAN_THRESHOLD) {
 					if (touchX < zZone)
 						newState = y > 0 ? PannableStage.zUpMotor : PannableStage.zDownMotor;
 					else
-						newState = x > 0 ? PannableStage.xLeftMotor : PannableStage.xRightMotor;
+						newState = y < 0 ? PannableStage.xLeftMotor : PannableStage.xRightMotor;
 						//newState = y > 0 ? PannableStage.yForwardMotor : PannableStage.yBackMotor;
 				}
 			}

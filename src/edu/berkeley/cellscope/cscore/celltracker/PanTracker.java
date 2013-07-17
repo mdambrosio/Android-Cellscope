@@ -65,17 +65,17 @@ public class PanTracker {
 	}
 	
 	public void draw(Mat mRgba) {
-		PointUtils.set(panCorner1, roiCorner1);
-		PointUtils.add(panCorner1, translation);
-		PointUtils.set(panCorner2, roiCorner2);
-		PointUtils.add(panCorner2, translation);
+		MathUtils.set(panCorner1, roiCorner1);
+		MathUtils.add(panCorner1, translation);
+		MathUtils.set(panCorner2, roiCorner2);
+		MathUtils.add(panCorner2, translation);
 		
     	Core.rectangle(mRgba, roiCorner1, roiCorner2, GREEN);
     	Core.rectangle(mRgba, panCorner1, panCorner2, BLUE);
 	}
 	
 	public synchronized void enableTracking() {
-		PointUtils.set(translation, 0, 0);
+		MathUtils.set(translation, 0, 0);
 		tracking = true;
 		firstFrame = true;
 		frameCounter = TRACK_INTERVAL;
@@ -145,14 +145,14 @@ public class PanTracker {
 			curr.submat(roi).copyTo(template);
         	Point location = locate(last, template);
         	if (location == null)
-        		PointUtils.set(translation, 0, 0);
+        		MathUtils.set(translation, 0, 0);
         	else {
-	        	PointUtils.set(translation, location);
-	        	PointUtils.subtract(translation, roiCorner1);
+	        	MathUtils.set(translation, location);
+	        	MathUtils.subtract(translation, roiCorner1);
 	    		updateCalcQueueCount(-1);
         	}
         	if (callback != null)
-        		callback.onTrackResult(PointUtils.set(result, translation));
+        		callback.onTrackResult(MathUtils.set(result, translation));
             return translation;
 		}
 		

@@ -78,7 +78,7 @@ public class Calibrator implements PanTracker.TrackerCallback {
 	
 	private void executeTask(Point result) {
 		if (step == X_POS) {
-			PointUtils.set(start, result);
+			MathUtils.set(start, result);
 			timeStart = System.currentTimeMillis();
 			service.schedule(xPos, 0, UNIT);
 			service.schedule(stop, TIME, UNIT);
@@ -87,12 +87,12 @@ public class Calibrator implements PanTracker.TrackerCallback {
 				callback.toastMessage("Calibrating positive x...");
 		}
 		else if (step == X_NEG) {
-			PointUtils.set(end, result);
+			MathUtils.set(end, result);
 			long timeDiff = UNIT.toSeconds(timeStop - timeStart);
-			PointUtils.set(xPosRate, start, end);
-			PointUtils.divide(xPosRate, timeDiff);
+			MathUtils.set(xPosRate, start, end);
+			MathUtils.divide(xPosRate, timeDiff);
 
-			PointUtils.set(start, result);
+			MathUtils.set(start, result);
 			timeStart = System.currentTimeMillis();
 			service.schedule(xNeg, 0, UNIT);
 			service.schedule(stop, TIME, UNIT);
@@ -101,12 +101,12 @@ public class Calibrator implements PanTracker.TrackerCallback {
 				callback.toastMessage("Calibrating negative x...");
 		}
 		else if (step == Y_POS) {
-			PointUtils.set(end, result);
+			MathUtils.set(end, result);
 			long timeDiff = timeStop - timeStart;
-			PointUtils.set(xNegRate, start, end);
-			PointUtils.divide(xNegRate, timeDiff);
+			MathUtils.set(xNegRate, start, end);
+			MathUtils.divide(xNegRate, timeDiff);
 
-			PointUtils.set(start, result);
+			MathUtils.set(start, result);
 			timeStart = System.currentTimeMillis();
 			service.schedule(yPos, 0, UNIT);
 			service.schedule(stop, TIME, UNIT);
@@ -115,12 +115,12 @@ public class Calibrator implements PanTracker.TrackerCallback {
 				callback.toastMessage("Calibrating positive y...");
 		}
 		else if (step == Y_NEG) {
-			PointUtils.set(end, result);
+			MathUtils.set(end, result);
 			long timeDiff = timeStop - timeStart;
-			PointUtils.set(yPosRate, start, end);
-			PointUtils.divide(yPosRate, timeDiff);
+			MathUtils.set(yPosRate, start, end);
+			MathUtils.divide(yPosRate, timeDiff);
 
-			PointUtils.set(start, result);
+			MathUtils.set(start, result);
 			timeStart = System.currentTimeMillis();
 			service.schedule(yNeg, 0, UNIT);
 			service.schedule(stop, TIME, UNIT);
@@ -129,10 +129,10 @@ public class Calibrator implements PanTracker.TrackerCallback {
 				callback.toastMessage("Calibrating negative y...");
 		}
 		else if (step == DONE){
-			PointUtils.set(end, result);
+			MathUtils.set(end, result);
 			long timeDiff = timeStop - timeStart;
-			PointUtils.set(yNegRate, start, end);
-			PointUtils.divide(yNegRate, timeDiff);
+			MathUtils.set(yNegRate, start, end);
+			MathUtils.divide(yNegRate, timeDiff);
 			
 			service.shutdown();
 			tracker.setCallback(tCallback);

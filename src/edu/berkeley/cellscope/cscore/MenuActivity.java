@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 import edu.berkeley.cellscope.cscore.celltracker.PanTrackActivity;
+import edu.berkeley.cellscope.cscore.celltracker.TrackedCameraActivity;
 
 public class MenuActivity extends Activity {
     
@@ -53,6 +54,11 @@ public class MenuActivity extends Activity {
     
     public void goToPanTrack(View v) {
     	Intent intent = new Intent(this, PanTrackActivity.class);
+    	startActivity(intent);
+    }
+    
+    public void goToTrackCam(View v) {
+    	Intent intent = new Intent(this, TrackedCameraActivity.class);
     	startActivity(intent);
     }
 }

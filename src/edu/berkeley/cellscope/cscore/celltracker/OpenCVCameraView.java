@@ -22,6 +22,7 @@ public class OpenCVCameraView extends JavaCameraView {
 	
 	private OpenCVCameraActivity activity;
 	private int minExposure, maxExposure;
+	int width, height;
 
 	public OpenCVCameraView(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -40,6 +41,9 @@ public class OpenCVCameraView extends JavaCameraView {
 		minExposure = params.getMinExposureCompensation();
 		maxExposure = params.getMaxExposureCompensation();
 		mCamera.setParameters(params);
+		Camera.Size size = params.getPreviewSize();
+		width = size.width;
+		height = size.height;
 	}
 	
 	@Override
@@ -128,12 +132,10 @@ public class OpenCVCameraView extends JavaCameraView {
 		Camera.Parameters parameters = mCamera.getParameters();
 		int current = parameters.getExposureCompensation();
 		current += amount;
-		int min = parameters.getMinExposureCompensation();
-		int max = parameters.getMaxExposureCompensation();
-		if (current < min)
-			current = min;
-		else if (current > max)
-			current = max;
+		if (current < minExposure)
+			current = minExposure;
+		else if (current > maxExposure)
+			current = maxExposure;
 		parameters.setExposureCompensation(current);
 		mCamera.setParameters(parameters);
 		double exposure = parameters.getExposureCompensationStep() * parameters.getExposureCompensation();

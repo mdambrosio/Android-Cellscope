@@ -727,7 +727,19 @@ public class CameraActivity extends Activity implements PannableStage, ZoomableP
 	    return Math.hypot(width, height);
 	}
 	
-	public static double getScreenHeight(Activity activity) {
+	public static int getScreenWidth(Activity activity) {
+		Display display = activity.getWindowManager().getDefaultDisplay();
+		if (Build.VERSION.SDK_INT < 13) {
+			return display.getWidth();
+		}
+		else {
+		    Point size = new Point();
+		    display.getSize(size);
+		    return size.x;	
+		}
+	}
+	
+	public static int getScreenHeight(Activity activity) {
 		Display display = activity.getWindowManager().getDefaultDisplay();
 		if (Build.VERSION.SDK_INT < 13) {
 			return display.getHeight();

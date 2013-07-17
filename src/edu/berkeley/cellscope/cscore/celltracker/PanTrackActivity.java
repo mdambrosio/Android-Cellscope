@@ -18,8 +18,6 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	private MenuItem mMenuItemCalibrate;
 	private MenuItem mMenuItemTrackPan;
 	
-	private boolean allocate;
-	
 	private Calibrator calibrator;
 	private PanTracker pantracker;
 	private boolean reenableControls;
@@ -33,7 +31,6 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		allocate = true;
 	}
 	
 	public void enableTracking() {
@@ -70,14 +67,10 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	 */
 	@Override
 	public void initialFrame() {
-        if (allocate) {
-        	allocate = false;
             pantracker = new PanTracker(mRgba);
             pantracker.setCallback(this);
             calibrator = new Calibrator(this, pantracker);
             calibrator.setCallback(this);
-        }
-
 	}
 	
 	/* Override this to perform post-calculation operations

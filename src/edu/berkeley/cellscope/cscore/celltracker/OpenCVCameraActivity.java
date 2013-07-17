@@ -48,12 +48,14 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
 	private static final String TAG = "OpenCV_Camera";
 	
-	private OpenCVCameraView mOpenCvCameraView;
+	protected OpenCVCameraView cameraView;
 	protected TextView zoomText;
 	protected TextView infoText;
 	protected ImageButton takePicture, toggleTimelapse, zoomIn, zoomOut;
 	protected Mat mRgba;
+	private boolean firstFrame;
 	
+	protected CompoundTouchListener compoundTouch;
 	private TouchControl touchPan, touchZoom, touchExposure;
 	
 	private boolean maintainCamera; //Set to true for popup activities.
@@ -136,9 +138,9 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    mOpenCvCameraView.enableView();
-                    //mOpenCvCameraView.disableAutoFocus();
-                    //mOpenCvCameraView.setOnTouchListener(OpenCVCameraActivity.this);
+                    cameraView.enableView();
+                    //cameraView.disableAutoFocus();
+                    //cameraView.setOnTouchListener(OpenCVCameraActivity.this);
                 } break;
                 default:
                 {
@@ -250,10 +252,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.activity_opencv_camera);
-        mOpenCvCameraView = (OpenCVCameraView) findViewById(R.id.opencv_camera_view);
-        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
-        mOpenCvCameraView.setCvCameraViewListener(this);
-        mOpenCvCameraView.setActivity(this);
+        cameraView = (OpenCVCameraView) findViewById(R.id.opencv_camera_view);
+        cameraView.setVisibility(SurfaceView.VISIBLE);
+        cameraView.setCvCameraViewListener(this);
+        cameraView.setActivity(this);
 	    
         takePicture = (ImageButton)findViewById(R.id.opencv_takePhotoButton);
         toggleTimelapse = (ImageButton)findViewById(R.id.opencv_timelapse);
@@ -265,16 +267,16 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    
 	    infoText = (TextView)findViewById(R.id.opencv_infotext);
 	    
-	    CompoundTouchListener compound = new CompoundTouchListener();
+	    compoundTouch = new CompoundTouchListener();
 	    touchPan = new TouchPanControl(this, this);
 	    touchZoom = new TouchZoomControl(this);
 	    touchExposure = new TouchExposureControl(this);
 	    touchPan.setEnabled(true);
 	    touchZoom.setEnabled(true);
-	    compound.addTouchListener(touchPan);
-	    compound.addTouchListener(touchZoom);
-	    compound.addTouchListener(touchExposure);
-	    mOpenCvCameraView.setOnTouchListener(compound);
+	    compoundTouch.addTouchListener(touchPan);
+	    compoundTouch.addTouchListener(touchZoom);
+	    compoundTouch.addTouchListener(touchExposure);
+	    cameraView.setOnTouchListener(compoundTouch);
 	    
 	    mSerialService = new BluetoothSerialService(this, mHandlerBT/*, mEmulatorView*/);
 
@@ -290,7 +292,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		byte[] stopCommand = new byte[]{stopMotor};
 		stepper = new StageStepper(stopCommand, stopCommand);
 		
-		
+		firstFrame = true;
     }
 	
 
@@ -304,8 +306,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     public void onPause()
     {
         super.onPause();
-        if (mOpenCvCameraView != null && !maintainCamera)
-           mOpenCvCameraView.disableView();
+        if (cameraView != null && !maintainCamera)
+           cameraView.disableView();
         else
         	maintainCamera = false;
     }
@@ -320,8 +322,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mOpenCvCameraView != null)
-            mOpenCvCameraView.disableView();
+        if (cameraView != null)
+            cameraView.disableView();
         if (mSerialService != null)
         	mSerialService.stop();
     }
@@ -338,7 +340,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		mRgba = inputFrame.rgba();
-		initialFrame();
+		if (firstFrame) {
+			initialFrame();
+			firstFrame = false;
+		}
 		if (timelapseOn)
 			timelapse();
 		return mRgba;
@@ -378,7 +383,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	public void takePhoto() {
 		File file = CameraActivity.getOutputMediaFile(CameraActivity.MEDIA_TYPE_IMAGE);
-		mOpenCvCameraView.takePicture(file);
+		cameraView.takePicture(file);
 	}
 	
 	public void takePhoto(View view) {
@@ -397,24 +402,24 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public double getMaxZoom() {
-		return mOpenCvCameraView.getMaxZoom();
+		return cameraView.getMaxZoom();
 	}
 	
 	public void zoom(int amount) {
-		String str = mOpenCvCameraView.zoom(amount);
+		String str = cameraView.zoom(amount);
 		zoomText.setText(str);
 	}
 	
 	public int getMaxExposure() {
-		return mOpenCvCameraView.getMaxExposure();
+		return cameraView.getMaxExposure();
 	}
 	
 	public int getMinExposure() {
-		return mOpenCvCameraView.getMinExposure();
+		return cameraView.getMinExposure();
 	}
 	
 	public void adjustExposure(int amount) {
-		String str = mOpenCvCameraView.adjustExposure(amount);
+		String str = cameraView.adjustExposure(amount);
 		infoText.setText(getString(R.string.exposure_label) + str);
 	}
 	
