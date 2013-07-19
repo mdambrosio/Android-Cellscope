@@ -1,0 +1,28 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" >
+
+    <TextView
+        android:id="@+id/cell_isolate_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="5. Isolate Additional Cells"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+    
+    <SeekBar
+        android:id="@+id/isolate_threshold"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/cell_isolate_text"
+        android:max="40"
+        android:progress="2"/>
+
+    <TextView
+        android:id="@+id/isolate_threshold_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/isolate_threshold"
+        android:text="Erosion Magnitude: 5"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+</RelativeLayout>

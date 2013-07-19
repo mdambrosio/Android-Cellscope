@@ -1,6 +1,7 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
 import java.io.File;
+import java.io.FileOutputStream;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -10,7 +11,10 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -21,6 +25,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.R;
 import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnectable;
@@ -65,6 +70,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     TextView bluetoothNameLabel;
     
 
+	protected static final int COMPRESSION_QUALITY = 90; //0-100
     private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -73,7 +79,9 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "OpenCV loaded successfully");
-                    cameraView.enableView();
+                    synchronized(OpenCVCameraActivity.this) {
+                    	cameraView.enableView();
+                    }
                     //cameraView.disableAutoFocus();
                     //cameraView.setOnTouchListener(OpenCVCameraActivity.this);
                 } break;
@@ -94,10 +102,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.activity_opencv_camera);
-        cameraView = (OpenCVCameraView) findViewById(R.id.opencv_camera_view);
-        cameraView.setVisibility(SurfaceView.VISIBLE);
-        cameraView.setCvCameraViewListener(this);
-        cameraView.setActivity(this);
+		
 	    
         takePicture = (ImageButton)findViewById(R.id.takePhotoButton);
         //toggleTimelapse = (ImageButton)findViewById(R.id.opencv_timelapse);
@@ -113,13 +118,20 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    compoundTouch.addTouchListener(touchPan);
 	    compoundTouch.addTouchListener(touchZoom);
 	    compoundTouch.addTouchListener(touchExposure);
-	    cameraView.setOnTouchListener(compoundTouch);
 	    
-
 		bluetoothNameLabel = (TextView) findViewById(R.id.bluetoothtext);
 
 		firstFrame = true;
 		btConnector = new BluetoothConnector(this, this);
+		
+
+		synchronized(this) {
+	        cameraView = (OpenCVCameraView) findViewById(R.id.opencv_camera_view);
+	        cameraView.setVisibility(SurfaceView.VISIBLE);
+	        cameraView.setCvCameraViewListener(this);
+	        cameraView.setActivity(this);
+		    cameraView.setOnTouchListener(compoundTouch);
+		}
     }
 	
     @Override
@@ -349,5 +361,27 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         	}
         }
     }
-	
+
+    public void savePicture(File fileName, byte[] data) {
+    	Log.i(TAG, "Saving a bitmap to file: " + fileName.getPath());
+        Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
+        try {
+            FileOutputStream out = new FileOutputStream(fileName);
+            picture.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, out);
+            picture.recycle();
+            out.close();
+            toast("Picture saved as " + fileName.getName());
+//             	FileOutputStream fos = new FileOutputStream(fileName);
+// 	            fos.write(data);
+// 	            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+	protected void toast(String message) {
+		int duration = Toast.LENGTH_SHORT;
+		Toast toast = Toast.makeText(getApplicationContext(), message, duration);
+		toast.show();
+	}
 }

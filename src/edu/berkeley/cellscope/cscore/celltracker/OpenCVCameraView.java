@@ -18,7 +18,6 @@ import android.widget.Toast;
 
 public class OpenCVCameraView extends JavaCameraView {
 	private static final String TAG = "OpenCvCameraView";
-	private static final int COMPRESSION_QUALITY = 90; //0-100
 	
 	private OpenCVCameraActivity activity;
 	private int minExposure, maxExposure;
@@ -33,6 +32,7 @@ public class OpenCVCameraView extends JavaCameraView {
 	}
 	
 	public void disableAutoFocus() {
+		System.out.println(mCamera);
 		Camera.Parameters params = mCamera.getParameters();
 		if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY))
 			params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
@@ -56,20 +56,7 @@ public class OpenCVCameraView extends JavaCameraView {
         PictureCallback callback = new PictureCallback() {
 
             public void onPictureTaken(byte[] data, Camera camera) {
-                Log.i(TAG, "Saving a bitmap to file: " + fileName.getPath());
-                Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
-                try {
-                    FileOutputStream out = new FileOutputStream(fileName);
-                    picture.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, out);
-                    picture.recycle();
-                    out.close();
-                    toast("Picture saved as " + fileName.getName());
-   //             	FileOutputStream fos = new FileOutputStream(fileName);
-   // 	            fos.write(data);
-   // 	            fos.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                activity.savePicture(fileName, data);
                 //mCamera.stopPreview();
                 mCamera.startPreview();
             }
@@ -78,14 +65,6 @@ public class OpenCVCameraView extends JavaCameraView {
         Camera.Size size = params.getPreviewSize();
         params.setPictureSize(size.width, size.height);
         mCamera.setParameters(params);
-        System.out.println("preview sizes");
-        for (Camera.Size s: params.getSupportedPreviewSizes()) {
-        	System.out.println(s.width + " " + s.height);
-        }
-        System.out.println("picture sizes");
-        for (Camera.Size s: params.getSupportedPictureSizes()) {
-        	System.out.println(s.width + " " + s.height);
-        }
         mCamera.takePicture(null, null, callback);
     }
     
@@ -108,13 +87,6 @@ public class OpenCVCameraView extends JavaCameraView {
 		if (!parameters.isZoomSupported())
 			return 0;
 		return parameters.getMaxZoom();
-	}
-	
-	private void toast(String message) {
-		Context context = activity.getApplicationContext();
-		int duration = Toast.LENGTH_SHORT;
-		Toast toast = Toast.makeText(context, message, duration);
-		toast.show();
 	}
 	
 	public int getMaxExposure() {

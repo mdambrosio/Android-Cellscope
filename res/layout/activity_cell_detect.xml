@@ -1,0 +1,32 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <ImageView
+        android:id="@+id/cell_preview"
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        android:layout_above="@+id/image_process_view"
+        android:layout_centerVertical="true" />
+	
+    <edu.berkeley.cellscope.cscore.celltracker.tracker.ImageProcessView
+        android:id="@+id/image_process_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_above="@+id/image_process_next_button" >
+	
+
+    </edu.berkeley.cellscope.cscore.celltracker.tracker.ImageProcessView>
+
+   <Button
+       android:id="@+id/image_process_next_button"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:layout_alignParentBottom="true"
+       android:layout_centerHorizontal="true"
+       android:onClick="next"
+       android:text="Next" />
+</RelativeLayout>

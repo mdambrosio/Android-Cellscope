@@ -1,0 +1,28 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" >
+    
+    <TextView
+        android:id="@+id/cell_noise_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2. Remove Noise"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+    
+    <SeekBar
+        android:id="@+id/noise_threshold"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/cell_noise_text"
+        android:max="100"
+        android:progress="1"/>
+
+    <TextView
+        android:id="@+id/noise_threshold_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Noise Size: 1"
+        android:layout_below="@+id/noise_threshold"
+        android:textAppearance="?android:attr/textAppearanceMedium" />
+</RelativeLayout>

@@ -55,6 +55,7 @@
     <string name="pinch_control">Pinch controls</string>
     <string name="pinch_zoom">Zoom</string>
     <string name="pinch_exposure">Exposure</string>
+    <string name="cell_select_filter">1. Filter</string>
 
     <!-- Camre Preview Info -->
     <string name="zoom_label">Zoom: </string>
@@ -93,5 +94,7 @@
     <string name="title_activity_pinch_control_selection">PinchControlSelection</string>
     <string name="title_activity_pinch_select">PinchSelectActivity</string>
     <string name="title_activity_initial_camera">InitialCameraActivity</string>
+    <string name="title_activity_cell_detect">Cell Detection</string>
+    <string name="title_activity_cell_filter">Filter Image</string>
 
 </resources>

@@ -67,10 +67,11 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	 */
 	@Override
 	public void initialFrame() {
-            pantracker = new PanTracker(mRgba);
-            pantracker.setCallback(this);
-            calibrator = new Calibrator(this, pantracker);
-            calibrator.setCallback(this);
+		super.initialFrame();
+        pantracker = new PanTracker(mRgba);
+        pantracker.setCallback(this);
+        calibrator = new Calibrator(this, pantracker);
+        calibrator.setCallback(this);
 	}
 	
 	/* Override this to perform post-calculation operations

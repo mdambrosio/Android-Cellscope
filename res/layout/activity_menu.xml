@@ -54,5 +54,13 @@
         android:text="TrackCam"
         android:onClick="goToTrackCam"/>
     
+    
+    <Button
+        android:id="@+id/button_cell_track"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cell Tracker"
+        android:onClick="goToCellTracker"/>
+    
 
 </LinearLayout>
