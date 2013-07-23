@@ -11,6 +11,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -47,6 +48,7 @@ public class CellDetection {
 		Imgproc.findContours(bw, allContours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
 		bw.release();
 		gray.release();
+		img.release();
 		return new ContourData(bw2, hierarchy, allContours);
 	}
 	
@@ -110,7 +112,7 @@ public class CellDetection {
 	}
 	
 	public static ContourData isolateCells(ContourData contours, int magnitude) {
-		if (magnitude == 0)
+		/*if (magnitude == 0)
 			return contours;
 		Mat holes = new Mat(contours.bw.size(), contours.bw.type());
 		contours.background.copyTo(holes);
@@ -121,34 +123,56 @@ public class CellDetection {
 		Mat closed = new Mat(holes.size(), holes.type());
 		Mat closedFill = new Mat(holes.size(), holes.type());
 		Mat stepResult = new Mat(holes.size(), holes.type());
-		int increment = magnitude / 4;
+		int increment = magnitude / 8;
 		if (increment < 1) increment = 1;
 		for (int i = 1; i < magnitude + increment; i += increment)  {
 			if (i > magnitude)
 				i = magnitude;
 			System.out.println(i);
 			Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_ELLIPSE, new Size(i, i));
-			Imgproc.morphologyEx(holes, closed, Imgproc.MORPH_DILATE, kernel);
+			Imgproc.morphologyEx(holes, closed, Imgproc.MORPH_CLOSE, kernel);
 			closed.copyTo(closedFill);
 			imfill(closedFill);
 			Core.subtract(closedFill, closed, stepResult);
 			Core.add(isolated, stepResult, isolated);
 		}
+		List<MatOfPoint> newContours = new ArrayList<MatOfPoint>();
+		Mat hierarchy = new Mat();
+		Mat isolatedCopy = isolated.clone();
+		
+		
 		Core.add(isolated, contours.bw, contours.bw);
+		Imgproc.findContours(contours.bw.clone(), newContours, hierarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
+		contours.allContours.clear();
+		contours.whiteContours.clear();
+		int[] data = new int[4];
+		for (int i = 0; i < newContours.size(); i ++) {
+			hierarchy.get(0, i, data);
+			if (data[3] == -1) {
+				contours.whiteContours.add(newContours.get(i));
+			}
+			contours.allContours.add(newContours.get(i));
+		}
 		holes.copyTo(contours.background);
 		holes.release();
 		isolated.release();
 		closed.release();
 		closedFill.release();
 		stepResult.release();
+		hierarchy.release();
+		newContours.clear();
+		isolatedCopy.release();
+		return contours;*/
 		return contours;
 	}
 	
 	public static ContourData removeOblong(ContourData contours, double threshold) {
+		System.out.println("processing...");
 		Mat erasedOblong = Mat.zeros(contours.bw.size(), contours.bw.type());
 		int elements = contours.whiteContours.size();
 		int[] data = new int[4];
 		for (int i = 0; i < elements; i ++) {
+			System.out.println(i + " " + elements);
 			MatOfPoint contour = contours.whiteContours.get(i);
 			MatOfPoint2f points = new MatOfPoint2f(contour.toArray());
 			RotatedRect rect = Imgproc.minAreaRect(points);
@@ -156,7 +180,7 @@ public class CellDetection {
 			double width = size.width;
 			double height = size.height;
 			double ratio = (width > height) ? (width / height) : (height / width); //major:minor
-			if (ratio > threshold) {
+			if (ratio >= threshold) {
 				//Imgproc.drawContours(bw, whiteContours, i, BLACK, Core.FILLED); //paint the oblong debris black to remove it
 				int index = contours.allContours.indexOf(contour);
 				contours.hierarchy.get(0, index, data);
@@ -226,6 +250,13 @@ public class CellDetection {
 			copy.bw = bw.clone();
 			copy.background = background.clone();
 			return copy;
+		}
+		
+		public List<Rect> getRects() {
+			List<Rect> result = new ArrayList<Rect>();
+			for (MatOfPoint p: whiteContours)
+				result.add(Imgproc.boundingRect(p));
+			return result;
 		}
 	}
 	

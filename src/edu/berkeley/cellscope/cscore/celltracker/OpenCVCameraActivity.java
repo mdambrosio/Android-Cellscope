@@ -11,7 +11,6 @@ import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -28,6 +27,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.R;
+import edu.berkeley.cellscope.cscore.ScreenDimension;
 import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnectable;
 import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnector;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
@@ -260,7 +260,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public double getDiagonal() {
-		return CameraActivity.getScreenDiagonal(this);
+		return ScreenDimension.getScreenDiagonal(this);
 	}
 	
 	public double getMaxZoom() {

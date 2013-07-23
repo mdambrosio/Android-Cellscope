@@ -5,11 +5,10 @@ import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
 
-import edu.berkeley.cellscope.cscore.CameraActivity;
-
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
+import edu.berkeley.cellscope.cscore.ScreenDimension;
 
 public class TrackedCameraActivity extends OpenCVCameraActivity implements View.OnTouchListener {
 	
@@ -23,8 +22,8 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		compoundTouch.addTouchListener(this);
-		screenWidth = CameraActivity.getScreenWidth(this);
-		screenHeight = CameraActivity.getScreenHeight(this);
+		screenWidth = ScreenDimension.getScreenWidth(this);
+		screenHeight = ScreenDimension.getScreenHeight(this);
 	}
 	
 	@Override

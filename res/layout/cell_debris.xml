@@ -7,7 +7,7 @@
         android:id="@+id/cell_debris_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="3. Remove Debris"
+        android:text="5. Remove Debris"
         android:textAppearance="?android:attr/textAppearanceLarge" />
     
     <SeekBar
@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/cell_debris_text"
-        android:max="300"
+        android:max="75"
         android:progress="5"/>
 
     <TextView

@@ -1,9 +1,5 @@
 package edu.berkeley.cellscope.cscore.celltracker.tracker;
 
-import org.opencv.core.Mat;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
-
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -20,7 +16,7 @@ public class ImageOblongView extends RelativeLayout {
 	CellDetectActivity activity;
 	Context context;
 	ContourData contours, original;
-	private static final double STEP_SIZE = 0.2;
+	private static final double STEP_SIZE = 0.5;
 	public ImageOblongView(Context context) {
 		super(context);
 		this.context = context;
@@ -48,7 +44,7 @@ public class ImageOblongView extends RelativeLayout {
 
 		thresholder.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
 			public void onProgressChanged(SeekBar seekbar, int progress, boolean fromUser) {
-				text.setText("Oblong Size: " + getThreshold());
+				text.setText("Oblong Size: " + (int)(getThreshold() * 100) / 100d);
 			}
 			public void onStartTrackingTouch(SeekBar seekbar) {}
 			public void onStopTrackingTouch(SeekBar seekbar) {
@@ -58,8 +54,8 @@ public class ImageOblongView extends RelativeLayout {
 		update();
 	}
 
-	public int getThreshold() {
-		return thresholder.getProgress() + 1;
+	public double getThreshold() {
+		return thresholder.getProgress() * STEP_SIZE + 1;
 	}
 
 	public void update() {

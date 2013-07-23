@@ -101,7 +101,21 @@
         </activity>
         <activity
             android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.InitialCameraActivity"
-            android:label="@string/title_activity_initial_camera" >
+            android:label="@string/title_activity_initial_camera"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.CellDetectActivity"
+            android:label="@string/title_activity_cell_detect"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.ViewFieldActivity"
+            android:label="@string/title_activity_viewfield"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         </activity>
     </application>
 

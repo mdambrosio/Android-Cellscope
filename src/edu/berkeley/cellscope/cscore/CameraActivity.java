@@ -15,20 +15,17 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Point;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.hardware.Camera.ShutterCallback;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -711,46 +708,6 @@ public class CameraActivity extends Activity implements PannableStage, ZoomableP
 		return mSerialService.getState();
 	}
 	
-	public static double getScreenDiagonal(Activity activity) {
-		int width, height;
-		Display display = activity.getWindowManager().getDefaultDisplay();
-		if (Build.VERSION.SDK_INT < 13) {
-			width = display.getWidth();
-			height = display.getHeight();
-		}
-		else {
-		    Point size = new Point();
-		    display.getSize(size);
-		    width = size.x;
-		    height = size.y;	
-		}
-	    return Math.hypot(width, height);
-	}
-	
-	public static int getScreenWidth(Activity activity) {
-		Display display = activity.getWindowManager().getDefaultDisplay();
-		if (Build.VERSION.SDK_INT < 13) {
-			return display.getWidth();
-		}
-		else {
-		    Point size = new Point();
-		    display.getSize(size);
-		    return size.x;	
-		}
-	}
-	
-	public static int getScreenHeight(Activity activity) {
-		Display display = activity.getWindowManager().getDefaultDisplay();
-		if (Build.VERSION.SDK_INT < 13) {
-			return display.getHeight();
-		}
-		else {
-		    Point size = new Point();
-		    display.getSize(size);
-		    return size.y;	
-		}
-	}
-	
 
 	private void toast(String message) {
 		Context context = getApplicationContext();
@@ -764,7 +721,7 @@ public class CameraActivity extends Activity implements PannableStage, ZoomableP
 	}
 
 	public double getDiagonal() {
-		return CameraActivity.getScreenDiagonal(this);
+		return ScreenDimension.getScreenDiagonal(this);
 	}
 	
 	public double getMaxZoom() {

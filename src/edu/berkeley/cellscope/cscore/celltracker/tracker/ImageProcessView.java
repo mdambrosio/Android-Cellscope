@@ -1,5 +1,9 @@
 package edu.berkeley.cellscope.cscore.celltracker.tracker;
 
+import java.util.List;
+
+import org.opencv.core.Rect;
+
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
@@ -18,10 +22,10 @@ public class ImageProcessView extends RelativeLayout {
 	
 	private static final int FILTER = 0;
 	private static final int NOISE = 1;
-	private static final int DEBRIS = 2;
-	private static final int BACKGROUND = 3;
-	private static final int ISOLATE = 4;
-	private static final int OBLONG = 5;
+	private static final int BACKGROUND = 2;
+	private static final int ISOLATE = -1;
+	private static final int DEBRIS = 3;
+	private static final int OBLONG = 4;
 	
 	public ImageProcessView(Context context) {
 		super(context);
@@ -69,40 +73,39 @@ public class ImageProcessView extends RelativeLayout {
 	 	
 	}
 	 
-	 public void next() {
+	 public List<Rect> next() {
 		 index ++;
 		 if (index == NOISE) {
 			 filter.setVisibility(View.GONE);
 			 noise.init(activity, filter.contours);
 			 noise.setVisibility(View.VISIBLE);
 		 }
-		 else if (index == DEBRIS) {
+		 else if (index == BACKGROUND) {
 			 noise.setVisibility(View.GONE);
-			 debris.init(activity, noise.contours);
-			 debris.setVisibility(View.VISIBLE);
-		 }
-		 else if (index == BACKGROUND) {
-			 debris.setVisibility(View.GONE);
-			 background.init(activity, debris.contours);
+			 background.init(activity, noise.contours);
 			 background.setVisibility(View.VISIBLE);
-		 }
-		 else if (index == BACKGROUND) {
-			 debris.setVisibility(View.GONE);
-			 background.init(activity, debris.contours);
-			 background.setVisibility(View.VISIBLE);
-		 }
+		 }/*
 		 else if (index == ISOLATE) {
 			 background.setVisibility(View.GONE);
 			 isolate.init(activity, background.contours);
 			 isolate.setVisibility(View.VISIBLE);
+		 }*/
+		 else if (index == DEBRIS) {
+			 background.setVisibility(View.GONE);
+			 debris.init(activity, background.contours);
+			 debris.setVisibility(View.VISIBLE);
 		 }
 		 else if (index == OBLONG) {
-			 isolate.setVisibility(View.GONE);
-			 oblong.init(activity, isolate.contours);
+			 debris.setVisibility(View.GONE);
+			 oblong.init(activity, debris.contours);
 			 oblong.setVisibility(View.VISIBLE);
 		 }
 		 else {
 			 index --;
+			 return oblong.contours.getRects();
 		 }
+		 return null;
 	 }
+	 
+	 
 }

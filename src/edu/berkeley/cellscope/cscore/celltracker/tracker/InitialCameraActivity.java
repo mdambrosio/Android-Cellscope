@@ -45,4 +45,6 @@ public class InitialCameraActivity extends OpenCVCameraActivity {
         startActivity(intent);
         finish();
     }
+	
+	
 }

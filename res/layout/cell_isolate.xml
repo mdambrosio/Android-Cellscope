@@ -7,7 +7,7 @@
         android:id="@+id/cell_isolate_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="5. Isolate Additional Cells"
+        android:text="4. Isolate Additional Cells"
         android:textAppearance="?android:attr/textAppearanceLarge" />
     
     <SeekBar

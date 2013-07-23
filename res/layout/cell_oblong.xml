@@ -7,7 +7,7 @@
         android:id="@+id/cell_oblong_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="5. Annhilate Misshapened Blobs"
+        android:text="6. Annhilate Misshapened Blobs"
         android:textAppearance="?android:attr/textAppearanceLarge" />
     
     <SeekBar
@@ -15,8 +15,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/cell_oblong_text"
-        android:max="9"
-        android:progress="2"/>
+        android:max="18"
+        android:progress="4"/>
 
     <TextView
         android:id="@+id/oblong_threshold_text"

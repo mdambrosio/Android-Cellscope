@@ -3,7 +3,7 @@ package edu.berkeley.cellscope.cscore.cameraui;
 import android.app.Activity;
 import android.view.MotionEvent;
 import android.view.View;
-import edu.berkeley.cellscope.cscore.CameraActivity;
+import edu.berkeley.cellscope.cscore.ScreenDimension;
 
 public class TouchPanControl extends TouchControl {
 	private PannableStage stage;
@@ -15,7 +15,7 @@ public class TouchPanControl extends TouchControl {
 	public TouchPanControl(PannableStage p, Activity activity) {
 		setEnabled(false);
 		stage = p;
-		zZone = CameraActivity.getScreenWidth(activity) * PannableStage.Z_CONTROL_ZONE;
+		zZone = ScreenDimension.getScreenWidth(activity) * PannableStage.Z_CONTROL_ZONE;
 	}
 	
 
