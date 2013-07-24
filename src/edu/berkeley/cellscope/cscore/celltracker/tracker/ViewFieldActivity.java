@@ -25,6 +25,8 @@ import android.widget.ImageView;
 import edu.berkeley.cellscope.cscore.R;
 import edu.berkeley.cellscope.cscore.ScreenDimension;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
+import edu.berkeley.cellscope.cscore.cameraui.SlideableStage;
+import edu.berkeley.cellscope.cscore.cameraui.TouchSlideControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 import edu.berkeley.cellscope.cscore.celltracker.Colors;
@@ -42,6 +44,7 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	int mode;
 	Rect selected;
 	double touchX, touchY;
+	int zoom, exposure;
 
 	private int screenWidth, screenHeight;
 	
@@ -49,10 +52,16 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	public static final String DATA_Y_INFO = "y";
 	public static final String DATA_W_INFO = "width";
 	public static final String DATA_H_INFO = "height";
+	public static final String FOV_X_INFO = "cx";
+	public static final String FOV_Y_INFO = "cy";
+	public static final String FOV_RADIUS_INFO = "cr";
+	public static final String IMG_WIDTH_INFO = "imwidth";
+	public static final String IMG_HEIGHT_INFO = "imheight";
 	
 	private static final double NEW_DEFAULT_SIZE = 40;
 	private static final double RESIZE_SENSITIVITY = 0.1;
 	private final int firstTouchEvent = -1;
+	private static final int APPROXIMATE_TOUCH = 20;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -70,6 +79,9 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		imWidth = image.getWidth();
 		imHeight = image.getHeight();
 	
+		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
+		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
+		
 		img = new Mat();
 		regions = new ArrayList<Rect>();
 		int[] x = intent.getIntArrayExtra(DATA_X_INFO);
@@ -124,6 +136,8 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	@Override
 	public void finish() {
 		img.release();
+		image.recycle();
+		display.recycle();
 		super.finish();
 	}
 	
@@ -136,10 +150,47 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-    	mode = item.getItemId();
-    	selected = null;
-    	updateDisplay();
+    	int id = item.getItemId();
+    	if (id == R.id.viewfield_finish)
+    		complete();
+    	else {
+	    	mode = id;
+	    	selected = null;
+	    	updateDisplay();
+    	}
         return true;
+    }
+    
+    public void complete() {
+    	int size = regions.size();
+
+		int[] x = new int[size];
+		int[] y = new int[size];
+		int[] w = new int[size];
+		int[] h = new int[size];
+		for (int i = 0; i < size; i ++) {
+			Rect r = regions.get(i);
+			x[i] = r.x;
+			y[i] = r.y;
+			w[i] = r.width;
+			h[i] = r.height;
+		}
+			
+		Intent intent = new Intent(this, CellTrackerActivity.class);
+		intent.putExtra(InitialCameraActivity.TEMP_PATH_INFO, file);
+		intent.putExtra(InitialCameraActivity.CAM_ZOOM_INFO, zoom);
+		intent.putExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, exposure);
+		intent.putExtra(ViewFieldActivity.DATA_X_INFO, x);
+		intent.putExtra(ViewFieldActivity.DATA_Y_INFO, y);
+		intent.putExtra(ViewFieldActivity.DATA_W_INFO, w);
+		intent.putExtra(ViewFieldActivity.DATA_H_INFO, h);
+		intent.putExtra(ViewFieldActivity.FOV_X_INFO, (int)center.x);
+		intent.putExtra(ViewFieldActivity.FOV_Y_INFO, (int)center.y);
+		intent.putExtra(ViewFieldActivity.FOV_RADIUS_INFO, (int)radius);
+		intent.putExtra(ViewFieldActivity.IMG_HEIGHT_INFO, imHeight);
+		intent.putExtra(ViewFieldActivity.IMG_WIDTH_INFO, imWidth);
+		startActivity(intent);
+		finish();
     }
 
 	public double getDiagonal() {
@@ -251,6 +302,12 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 					if (r.contains(pt))
 						selected = r;
 				}
+				if (selected == null) {
+					for (Rect r: regions)
+						if (Math.abs(pt.x - (r.x + r.width / 2)) < r.width / 2 + APPROXIMATE_TOUCH &&
+								Math.abs(pt.y - (r.y + r.height / 2)) < r.height/ 2 + APPROXIMATE_TOUCH)
+							selected = r;
+				}
 			}
 			else {
 				if (selected.contains(pt))
@@ -274,6 +331,12 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 					if (selected != null) {
 						touchX = pt.x;
 						touchY = pt.y;
+					}
+					else {
+						for (Rect r: regions)
+							if (Math.abs(pt.x - (r.x + r.width / 2)) < r.width / 2 + APPROXIMATE_TOUCH &&
+									Math.abs(pt.y - (r.y + r.height / 2)) < r.height/ 2 + APPROXIMATE_TOUCH)
+								selected = r;
 					}
 				}
 				else if (selected != null && action == MotionEvent.ACTION_MOVE && touchX != firstTouchEvent && touchY != firstTouchEvent) {

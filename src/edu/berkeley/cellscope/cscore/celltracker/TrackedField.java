@@ -10,7 +10,6 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 /*
@@ -23,15 +22,15 @@ public class TrackedField {
 	private Point center;
 	private int radius; //radius squared
 	private List<TrackedObject> objects;
+	private List<Long> times;
+	private long startTime, nextTime;
+	private boolean tracking;
+	private TrackedCallback callback;
 	private final Object lockUpdate, lockDisplay;
 	
 	private ScheduledExecutorService updateThread;
 
-	static final Scalar BLUE = new Scalar(0,0,255);
-	static final Scalar GREEN = new Scalar(0, 255, 0);
-	static final Scalar RED = new Scalar(255,0,0);
-	
-	private static final int MINIMUM_UPDATE_INTERVAL = 100; //milliseconds between updates
+	private static final int MINIMUM_UPDATE_INTERVAL = 1000; //milliseconds between updates
 	
 	public TrackedField(Mat img, Point fovCenter, int fovRadius) {
 		nextFrame = img;
@@ -45,6 +44,7 @@ public class TrackedField {
 		objects = new ArrayList<TrackedObject>();
 		lockDisplay = new Object();
 		lockUpdate = new Object();
+		times = new ArrayList<Long>();
 	}
 	
 	public void addObject(Rect region) {
@@ -68,22 +68,30 @@ public class TrackedField {
 		updateThread.scheduleWithFixedDelay(updater, 0, MINIMUM_UPDATE_INTERVAL, TimeUnit.MILLISECONDS);
 	}
 	
+	public void haltUpdateThread() {
+		updateThread.shutdown();
+		updateThread = null;
+	}
+	
 	public void queueFrame(Mat frame) {
 		synchronized(lockDisplay) {
 			synchronized(lockUpdate) {
 				nextFrame = frame;
+				nextTime = System.currentTimeMillis();
 			}
 		}
 	}
 	public void update(Mat newField) {
 		synchronized(lockUpdate) {
-			//System.out.println("Beginning update...");
 			//newField.copyTo(display);
+			if (tracking) {
+				times.add(nextTime - startTime);
+			}
 			newField.copyTo(currentField);
 			Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
 			long time = System.currentTimeMillis();
-			long total = 0;
-			for (TrackedObject o: objects) {
+			long total = 0;;
+			for (TrackedObject o: objects) {;
 				o.update(currentField);
 				long oldTime = time;
 				time = System.currentTimeMillis();
@@ -98,7 +106,9 @@ public class TrackedField {
 			total += (time - oldTime);
 			//System.out.println("\tResolved conflicts in " + (time - oldTime));
 			time = System.currentTimeMillis();
-			System.out.println("Update complete in " + total + " with " + objects.size() + " object(s)");
+			//System.out.println("Update complete in " + total + " with " + objects.size() + " object(s)");
+			if (callback != null)
+				callback.updateComplete(newField);
 		}
 	}
 	
@@ -106,11 +116,11 @@ public class TrackedField {
 		int size = objects.size();
 		for (int i = 0; i < size; i ++) {
 			TrackedObject first = objects.get(i);
-			if (!first.tracked)
+			if (!first.followed)
 				continue;
 			for (int j = i + 1; j < size; j ++) {
 				TrackedObject second = objects.get(j);
-				if (!second.tracked || !first.tracked)
+				if (!second.followed || !first.followed)
 					continue;
 				if (!first.overlapViolation(second))
 					continue;
@@ -125,7 +135,7 @@ public class TrackedField {
 	
 	private void confirmUpdate() {
 		for (TrackedObject o: objects) {
-			if (!o.tracked)
+			if (!o.followed)
 				continue;
 			if (o.newPosInFov(center, radius))
 				o.confirmUpdate();
@@ -138,7 +148,7 @@ public class TrackedField {
 	public Mat display() {
 		synchronized(lockDisplay) {
 			nextFrame.copyTo(display);
-			Core.circle(display, center, radius, GREEN);
+			Core.circle(display, center, radius, Colors.GREEN);
 			for (TrackedObject o: objects) {
 				//if (o.roi != null) {
 				//	Core.rectangle(display, o.roi.tl(), o.roi.br(), GREEN);
@@ -146,6 +156,39 @@ public class TrackedField {
 				o.drawInfo(display);
 			}
 			return display;
+		}
+	}
+	
+	public void startTracking() {
+		synchronized(lockUpdate) {
+			tracking = true;
+			startTime = System.currentTimeMillis();
+			for (TrackedObject o: objects)
+				o.setTracking(true);
+		}
+	}
+	
+	public void stopTracking() {
+		synchronized(lockUpdate) {
+			tracking = false;
+			for (TrackedObject o: objects)
+				o.setTracking(false);
+		}
+	}
+	
+	public void reset() {
+		synchronized(lockDisplay) {
+			synchronized(lockUpdate) {
+				times.clear();
+				for (TrackedObject o: objects)
+					o.reset();
+			}
+		}
+	}
+	
+	public void setCallback(TrackedCallback c) {
+		synchronized(lockUpdate) {
+			callback = c;
 		}
 	}
 	

@@ -13,7 +13,6 @@ import org.opencv.core.Mat;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -53,13 +52,15 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     protected MenuItem mMenuItemConnect, mMenuItemPinch;
 	
 	protected CompoundTouchListener compoundTouch;
-	private TouchControl touchPan, touchZoom, touchExposure;
+	protected TouchControl touchPan;
+	protected TouchControl touchZoom;
+	private TouchControl touchExposure;
 	
 	private boolean maintainCamera; //Set to true for popup activities.
 	
 	long timeElapsed;
 	long currentTime;
-	boolean timelapseOn = false;
+	protected boolean timelapseOn = false;
 	
 	public static File mediaStorageDir = CameraActivity.mediaStorageDir;
 	
@@ -82,8 +83,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
                     synchronized(OpenCVCameraActivity.this) {
                     	cameraView.enableView();
                     }
-                    //cameraView.disableAutoFocus();
-                    //cameraView.setOnTouchListener(OpenCVCameraActivity.this);
                 } break;
                 default:
                 {
@@ -105,7 +104,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		
 	    
         takePicture = (ImageButton)findViewById(R.id.takePhotoButton);
-        //toggleTimelapse = (ImageButton)findViewById(R.id.opencv_timelapse);
+        toggleTimelapse = (ImageButton)findViewById(R.id.record_button);
 	    
 	    infoText = (TextView)findViewById(R.id.infotext);
 	    
@@ -131,6 +130,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	        cameraView.setCvCameraViewListener(this);
 	        cameraView.setActivity(this);
 		    cameraView.setOnTouchListener(compoundTouch);
+		    
 		}
     }
 	
@@ -191,13 +191,12 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     }
 
 	public void onCameraViewStarted(int width, int height) {
-		// TODO Auto-generated method stub
+    	cameraView.disableAutoFocus();
 		
 	}
 
 	public void onCameraViewStopped() {
-		// TODO Auto-generated method stub
-		
+		System.out.println("stopped");
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
@@ -215,7 +214,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		
 	}
 	
-	public boolean timelapse() {
+	public void timelapse() {
 		if (currentTime != -1) {
 			long newTime = System.currentTimeMillis();
 			timeElapsed += newTime - currentTime;
@@ -227,7 +226,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		}
 		else
 			currentTime = System.currentTimeMillis();
-		return false;
 	}
 	
 	public void toggleTimelapse(View v) {
@@ -290,6 +288,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public void panStage(int newState) {
+		System.out.println(newState);
 		byte[] buffer = new byte[1];
     	buffer[0] = (byte)newState;
     	btConnector.write(buffer);
@@ -316,6 +315,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
+		System.out.println("creation");
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_bluetooth, menu);
         mMenuItemConnect = menu.getItem(0);
@@ -362,9 +362,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         }
     }
 
-    public void savePicture(File fileName, byte[] data) {
+    public void savePicture(File fileName, Bitmap picture) {
     	Log.i(TAG, "Saving a bitmap to file: " + fileName.getPath());
-        Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
         try {
             FileOutputStream out = new FileOutputStream(fileName);
             picture.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, out);

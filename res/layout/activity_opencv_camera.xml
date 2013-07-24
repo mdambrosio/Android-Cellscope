@@ -12,6 +12,16 @@
         android:id="@+id/opencv_camera_view"
         opencv:show_fps="true"
         opencv:camera_id="back"/>
+    
+
+    <ImageButton
+        android:id="@+id/record_button"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:onClick="toggleTimelapse"
+        android:src="@drawable/record" />
     <include layout="@layout/camera_takepicture" />
     <include layout="@layout/camera_infotext" />
     <include layout="@layout/camera_bluetooth" />

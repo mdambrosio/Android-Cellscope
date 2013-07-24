@@ -44,11 +44,11 @@ public class PanTracker {
 	protected static Scalar BLUE = new Scalar(0, 0, 255, 255);
 	
 	
-	public PanTracker(Mat screen) {
+	public PanTracker(int w, int h) {
     	currImg = new Mat();
     	lastImg = new Mat();
-        width = screen.cols();
-        height = screen.rows();
+        width = w;
+        height = h;
         roiCorner1 = new Point((int) (width / 2 - width * SAMPLE_SIZE_X / 2), (int) (height / 2 - height * SAMPLE_SIZE_Y / 2));
         roiCorner2 = new Point(roiCorner1.x + (int)(width * SAMPLE_SIZE_X), roiCorner1.y + (int)(height * SAMPLE_SIZE_Y));
         roi = new Rect(roiCorner1, roiCorner2);

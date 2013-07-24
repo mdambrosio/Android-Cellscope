@@ -6,19 +6,22 @@ import java.io.FileOutputStream;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.view.View;
 import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 
 public class InitialCameraActivity extends OpenCVCameraActivity {
 	private static final String TEMP_FILE = "tmp.png";
 	private static final int COMPRESSION_QUALITY = 100;
 	static final String TEMP_PATH_INFO = "temporary";
+	static final String CAM_ZOOM_INFO = "zoom";
+	static final String CAM_EXPOSURE_INFO = "exposure";
 	private boolean available;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		available = true;
+		toggleTimelapse.setVisibility(View.GONE);
 	}
 	
 	@Override
@@ -30,8 +33,7 @@ public class InitialCameraActivity extends OpenCVCameraActivity {
 	}
 
 	@Override
-    public void savePicture(File fileName, byte[] data) {
-        Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
+    public void savePicture(File fileName, Bitmap picture) {
         try {
             FileOutputStream out = openFileOutput(TEMP_FILE, Context.MODE_PRIVATE);
             picture.compress(Bitmap.CompressFormat.PNG, COMPRESSION_QUALITY, out);
@@ -42,6 +44,8 @@ public class InitialCameraActivity extends OpenCVCameraActivity {
         }
         Intent intent = new Intent(this, CellDetectActivity.class);
         intent.putExtra(TEMP_PATH_INFO, TEMP_FILE);
+        intent.putExtra(CAM_ZOOM_INFO, cameraView.getCurrentZoom());
+        intent.putExtra(CAM_EXPOSURE_INFO, cameraView.getCurrentExposure());
         startActivity(intent);
         finish();
     }

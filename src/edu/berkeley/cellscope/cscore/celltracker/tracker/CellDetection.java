@@ -167,12 +167,10 @@ public class CellDetection {
 	}
 	
 	public static ContourData removeOblong(ContourData contours, double threshold) {
-		System.out.println("processing...");
 		Mat erasedOblong = Mat.zeros(contours.bw.size(), contours.bw.type());
 		int elements = contours.whiteContours.size();
 		int[] data = new int[4];
 		for (int i = 0; i < elements; i ++) {
-			System.out.println(i + " " + elements);
 			MatOfPoint contour = contours.whiteContours.get(i);
 			MatOfPoint2f points = new MatOfPoint2f(contour.toArray());
 			RotatedRect rect = Imgproc.minAreaRect(points);

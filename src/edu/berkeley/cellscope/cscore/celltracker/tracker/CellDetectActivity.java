@@ -27,6 +27,7 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 	ImageView preview;
 	boolean displayVisible;
 	String file;
+	int zoom, exposure;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -39,6 +40,10 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+		
+		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
+		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
+		
 		//image = BitmapFactory.decodeResource(getResources(), R.drawable.celltest);
 		display = image.copy(Bitmap.Config.ARGB_8888, true);
 		preview = (ImageView)(findViewById(R.id.cell_preview));
@@ -104,6 +109,8 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		intent.putExtra(ViewFieldActivity.DATA_Y_INFO, y);
 		intent.putExtra(ViewFieldActivity.DATA_W_INFO, w);
 		intent.putExtra(ViewFieldActivity.DATA_H_INFO, h);
+		intent.putExtra(InitialCameraActivity.CAM_ZOOM_INFO, zoom);
+		intent.putExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, exposure);
 		startActivity(intent);
 		finish();
 	}

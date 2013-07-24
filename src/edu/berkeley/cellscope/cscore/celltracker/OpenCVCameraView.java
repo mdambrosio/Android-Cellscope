@@ -20,7 +20,7 @@ public class OpenCVCameraView extends JavaCameraView {
 	private static final String TAG = "OpenCvCameraView";
 	
 	private OpenCVCameraActivity activity;
-	private int minExposure, maxExposure;
+	private boolean disabled;
 	int width, height;
 
 	public OpenCVCameraView(Context context, AttributeSet attrs) {
@@ -31,32 +31,36 @@ public class OpenCVCameraView extends JavaCameraView {
 		this.activity = activity;
 	}
 	
-	public void disableAutoFocus() {
-		System.out.println(mCamera);
-		Camera.Parameters params = mCamera.getParameters();
-		if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY))
-			params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
-		params.setExposureCompensation(0);
-		minExposure = params.getMinExposureCompensation();
-		maxExposure = params.getMaxExposureCompensation();
-		mCamera.setParameters(params);
-		Camera.Size size = params.getPreviewSize();
-		width = size.width;
-		height = size.height;
+	public boolean isAutofocusDisabled() {
+		synchronized(this) {
+			return disabled;
+		}
 	}
 	
-	@Override
-	public void enableView() {
-		super.enableView();
-		disableAutoFocus();
+	public void disableAutoFocus() {
+		synchronized(this) {
+			if (mCamera != null && !disabled) {
+				Camera.Parameters params = mCamera.getParameters();
+				if (params.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_INFINITY))
+					params.setFocusMode(Camera.Parameters.FOCUS_MODE_INFINITY);
+				//params.setExposureCompensation(0);
+				mCamera.setParameters(params);
+				Camera.Size size = params.getPreviewSize();
+				width = size.width;
+				height = size.height;
+				disabled = true;
+			}
+		}
 	}
-
+	
 	public void takePicture(final File fileName) {
         Log.i(TAG, "Taking picture");
         PictureCallback callback = new PictureCallback() {
 
             public void onPictureTaken(byte[] data, Camera camera) {
-                activity.savePicture(fileName, data);
+                Bitmap picture = BitmapFactory.decodeByteArray(data, 0, data.length);
+                activity.savePicture(fileName, picture);
+                picture.recycle();
                 //mCamera.stopPreview();
                 mCamera.startPreview();
             }
@@ -102,6 +106,8 @@ public class OpenCVCameraView extends JavaCameraView {
 	public String adjustExposure(int amount) {
 		Camera.Parameters parameters = mCamera.getParameters();
 		int current = parameters.getExposureCompensation();
+		int minExposure = parameters.getMinExposureCompensation();
+		int maxExposure = parameters.getMaxExposureCompensation();
 		current += amount;
 		if (current < minExposure)
 			current = minExposure;
@@ -118,7 +124,7 @@ public class OpenCVCameraView extends JavaCameraView {
 		return mCamera.getParameters().getZoom();
 	}
 	
-	public int getCUrrentExposure() {
+	public int getCurrentExposure() {
 		return mCamera.getParameters().getExposureCompensation();
 	}
 }

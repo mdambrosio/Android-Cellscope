@@ -66,14 +66,13 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	 * asynchronously. onCreate is likely to be called before loading is complete.
 	 */
 	@Override
-	public void initialFrame() {
-		super.initialFrame();
-        pantracker = new PanTracker(mRgba);
+	public void onCameraViewStarted(int width, int height) {
+    	super.onCameraViewStarted(width, height);
+        pantracker = new PanTracker(width, height);
         pantracker.setCallback(this);
         calibrator = new Calibrator(this, pantracker);
         calibrator.setCallback(this);
 	}
-	
 	/* Override this to perform post-calculation operations
 	 * in subclasses.
 	 */

@@ -55,6 +55,7 @@ public class PhotoLibraryActivity extends Activity implements OnItemClickListene
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+    	System.out.println("TEST");
         getMenuInflater().inflate(R.menu.activity_library, menu);
         return true;
     }

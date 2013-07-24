@@ -7,7 +7,6 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -21,7 +20,8 @@ public class TrackedObject {
 	//Fields that start with "t" store tentative data from update(), which can be confirmed using confirmUpdate();
 	Point position; //top left
 	private Point tPosition;
-	boolean tracked; //False when position is unknown
+	boolean followed; //False when position is unknown
+	private boolean tracking;
 	Rect boundingBox, roi;
 	private Rect tBoundingBox, tRoi;
 	private double currentRoi, tCurrentRoi, minimumRoi;
@@ -30,7 +30,7 @@ public class TrackedObject {
 	
 	private Mat corrResult; //Used to store the result of cross-correlation
 	
-	private static final double TOLERATED_OVERLAP = 0.0;
+	private static final double TOLERATED_OVERLAP = 0.2;
 	private static final double MATCH_TOLERANCE = 0.00001;
 	private static final double MATCH_THRESHOLD = 0.95;
 	static final int MATCH = 0;
@@ -46,12 +46,12 @@ public class TrackedObject {
 		path = new ArrayList<Point>();
 		size = location.size();
 		position = location.tl();
-		path.add(MathUtils.getRectCenter(position, size));
+		//path.add(MathUtils.getRectCenter(position, size));
 		boundingBox = location.clone();
 		image = field.submat(location);
 		match = 1;
 		currentRoi = 0;
-		tracked = true;
+		followed = true;
 		if (size.width < size.height)
 			minimumRoi = (int)(size.height * MINIMUM_ROI);
 		else
@@ -60,12 +60,13 @@ public class TrackedObject {
 		int result_rows = field.rows() - image.rows() + 1;
 		corrResult = new Mat(result_rows, result_cols, CvType.CV_32FC1);
 		roi = null;
+		tracking = false;
 	}
 	
 	//Tenatively updates the position of the object. confirmUpdate() must be called to finalize.
 	public void update(Mat field) {
 		//Check the entire image
-		tracked = true;
+		followed = true;
 		if (ROI_SIZE == 0 || roi == null) {
 			Imgproc.matchTemplate(field, image, corrResult, Imgproc.TM_CCORR_NORMED);
 			Core.MinMaxLocResult minMax = Core.minMaxLoc(corrResult);
@@ -96,8 +97,6 @@ public class TrackedObject {
 	public void updateRoi(Mat field) {
 		//System.out.println("UPDATE ROI");
 		double range = newStepDistance() * ROI_SIZE * 2;
-		if (range == 0)
-			return;
 		if (tCurrentRoi != 0) {
 			int totalPts = path.size();
 			if (totalPts > ROI_VARIABILITY)
@@ -162,44 +161,61 @@ public class TrackedObject {
 			roi = tRoi;
 			currentRoi = tCurrentRoi;
 			image = tImage;
-			path.add(MathUtils.getRectCenter(position, size));
-			tracked = true;
+			if (tracking)
+				path.add(MathUtils.getRectCenter(position, size));
+			followed = true;
 		}
 	}
 	
 	public void invalidateUpdate() {
 		synchronized(this) {
 			path.add(null);
-			tracked = false;
+			followed = false;
 		}
 	}
 	
 	public void drawInfo(Mat display) {
 		synchronized(this) {
-			if (!tracked)
-				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), TrackedField.RED, 2);
+			if (!followed)
+				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.RED, 2);
 			else
-				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), TrackedField.GREEN, 2);
-			Point last = path.get(0);
-			boolean jump = false;
-			for (int i = 1; i < path.size(); i ++) {
-				if (path.get(i) != null) {
-					if (jump) {
-						Core.line(display, path.get(i), last, TrackedField.RED);
-						jump = false;
+				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.GREEN, 2);
+			if (tracking) {
+				Point last = path.get(0);
+				boolean jump = false;
+				for (int i = 1; i < path.size(); i ++) {
+					if (path.get(i) != null) {
+						if (jump) {
+							Core.line(display, path.get(i), last, Colors.RED);
+							jump = false;
+						}
+						else
+							Core.line(display, path.get(i), last, Colors.GREEN);
+						last = path.get(i);
 					}
 					else
-						Core.line(display, path.get(i), last, TrackedField.GREEN);
-					last = path.get(i);
+						jump = true;
 				}
-				else
-					jump = true;
 			}
 			if (roi != null)
-				Core.rectangle(display, roi.tl(), roi.br(), TrackedField.BLUE);
-			if (!tracked) {
-				Core.rectangle(display, tBoundingBox.tl(), tBoundingBox.br(), new Scalar(255, (int)((tMatch - 0.5) * 255 * 4), 0));
+				Core.rectangle(display, roi.tl(), roi.br(), Colors.BLUE);
+			if (!followed) {
+				Core.rectangle(display, tBoundingBox.tl(), tBoundingBox.br(), /*new Scalar(255, (int)((tMatch - 0.5) * 255 * 4)*, 0)*/
+				Colors.RED);
 			}
 		}
+	}
+	
+	
+	public void setTracking(boolean b) {
+		synchronized (this) {
+			tracking = b;
+			if (tracking)
+				path.add(MathUtils.getRectCenter(position, size));
+		}
+	}
+	
+	public void reset() {
+		path.clear();
 	}
 }
