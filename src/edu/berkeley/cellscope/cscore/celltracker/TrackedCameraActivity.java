@@ -30,7 +30,7 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 	public void initialFrame() {
 		super.initialFrame();
 		field = new TrackedField(mRgba, new Point(cameraView.width / 2, cameraView.height / 2), cameraView.height / 2);
-		field.initiateUpdateThread();
+		field.initiateUpdateThread(250);
 	}
 	
 	@Override
@@ -49,7 +49,9 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 			float y = evt.getY() / screenHeight;
 			Point p = new Point(cameraView.width * x, cameraView.height * y);
 			Size s = new Size(TEST_WIDTH, TEST_HEIGHT);
+			field.stopTracking();
 			field.addObject(MathUtils.createCenteredRect(p, s));
+			field.startTracking();
 		}
 		return true;
 	}

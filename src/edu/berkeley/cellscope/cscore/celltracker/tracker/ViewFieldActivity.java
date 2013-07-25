@@ -48,6 +48,11 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 
 	private int screenWidth, screenHeight;
 	
+
+	private String save;
+	private boolean timelapse;
+	private int interval;
+	
 	public static final String DATA_X_INFO = "x";
 	public static final String DATA_Y_INFO = "y";
 	public static final String DATA_W_INFO = "width";
@@ -61,7 +66,7 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	private static final double NEW_DEFAULT_SIZE = 40;
 	private static final double RESIZE_SENSITIVITY = 0.1;
 	private final int firstTouchEvent = -1;
-	private static final int APPROXIMATE_TOUCH = 20;
+	static final int APPROXIMATE_TOUCH = 20;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -81,6 +86,11 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	
 		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
 		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
+		
+		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
+		if (save == null) save = "";
+		timelapse = intent.getBooleanExtra(TrackerSettingsActivity.TIMELAPSE_INFO, false);
+		interval = intent.getIntExtra(TrackerSettingsActivity.INTERVAL_INFO, TrackerSettingsActivity.DEFAULT_INTERVAL);
 		
 		img = new Mat();
 		regions = new ArrayList<Rect>();
@@ -189,6 +199,9 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		intent.putExtra(ViewFieldActivity.FOV_RADIUS_INFO, (int)radius);
 		intent.putExtra(ViewFieldActivity.IMG_HEIGHT_INFO, imHeight);
 		intent.putExtra(ViewFieldActivity.IMG_WIDTH_INFO, imWidth);
+		intent.putExtra(TrackerSettingsActivity.SAVE_INFO, save);
+		intent.putExtra(TrackerSettingsActivity.INTERVAL_INFO, interval);
+		intent.putExtra(TrackerSettingsActivity.TIMELAPSE_INFO, timelapse);
 		startActivity(intent);
 		finish();
     }

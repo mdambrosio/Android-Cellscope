@@ -14,6 +14,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -46,7 +47,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	protected OpenCVCameraView cameraView;
 	protected TextView infoText;
-	protected ImageButton takePicture, toggleTimelapse;
+	protected ImageButton takePicture, toggleRecord;
 	protected Mat mRgba;
 	private boolean firstFrame;
     protected MenuItem mMenuItemConnect, mMenuItemPinch;
@@ -60,7 +61,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	long timeElapsed;
 	long currentTime;
-	protected boolean timelapseOn = false;
+	protected boolean record = false;
 	
 	public static File mediaStorageDir = CameraActivity.mediaStorageDir;
 	
@@ -73,6 +74,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
 	protected static final int COMPRESSION_QUALITY = 90; //0-100
     private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
+    private static final int TOAST_DURATION = 750; //milliseconds
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -104,7 +106,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		
 	    
         takePicture = (ImageButton)findViewById(R.id.takePhotoButton);
-        toggleTimelapse = (ImageButton)findViewById(R.id.record_button);
+        toggleRecord = (ImageButton)findViewById(R.id.record_button);
 	    
 	    infoText = (TextView)findViewById(R.id.infotext);
 	    
@@ -205,8 +207,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			initialFrame();
 			firstFrame = false;
 		}
-		if (timelapseOn)
-			timelapse();
+		if (record)
+			record();
 		return mRgba;
 	}
 	
@@ -214,7 +216,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		
 	}
 	
-	public void timelapse() {
+	public void record() {
 		if (currentTime != -1) {
 			long newTime = System.currentTimeMillis();
 			timeElapsed += newTime - currentTime;
@@ -229,15 +231,15 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public void toggleTimelapse(View v) {
-		if (!timelapseOn) {
-			toggleTimelapse.setImageResource(R.drawable.stop);
-			timelapseOn = true;
+		if (!record) {
+			toggleRecord.setImageResource(R.drawable.stop);
+			record = true;
 			timeElapsed = 0;
 			currentTime = -1;
 		}
 		else {
-			toggleTimelapse.setImageResource(R.drawable.record);
-			timelapseOn = false;
+			toggleRecord.setImageResource(R.drawable.record);
+			record = false;
 		}
 	}
 	
@@ -378,9 +380,21 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
         }
     }
     
-	protected void toast(String message) {
-		int duration = Toast.LENGTH_SHORT;
-		Toast toast = Toast.makeText(getApplicationContext(), message, duration);
-		toast.show();
+	protected void toast(final String message) {
+		this.runOnUiThread( new Runnable() {
+			public void run() {
+				int duration = Toast.LENGTH_SHORT;
+				final Toast toast = Toast.makeText(getApplicationContext(), message, duration);
+				toast.show();
+				Handler handler = new Handler();
+		            handler.postDelayed(new Runnable() {
+		               public void run() {
+		                   toast.cancel(); 
+		               }
+		        }, TOAST_DURATION);
+				
+			}
+			
+		});
 	}
 }

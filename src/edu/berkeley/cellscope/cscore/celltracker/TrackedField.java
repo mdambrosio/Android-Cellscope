@@ -1,5 +1,9 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -30,8 +34,10 @@ public class TrackedField {
 	
 	private ScheduledExecutorService updateThread;
 
-	private static final int MINIMUM_UPDATE_INTERVAL = 1000; //milliseconds between updates
-	
+	private File output;
+	private BufferedWriter writer;
+	private static final int INITIAL_DELAY = 500;
+
 	public TrackedField(Mat img, Point fovCenter, int fovRadius) {
 		nextFrame = img;
 		currentField = new Mat();
@@ -50,7 +56,7 @@ public class TrackedField {
 	public void addObject(Rect region) {
 		synchronized(lockDisplay) {
 			synchronized(lockUpdate) {
-				if (!MathUtils.circleContainsRect(region, center, radius))
+				if (tracking || !MathUtils.circleContainsRect(region, center, radius))
 					return;
 				cropRectToMat(region, currentField);
 				objects.add(new TrackedObject(region, currentField));
@@ -58,19 +64,28 @@ public class TrackedField {
 		}
 	}
 	
-	public void initiateUpdateThread() {
+	public void initiateUpdateThread(final int interval) {
 		updateThread = Executors.newSingleThreadScheduledExecutor();
 		Runnable updater = new Runnable() {
 			public void run() {
 				update(nextFrame);
 			}
 		};
-		updateThread.scheduleWithFixedDelay(updater, 0, MINIMUM_UPDATE_INTERVAL, TimeUnit.MILLISECONDS);
+		updateThread.scheduleWithFixedDelay(updater, INITIAL_DELAY, interval, TimeUnit.MILLISECONDS);
 	}
 	
 	public void haltUpdateThread() {
 		updateThread.shutdown();
 		updateThread = null;
+	}
+	
+	public List<Rect> getBoundingBoxes() {
+		synchronized(lockUpdate) {
+			List<Rect> list = new ArrayList<Rect>();
+			for (TrackedObject o: objects)
+				list.add(o.boundingBox);
+			return list;
+		}
 	}
 	
 	public void queueFrame(Mat frame) {
@@ -84,19 +99,16 @@ public class TrackedField {
 	public void update(Mat newField) {
 		synchronized(lockUpdate) {
 			//newField.copyTo(display);
-			if (tracking) {
-				times.add(nextTime - startTime);
-			}
 			newField.copyTo(currentField);
 			Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
 			long time = System.currentTimeMillis();
-			long total = 0;;
+			long total = 0;
 			for (TrackedObject o: objects) {;
 				o.update(currentField);
 				long oldTime = time;
 				time = System.currentTimeMillis();
 				total += (time - oldTime);
-				//System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
+				System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
 			}
 			
 			resolveConflicts();
@@ -106,9 +118,29 @@ public class TrackedField {
 			total += (time - oldTime);
 			//System.out.println("\tResolved conflicts in " + (time - oldTime));
 			time = System.currentTimeMillis();
-			//System.out.println("Update complete in " + total + " with " + objects.size() + " object(s)");
-			if (callback != null)
-				callback.updateComplete(newField);
+			System.out.println("Update complete in " + total + " with " + objects.size() + " object(s)");
+			if (tracking) {
+				long newtime = nextTime - startTime;
+				if (callback != null)
+					callback.trackingUpdateComplete(newField);
+				if (writer != null && output != null && output.exists()) {
+					try {
+						writer.append(newtime + ",");
+						for (TrackedObject o: objects) {
+							if (o.position != null)
+								writer.append(o.position.x + "," + o.position.y + ",");
+							else
+								writer.append("?,?,");
+						}
+						writer.newLine();
+					} catch (IOException e) {
+						e.printStackTrace();
+						writer = null;
+						output = null;
+					}
+				}
+				
+			}
 		}
 	}
 	
@@ -173,6 +205,15 @@ public class TrackedField {
 			tracking = false;
 			for (TrackedObject o: objects)
 				o.setTracking(false);
+			if (writer != null && output != null) {
+				try {
+					writer.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				output = null;
+				writer = null;
+			}
 		}
 	}
 	
@@ -189,6 +230,20 @@ public class TrackedField {
 	public void setCallback(TrackedCallback c) {
 		synchronized(lockUpdate) {
 			callback = c;
+		}
+	}
+	
+	public void setOutputFile(File f, String title) {
+		writer = null;
+		try {
+			writer = new BufferedWriter(new FileWriter(f));
+			output = f;
+			writer.write(title);
+			writer.newLine();
+		} catch (IOException e) {
+			e.printStackTrace();
+			writer = null;
+			output = null;
 		}
 	}
 	

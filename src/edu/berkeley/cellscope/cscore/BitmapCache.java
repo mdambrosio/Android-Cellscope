@@ -66,6 +66,8 @@ public class BitmapCache {
 	public void removeItem(int item) {
 		System.out.println("REMOVING ITEM " + item);
 		int index = positions.indexOf(item);
+		if (index == -1)
+				return;
 		Bitmap removed = bitmaps.remove(index);
 		positions.remove(index);
 		removed.recycle();

@@ -1,11 +1,8 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
 import java.io.File;
-import java.io.FileOutputStream;
 
 import org.opencv.android.JavaCameraView;
-
-import edu.berkeley.cellscope.cscore.R;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -14,7 +11,6 @@ import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.widget.Toast;
 
 public class OpenCVCameraView extends JavaCameraView {
 	private static final String TAG = "OpenCvCameraView";
@@ -53,7 +49,7 @@ public class OpenCVCameraView extends JavaCameraView {
 		}
 	}
 	
-	public void takePicture(final File fileName) {
+	public synchronized void takePicture(final File fileName) {
         Log.i(TAG, "Taking picture");
         PictureCallback callback = new PictureCallback() {
 

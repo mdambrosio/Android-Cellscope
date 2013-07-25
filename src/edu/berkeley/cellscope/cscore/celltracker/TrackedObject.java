@@ -184,7 +184,7 @@ public class TrackedObject {
 				Point last = path.get(0);
 				boolean jump = false;
 				for (int i = 1; i < path.size(); i ++) {
-					if (path.get(i) != null) {
+					if (path.get(i) != null && last != null) {
 						if (jump) {
 							Core.line(display, path.get(i), last, Colors.RED);
 							jump = false;
@@ -195,6 +195,8 @@ public class TrackedObject {
 					}
 					else
 						jump = true;
+					if (last == null)
+						last = path.get(i);
 				}
 			}
 			if (roi != null)

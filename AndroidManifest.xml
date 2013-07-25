@@ -115,13 +115,17 @@
             android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.ViewFieldActivity"
             android:label="@string/title_activity_viewfield"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
         </activity>
         <activity
             android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.CellTrackerActivity"
             android:label="@string/title_activity_viewfield"
             android:screenOrientation="landscape"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.TrackerSettingsActivity"
+            android:label="@string/title_activity_tracker_settings" >
         </activity>
     </application>
 

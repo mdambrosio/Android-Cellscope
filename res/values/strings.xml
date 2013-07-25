@@ -96,5 +96,6 @@
     <string name="title_activity_initial_camera">InitialCameraActivity</string>
     <string name="title_activity_cell_detect">Cell Detection</string>
     <string name="title_activity_viewfield">Field of View</string>
+    <string name="title_activity_tracker_settings">Cell Tracking Options</string>
 
 </resources>

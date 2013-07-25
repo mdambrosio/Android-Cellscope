@@ -9,7 +9,6 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
 
@@ -103,12 +102,12 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	
 	public void hideControls() {
 		takePicture.setVisibility(View.INVISIBLE);
-        toggleTimelapse.setVisibility(View.INVISIBLE);
+		toggleRecord.setVisibility(View.INVISIBLE);
 	}
 	
 	public void showControls() {
 		takePicture.setVisibility(View.VISIBLE);
-        toggleTimelapse.setVisibility(View.VISIBLE);
+        toggleRecord.setVisibility(View.VISIBLE);
 	}
 	
 	@Override

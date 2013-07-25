@@ -7,7 +7,7 @@ import android.view.View;
 import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 import edu.berkeley.cellscope.cscore.celltracker.PanTrackActivity;
 import edu.berkeley.cellscope.cscore.celltracker.TrackedCameraActivity;
-import edu.berkeley.cellscope.cscore.celltracker.tracker.InitialCameraActivity;
+import edu.berkeley.cellscope.cscore.celltracker.tracker.TrackerSettingsActivity;
 
 public class MenuActivity extends Activity {
     
@@ -64,7 +64,7 @@ public class MenuActivity extends Activity {
     }
     
     public void goToCellTracker(View v) {
-    	Intent intent = new Intent(this, InitialCameraActivity.class);
+    	Intent intent = new Intent(this, TrackerSettingsActivity.class);
     	startActivity(intent);
     }
 }

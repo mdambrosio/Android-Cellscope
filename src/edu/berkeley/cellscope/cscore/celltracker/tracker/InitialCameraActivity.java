@@ -11,6 +11,9 @@ import android.view.View;
 import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 
 public class InitialCameraActivity extends OpenCVCameraActivity {
+	private String save;
+	private boolean timelapse;
+	private int interval;
 	private static final String TEMP_FILE = "tmp.png";
 	private static final int COMPRESSION_QUALITY = 100;
 	static final String TEMP_PATH_INFO = "temporary";
@@ -21,7 +24,14 @@ public class InitialCameraActivity extends OpenCVCameraActivity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		available = true;
-		toggleTimelapse.setVisibility(View.GONE);
+		toggleRecord.setVisibility(View.GONE);
+		
+		Intent intent = getIntent();
+		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
+		if (save == null) save = "";
+		timelapse = intent.getBooleanExtra(TrackerSettingsActivity.TIMELAPSE_INFO, false);
+		interval = intent.getIntExtra(TrackerSettingsActivity.INTERVAL_INFO, TrackerSettingsActivity.DEFAULT_INTERVAL);
+		
 	}
 	
 	@Override
@@ -46,6 +56,9 @@ public class InitialCameraActivity extends OpenCVCameraActivity {
         intent.putExtra(TEMP_PATH_INFO, TEMP_FILE);
         intent.putExtra(CAM_ZOOM_INFO, cameraView.getCurrentZoom());
         intent.putExtra(CAM_EXPOSURE_INFO, cameraView.getCurrentExposure());
+		intent.putExtra(TrackerSettingsActivity.SAVE_INFO, save);
+		intent.putExtra(TrackerSettingsActivity.INTERVAL_INFO, interval);
+		intent.putExtra(TrackerSettingsActivity.TIMELAPSE_INFO, timelapse);
         startActivity(intent);
         finish();
     }

@@ -28,6 +28,11 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 	boolean displayVisible;
 	String file;
 	int zoom, exposure;
+
+	private String save;
+	private boolean timelapse;
+	private int interval;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -43,6 +48,11 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		
 		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
 		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
+		
+		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
+		if (save == null) save = "";
+		timelapse = intent.getBooleanExtra(TrackerSettingsActivity.TIMELAPSE_INFO, false);
+		interval = intent.getIntExtra(TrackerSettingsActivity.INTERVAL_INFO, TrackerSettingsActivity.DEFAULT_INTERVAL);
 		
 		//image = BitmapFactory.decodeResource(getResources(), R.drawable.celltest);
 		display = image.copy(Bitmap.Config.ARGB_8888, true);
@@ -111,6 +121,9 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		intent.putExtra(ViewFieldActivity.DATA_H_INFO, h);
 		intent.putExtra(InitialCameraActivity.CAM_ZOOM_INFO, zoom);
 		intent.putExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, exposure);
+		intent.putExtra(TrackerSettingsActivity.SAVE_INFO, save);
+		intent.putExtra(TrackerSettingsActivity.INTERVAL_INFO, interval);
+		intent.putExtra(TrackerSettingsActivity.TIMELAPSE_INFO, timelapse);
 		startActivity(intent);
 		finish();
 	}
