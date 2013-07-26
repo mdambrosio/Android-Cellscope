@@ -14,6 +14,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 /*
@@ -34,9 +35,11 @@ public class TrackedField {
 	
 	private ScheduledExecutorService updateThread;
 
-	private File output;
-	private BufferedWriter writer;
+	private File file;
+	private String header;
+	private List<String> output;
 	private static final int INITIAL_DELAY = 500;
+	private static final long NULL_TIME = 0;
 
 	public TrackedField(Mat img, Point fovCenter, int fovRadius) {
 		nextFrame = img;
@@ -51,6 +54,8 @@ public class TrackedField {
 		lockDisplay = new Object();
 		lockUpdate = new Object();
 		times = new ArrayList<Long>();
+		startTime = NULL_TIME;
+		output = new ArrayList<String>();
 	}
 	
 	public void addObject(Rect region) {
@@ -59,7 +64,10 @@ public class TrackedField {
 				if (tracking || !MathUtils.circleContainsRect(region, center, radius))
 					return;
 				cropRectToMat(region, currentField);
-				objects.add(new TrackedObject(region, currentField));
+				TrackedObject object = new TrackedObject(region, currentField);
+				objects.add(object);
+				if (!times.isEmpty())
+					object.addNullPath(times.size());
 			}
 		}
 	}
@@ -75,7 +83,8 @@ public class TrackedField {
 	}
 	
 	public void haltUpdateThread() {
-		updateThread.shutdown();
+		if (updateThread != null)
+			updateThread.shutdown();
 		updateThread = null;
 	}
 	
@@ -96,6 +105,7 @@ public class TrackedField {
 			}
 		}
 	}
+	
 	public void update(Mat newField) {
 		synchronized(lockUpdate) {
 			//newField.copyTo(display);
@@ -111,7 +121,7 @@ public class TrackedField {
 				System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
 			}
 			
-			resolveConflicts();
+			resolveIssues();
 			confirmUpdate();
 			long oldTime = time;
 			time = System.currentTimeMillis();
@@ -123,31 +133,28 @@ public class TrackedField {
 				long newtime = nextTime - startTime;
 				if (callback != null)
 					callback.trackingUpdateComplete(newField);
-				if (writer != null && output != null && output.exists()) {
-					try {
-						writer.append(newtime + ",");
-						for (TrackedObject o: objects) {
-							if (o.position != null)
-								writer.append(o.position.x + "," + o.position.y + ",");
-							else
-								writer.append("?,?,");
-						}
-						writer.newLine();
-					} catch (IOException e) {
-						e.printStackTrace();
-						writer = null;
-						output = null;
+				
+				if (file != null) {
+					String write = newtime + ",";
+					for (TrackedObject o: objects) {
+						if (o.position != null)
+							write += (o.position.x + "," + o.position.y + ",");
+						else
+							write += ("?,?,");
 					}
+					output.add(write);
 				}
 				
 			}
 		}
 	}
 	
-	private void resolveConflicts() {
+	private void resolveIssues() {
 		int size = objects.size();
 		for (int i = 0; i < size; i ++) {
 			TrackedObject first = objects.get(i);
+			if (!first.newPosInFov(center, radius))
+				first.invalidateUpdate();
 			if (!first.followed)
 				continue;
 			for (int j = i + 1; j < size; j ++) {
@@ -167,12 +174,8 @@ public class TrackedField {
 	
 	private void confirmUpdate() {
 		for (TrackedObject o: objects) {
-			if (!o.followed)
-				continue;
-			if (o.newPosInFov(center, radius))
+			if (o.followed)
 				o.confirmUpdate();
-			else
-				o.invalidateUpdate();
 		}
 	}
 	
@@ -193,8 +196,11 @@ public class TrackedField {
 	
 	public void startTracking() {
 		synchronized(lockUpdate) {
+			if (tracking)
+				return;
 			tracking = true;
-			startTime = System.currentTimeMillis();
+			if (startTime == NULL_TIME)
+				startTime = System.currentTimeMillis();
 			for (TrackedObject o: objects)
 				o.setTracking(true);
 		}
@@ -202,27 +208,56 @@ public class TrackedField {
 	
 	public void stopTracking() {
 		synchronized(lockUpdate) {
+			if (!tracking)
+				return;
 			tracking = false;
 			for (TrackedObject o: objects)
 				o.setTracking(false);
-			if (writer != null && output != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				output = null;
-				writer = null;
+			if (file != null) {
+				dumpOutputToFile();
 			}
 		}
 	}
 	
-	public void reset() {
+	public void dumpOutputToFile() {
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			writer.write(header);
+			writer.newLine();
+			writer.newLine();
+			String tableColumns = "time,";
+			int size = objects.size();
+			for (int i = 0; i < size; i ++)
+				tableColumns += "x" + i + ",y" + i + ",";
+			writer.write(tableColumns);
+			writer.newLine();
+			for (String s: output) {
+				writer.write(s);
+				writer.newLine();
+			}
+			writer.newLine();
+			writer.newLine();
+			writer.write("id,width,height");
+			writer.newLine();
+			for (int i = 0; i < size; i ++) {
+				Size dim = objects.get(i).size;
+				writer.write(i +"," + dim.width + "," + dim.height+",");
+				writer.newLine();
+			}
+			writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void resetData() {
 		synchronized(lockDisplay) {
 			synchronized(lockUpdate) {
+				startTime = NULL_TIME;
 				times.clear();
-				for (TrackedObject o: objects)
-					o.reset();
+				output.clear();
+				objects.clear();
+				haltUpdateThread();
 			}
 		}
 	}
@@ -234,17 +269,8 @@ public class TrackedField {
 	}
 	
 	public void setOutputFile(File f, String title) {
-		writer = null;
-		try {
-			writer = new BufferedWriter(new FileWriter(f));
-			output = f;
-			writer.write(title);
-			writer.newLine();
-		} catch (IOException e) {
-			e.printStackTrace();
-			writer = null;
-			output = null;
-		}
+		file = f;
+		header = title;
 	}
 	
 	//Reduce the size of a rectangle to fit the matrix.

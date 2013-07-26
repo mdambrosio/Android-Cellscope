@@ -46,6 +46,10 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	private boolean timelapse;
 	private int interval;
 	private File storageDir;
+	private File outputFile;
+	private String fileHeader;
+	
+	private boolean fieldReady;
 	
 	static final int TEST_WIDTH = 50;
 	static final int TEST_HEIGHT = 50;
@@ -58,7 +62,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		screenWidth = ScreenDimension.getScreenWidth(this);
 		screenHeight = ScreenDimension.getScreenHeight(this);
 		
-		Intent intent = getIntent();
+		Intent intent = getIntent(); 
 		
 		regions = new ArrayList<Rect>();
 		int[] x = intent.getIntArrayExtra(ViewFieldActivity.DATA_X_INFO);
@@ -88,6 +92,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		
 		compoundTouch.addTouchListener(this);
 
+		fieldReady = false;
 
 		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
 		if (save == null) save = "";
@@ -103,6 +108,11 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 			storageDir = defaultPictureDir;
 		else
 			storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "cell_tracker_data/" + save);
+
+		if (save.length() != 0) {
+			outputFile = new File(storageDir.getPath() + File.separator + save + ".csv");
+			fileHeader =  save + " data";
+		}
 		if (!storageDir.exists())
 			storageDir.mkdirs();
 	}
@@ -117,6 +127,8 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	@Override
 	public void onCameraViewStopped() {
 		super.onCameraViewStopped();
+		if (field != null)
+			field.stopTracking();
 		resetField();
 	}
 	
@@ -124,8 +136,9 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		synchronized(this) {
 			if (field != null) {
 				regions = field.getBoundingBoxes();
+				field.resetData();
+				fieldReady = false;
 			}
-			field = null;
 			if (mMenuItemApply != null)
 				mMenuItemApply.setVisible(true);
 			toggleRecord.setVisibility(View.INVISIBLE);
@@ -133,22 +146,23 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	}
 	
 	//the field must be instantiated using a valid frame, but openCV yields a blank screen on the first frame.
-	public void createField() {
-		field = new TrackedField(mRgba, fovCenter, fovRadius);
+	public void startField() {
+		if (field == null)
+			field = new TrackedField(mRgba, fovCenter, fovRadius);
+		else
+			field.resetData();
+		field.setOutputFile(outputFile, fileHeader);
 		for (Rect r: regions)
 			field.addObject(r);
 		field.setCallback(this);
-		if (save.length() != 0) {
-			File f = new File(storageDir.getPath() + File.separator + save + ".csv");
-			field.setOutputFile(f, save + " data");
-		}
 		field.initiateUpdateThread(interval);
+		fieldReady = true;
 	}
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		super.onCameraFrame(inputFrame);
 		synchronized(this) {
-			if (field == null)
+			if (field == null || !fieldReady)
 				return temporaryDisplay(mRgba);
 			field.queueFrame(mRgba);
 			return field.display();
@@ -176,7 +190,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
     		return true;
     	int id = item.getItemId();
     	if (id == R.id.celltracker_apply) {
-    		createField();
+    		startField();
     		mMenuItemApply.setVisible(false);
     		toggleRecord.setVisibility(View.VISIBLE);
     	}
@@ -186,16 +200,16 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
     @Override
     public void toggleTimelapse(View v) {
     	if (field == null) {
-    		createField();
+    		startField();
     		return;
     	}
     	super.toggleTimelapse(v);
     	synchronized(this) {
-	    	if (record)
+	    	if (record) {
 	    		field.startTracking();
+	    	}
 	    	else {
 	    		field.stopTracking();
-	    		resetField();
 	    	}
     		
     	}

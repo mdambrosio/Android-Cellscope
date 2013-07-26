@@ -16,7 +16,7 @@ import org.opencv.imgproc.Imgproc;
  */
 public class TrackedObject {
 	final List<Point> path; //center
-	private final Size size;
+	final Size size;
 	//Fields that start with "t" store tentative data from update(), which can be confirmed using confirmUpdate();
 	Point position; //top left
 	private Point tPosition;
@@ -169,7 +169,9 @@ public class TrackedObject {
 	
 	public void invalidateUpdate() {
 		synchronized(this) {
-			path.add(null);
+			position = null;
+			if (tracking)
+				path.add(position);
 			followed = false;
 		}
 	}
@@ -206,6 +208,11 @@ public class TrackedObject {
 				Colors.RED);
 			}
 		}
+	}
+	
+	public void addNullPath(int steps) {
+		for (int i = 0; i < steps; i ++)
+			path.add(null);
 	}
 	
 	
