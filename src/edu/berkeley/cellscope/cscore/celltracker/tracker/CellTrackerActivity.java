@@ -41,7 +41,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	private List<Rect> regions;
 	private Rect selected;
 	
-
+	private int imgCounter;
 	private String save;
 	private boolean timelapse;
 	private int interval;
@@ -111,7 +111,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 
 		if (save.length() != 0) {
 			outputFile = new File(storageDir.getPath() + File.separator + save + ".csv");
-			fileHeader =  save + " data";
+			fileHeader =  save;
 		}
 		if (!storageDir.exists())
 			storageDir.mkdirs();
@@ -225,8 +225,10 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	}
 	
 	public File getPictureName() {
+		
 	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-	    String name = "IMG_" + timeStamp + ".jpg";
+	    String name = "IMG_" + timeStamp + "_" + imgCounter+  ".jpg";
+	    imgCounter ++;
 		if (save.length() != 0)
 			name = save + "_" + name;
 		return new File(storageDir.getPath() + File.separator + name);
@@ -260,7 +262,8 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 							selected = r;
 				}
 			}
-			else if (selected.contains(pt)){
+			else if (Math.abs(pt.x - (selected.x + selected.width / 2)) < selected.width / 2 + ViewFieldActivity.APPROXIMATE_TOUCH &&
+					Math.abs(pt.y - (selected.y + selected.height / 2)) < selected.height/ 2 + ViewFieldActivity.APPROXIMATE_TOUCH) {
 				regions.remove(selected);
 				selected = null;
 			}

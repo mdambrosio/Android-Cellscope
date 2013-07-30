@@ -29,10 +29,11 @@ public class TrackedObject {
 	double match, tMatch; //Correlation coefficient. Used to resolve conflicts with two objects tracking to the same spot
 	
 	private Mat corrResult; //Used to store the result of cross-correlation
+	private boolean first = true;
 	
-	private static final double TOLERATED_OVERLAP = 0.2;
+	private static final double TOLERATED_OVERLAP = 0.25;
 	private static final double MATCH_TOLERANCE = 0.00001;
-	private static final double MATCH_THRESHOLD = 0.95;
+	private static final double MATCH_THRESHOLD = 0.925;
 	static final int MATCH = 0;
 	static final int BETTER = 1;
 	static final int WORSE = -1;
@@ -46,7 +47,6 @@ public class TrackedObject {
 		path = new ArrayList<Point>();
 		size = location.size();
 		position = location.tl();
-		//path.add(MathUtils.getRectCenter(position, size));
 		boundingBox = location.clone();
 		image = field.submat(location);
 		match = 1;
@@ -70,7 +70,12 @@ public class TrackedObject {
 		if (ROI_SIZE == 0 || roi == null) {
 			Imgproc.matchTemplate(field, image, corrResult, Imgproc.TM_CCORR_NORMED);
 			Core.MinMaxLocResult minMax = Core.minMaxLoc(corrResult);
+			
 			tPosition = minMax.maxLoc;
+			if (first) {
+				tPosition = position;
+				first = false;                                             
+			}
 			tBoundingBox = new Rect(tPosition, size);
 			TrackedField.cropRectToMat(tBoundingBox, field);
 			tMatch = minMax.maxVal;
@@ -90,8 +95,10 @@ public class TrackedObject {
 			tImage = field.submat(tBoundingBox);
 			updateRoi(field);
 		}
-		if (tMatch < MATCH_THRESHOLD)
+		if (tMatch < MATCH_THRESHOLD) {
+			System.out.println("invalidating update: poor match");
 			invalidateUpdate();
+		}
 	}
 	
 	public void updateRoi(Mat field) {
@@ -169,9 +176,8 @@ public class TrackedObject {
 	
 	public void invalidateUpdate() {
 		synchronized(this) {
-			position = null;
 			if (tracking)
-				path.add(position);
+				path.add(null);
 			followed = false;
 		}
 	}
@@ -226,5 +232,11 @@ public class TrackedObject {
 	
 	public void reset() {
 		path.clear();
+	}
+	
+	public Point lastPathPoint() {
+		if (path.isEmpty())
+			return null;
+		return path.get(path.size() - 1);
 	}
 }

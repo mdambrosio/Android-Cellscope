@@ -137,8 +137,8 @@ public class TrackedField {
 				if (file != null) {
 					String write = newtime + ",";
 					for (TrackedObject o: objects) {
-						if (o.position != null)
-							write += (o.position.x + "," + o.position.y + ",");
+						if (o.lastPathPoint() != null)
+							write += (o.lastPathPoint().x + "," + o.lastPathPoint().y + ",");
 						else
 							write += ("?,?,");
 					}
@@ -153,8 +153,10 @@ public class TrackedField {
 		int size = objects.size();
 		for (int i = 0; i < size; i ++) {
 			TrackedObject first = objects.get(i);
-			if (!first.newPosInFov(center, radius))
+			if (!first.newPosInFov(center, radius)) {
+				System.out.println("invalidating update: out of bounds");
 				first.invalidateUpdate();
+			}
 			if (!first.followed)
 				continue;
 			for (int j = i + 1; j < size; j ++) {
@@ -164,10 +166,14 @@ public class TrackedField {
 				if (!first.overlapViolation(second))
 					continue;
 				boolean violation = first.trackingViolation(second);
-				if (!violation)
+				if (!violation) {
+					System.out.println("invalidating update: overlap failure");
 					first.invalidateUpdate();
-				else
+				}
+				else {
+					System.out.println("invalidating update: overlap failure");
 					second.invalidateUpdate();
+				}
 			}
 		}
 	}
@@ -236,7 +242,6 @@ public class TrackedField {
 				writer.newLine();
 			}
 			writer.newLine();
-			writer.newLine();
 			writer.write("id,width,height");
 			writer.newLine();
 			for (int i = 0; i < size; i ++) {
@@ -244,6 +249,11 @@ public class TrackedField {
 				writer.write(i +"," + dim.width + "," + dim.height+",");
 				writer.newLine();
 			}
+			writer.newLine();
+			writer.write("fov center," + center.x + "," + center.y + ",");
+			writer.newLine();
+			writer.write("fov radius," + radius + ",");
+			writer.newLine();
 			writer.close();
 		} catch (IOException e) {
 			e.printStackTrace();

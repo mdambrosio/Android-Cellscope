@@ -30,7 +30,10 @@ public class MathUtils {
 	}
 	
 	public static Point getRectCenter(Point pt, Size s) {
-		return new Point(pt.x + s.width / 2, pt.y + s.height / 2);
+		return new Point(pt.x +
+				s.width / 2, 
+				pt.y + 
+				s.height / 2);
 	}
 	
 	public static Rect createCenteredRect(Point pt, Size s) {
