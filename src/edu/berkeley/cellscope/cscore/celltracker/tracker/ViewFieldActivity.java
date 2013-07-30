@@ -323,7 +323,8 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 				}
 			}
 			else {
-				if (selected.contains(pt))
+				if (Math.abs(pt.x - (selected.x + selected.width / 2)) < selected.width / 2 + APPROXIMATE_TOUCH &&
+						Math.abs(pt.y - (selected.y + selected.height / 2)) < selected.height/ 2 + APPROXIMATE_TOUCH)
 					regions.remove(selected);
 				selected = null;
 			}
