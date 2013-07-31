@@ -13,6 +13,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -26,6 +27,7 @@ import edu.berkeley.cellscope.cscore.CameraActivity;
 import edu.berkeley.cellscope.cscore.R;
 import edu.berkeley.cellscope.cscore.ScreenDimension;
 import edu.berkeley.cellscope.cscore.celltracker.Colors;
+import edu.berkeley.cellscope.cscore.celltracker.MathUtils;
 import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 import edu.berkeley.cellscope.cscore.celltracker.TrackedCallback;
 import edu.berkeley.cellscope.cscore.celltracker.TrackedField;
@@ -38,7 +40,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	private int fovRadius;
 	private int zoom, exposure;
 	private MenuItem mMenuItemApply;
-	private List<Rect> regions;
+	private List<Rect> rects;
 	private Rect selected;
 	
 	private int imgCounter;
@@ -49,10 +51,19 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	private File outputFile;
 	private String fileHeader;
 	
-	private boolean fieldReady;
+	//Cell detection parameters
+	private int colorChannel, colorThreshold, noiseThreshold;
+	private double debrisThreshold, backgroundThreshold, oblongThreshold;
+	private double minSize, maxSize;
+	private int addedMargin;
 	
-	static final int TEST_WIDTH = 50;
-	static final int TEST_HEIGHT = 50;
+	private boolean fieldReady;
+	private double touchX, touchY;
+	
+	
+	private static final int MINIMUM_SIZE = 10;
+	private static final int firstTouchEvent = -1;
+	private static final double TOUCH_SENSITIVITY = 0.1;
 	
 	private static final File defaultPictureDir = CameraActivity.mediaStorageDir;
 	
@@ -64,34 +75,33 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		
 		Intent intent = getIntent(); 
 		
-		regions = new ArrayList<Rect>();
-		int[] x = intent.getIntArrayExtra(ViewFieldActivity.DATA_X_INFO);
-		int[] y = intent.getIntArrayExtra(ViewFieldActivity.DATA_Y_INFO);
-		int[] w = intent.getIntArrayExtra(ViewFieldActivity.DATA_W_INFO);
-		int[] h = intent.getIntArrayExtra(ViewFieldActivity.DATA_H_INFO);
-		
-		int size = x.length;
-		for (int i = 0; i < size; i ++) {
-			regions.add(new Rect(x[i], y[i], w[i], h[i]));
-		}
+		rects = new ArrayList<Rect>();
 
 		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
 		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
 		
 		imWidth = intent.getIntExtra(ViewFieldActivity.IMG_WIDTH_INFO, screenWidth);
 		imHeight = intent.getIntExtra(ViewFieldActivity.IMG_HEIGHT_INFO, screenHeight);
-
 		int fovX = intent.getIntExtra(ViewFieldActivity.FOV_X_INFO, imWidth / 2);
 		int fovY = intent.getIntExtra(ViewFieldActivity.FOV_Y_INFO, imHeight / 2);
 		fovCenter = new Point(fovX, fovY);
 		fovRadius = intent.getIntExtra(ViewFieldActivity.FOV_RADIUS_INFO, imHeight / 2);
 		
+		colorChannel = intent.getIntExtra(CellDetectActivity.DETECT_COLOR_INFO, 0);
+		colorThreshold = intent.getIntExtra(CellDetectActivity.DETECT_GRAYSCALE_INFO, 0);
+		noiseThreshold = intent.getIntExtra(CellDetectActivity.DETECT_NOISE_INFO, 0);
+		debrisThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_DEBRIS_INFO, 0);
+		backgroundThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_BACKGROUND_INFO, 60);
+		oblongThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_OBLONG_INFO, 0);
+		minSize = intent.getDoubleExtra(ViewFieldActivity.PARAM_SIZE_LOWER_INFO, 0);
+		maxSize = intent.getDoubleExtra(ViewFieldActivity.PARAM_SIZE_UPPER_INFO, 0);
+		addedMargin = intent.getIntExtra(ViewFieldActivity.PARAM_MARGIN_INFO, 0);
+		
 		touchZoom.setEnabled(false);
 		touchPan.setEnabled(false);
 		toggleRecord.setVisibility(View.INVISIBLE);
-		
 		compoundTouch.addTouchListener(this);
-
+		
 		fieldReady = false;
 
 		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
@@ -115,6 +125,8 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		}
 		if (!storageDir.exists())
 			storageDir.mkdirs();
+
+		touchX = touchY = firstTouchEvent;
 	}
 
 	@Override
@@ -135,28 +147,30 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	public void resetField() {
 		synchronized(this) {
 			if (field != null) {
-				regions = field.getBoundingBoxes();
 				field.resetData();
 				fieldReady = false;
 			}
 			if (mMenuItemApply != null)
 				mMenuItemApply.setVisible(true);
+			selected = null;
 			toggleRecord.setVisibility(View.INVISIBLE);
 		}
 	}
 	
 	//the field must be instantiated using a valid frame, but openCV yields a blank screen on the first frame.
-	public void startField() {
+	public void detectCells() {
 		if (field == null)
 			field = new TrackedField(mRgba, fovCenter, fovRadius);
 		else
 			field.resetData();
 		field.setOutputFile(outputFile, fileHeader);
-		for (Rect r: regions)
+		runDetection(mRgba);
+		for (Rect r: rects)
 			field.addObject(r);
 		field.setCallback(this);
 		field.initiateUpdateThread(interval);
 		fieldReady = true;
+		selected = null;
 	}
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
@@ -165,7 +179,14 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 			if (field == null || !fieldReady)
 				return temporaryDisplay(mRgba);
 			field.queueFrame(mRgba);
-			return field.display();
+			Mat display = field.display();
+			if (selected != null) {
+				if (MathUtils.circleContainsRect(selected, fovCenter, fovRadius))
+					Core.rectangle(display, selected.tl(), selected.br(), Colors.CYAN, 2);
+				else
+					Core.rectangle(display, selected.tl(), selected.br(), Colors.RED, 2);
+			}
+			return display;
 		}
 	}
 	
@@ -189,9 +210,8 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
     	if (super.onOptionsItemSelected(item))
     		return true;
     	int id = item.getItemId();
-    	if (id == R.id.celltracker_apply) {
-    		startField();
-    		mMenuItemApply.setVisible(false);
+    	if (id == R.id.celltracker_detect) {
+    		detectCells();
     		toggleRecord.setVisibility(View.VISIBLE);
     	}
     	return true;
@@ -199,19 +219,20 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
     
     @Override
     public void toggleTimelapse(View v) {
-    	if (field == null) {
-    		startField();
-    		return;
-    	}
-    	super.toggleTimelapse(v);
     	synchronized(this) {
-	    	if (record) {
-	    		field.startTracking();
+	    	if (field == null) {
+	    		detectCells();
+	    		return;
 	    	}
-	    	else {
+	    	if (selected != null) {
+	    		selected = null;
+	    		return;
+	    	}
+	    	super.toggleTimelapse(v);
+	    	if (record)
+    			field.startTracking();
+	    	else
 	    		field.stopTracking();
-	    	}
-    		
     	}
     }
 
@@ -224,6 +245,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		}
 	}
 	
+	@SuppressLint("SimpleDateFormat")
 	public File getPictureName() {
 		
 	    String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
@@ -235,47 +257,109 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	}
 	
 	private Mat temporaryDisplay(Mat mat) {
-		for (Rect r: regions) {
-			Core.rectangle(mat, r.tl(), r.br(), Colors.GREEN);
-		}
-		if (selected != null)
-			Core.rectangle(mat, selected.tl(), selected.br(), Colors.RED);
+		Core.circle(mat, fovCenter, fovRadius, Colors.WHITE);
 		return mat;
 	}
     
 	public boolean onTouch(View v, MotionEvent evt) {
 		int action = evt.getActionMasked();
 		int pointers = evt.getPointerCount();
-		if (pointers != 1 || action != MotionEvent.ACTION_DOWN)
-			return false;
+		if (action == MotionEvent.ACTION_UP) {
+			touchX = touchY = firstTouchEvent;
+			return true;
+		}
+		if (field == null || field.isTracking())
+			return true;
 		Point pt = convertPoint(evt.getX(), evt.getY());
-		if (field == null) {
+		synchronized(this) {
+		//If no object is currently selected, select whatever is touched
+		//If nothing is touched, create an object
+		if (pointers == 1 && action == MotionEvent.ACTION_DOWN && selected == null) {
+			selected = field.selectObject(pt);
 			if (selected == null) {
-				for (Rect r: regions) {
-					if (r.contains(pt))
-						selected = r;
-				}
-				if (selected == null) {
-					for (Rect r: regions)
-						if (Math.abs(pt.x - (r.x + r.width / 2)) < r.width / 2 + ViewFieldActivity.APPROXIMATE_TOUCH &&
-								Math.abs(pt.y - (r.y + r.height / 2)) < r.height/ 2 + ViewFieldActivity.APPROXIMATE_TOUCH)
-							selected = r;
-				}
+				int aveSize = (int)(Math.sqrt((minSize + maxSize) / 2)) + addedMargin;
+				if (aveSize < MINIMUM_SIZE) aveSize = MINIMUM_SIZE;
+				selected = MathUtils.createCenteredRect(pt, aveSize, aveSize);
 			}
-			else if (Math.abs(pt.x - (selected.x + selected.width / 2)) < selected.width / 2 + ViewFieldActivity.APPROXIMATE_TOUCH &&
-					Math.abs(pt.y - (selected.y + selected.height / 2)) < selected.height/ 2 + ViewFieldActivity.APPROXIMATE_TOUCH) {
-				regions.remove(selected);
-				selected = null;
+			return true;
+		}
+		
+		//If the currently selected object is touched, add to field
+		if (pointers == 1 && action == MotionEvent.ACTION_DOWN && selected.contains(pt)) {
+			field.addObject(selected);
+			selected = null;
+			return true;
+		}
+		
+		//Translate the rectangle 
+		if (pointers == 1) {
+			if (touchX != firstTouchEvent && touchY != firstTouchEvent) {
+				double x = pt.x - touchX;
+				double y = pt.y - touchY;
+				if (Math.abs(x) > Math.abs(y))
+					selected.x += x * TOUCH_SENSITIVITY;
+				else
+					selected.y += y * TOUCH_SENSITIVITY;
+				MathUtils.cropRectToRegion(selected, imWidth, imHeight);
 			}
-			else 
-				selected = null;
+			touchX = pt.x;
+			touchY = pt.y;
+			return true;
+		}
+		
+		//Expand the rectangle
+		if (pointers == 2) {
+			double xDist = Math.abs(evt.getX(0) - evt.getX(1));
+			double yDist = Math.abs(evt.getY(0) - evt.getY(1));
+			if (action == MotionEvent.ACTION_MOVE) {
+				if (touchX != firstTouchEvent && touchY != firstTouchEvent) { //Prevents jumping
+					System.out.println(xDist + " " + yDist);
+					if (Math.abs(xDist) > Math.abs(yDist))
+						MathUtils.resizeRect(selected, (int)( (xDist - touchX) * TOUCH_SENSITIVITY) / 2 * 2, 0);
+					else
+						MathUtils.resizeRect(selected, 0, (int)( (yDist - touchY) * TOUCH_SENSITIVITY) / 2 * 2);
+					//MathUtils.cropRectToRegion(selected, imWidth, imHeight);
+				}
+				touchX = xDist;
+				touchY = yDist;
+			}
+			else {
+				touchX = touchY = firstTouchEvent;
+			}
 		}
 		return true;
+		}
 	}
 
 	public Point convertPoint(float tX, float tY) {
 		float x = tX / screenWidth;
 		float y = tY / screenHeight;
 		return new Point(imWidth * x, imHeight * y);
+	}
+	
+	private void runDetection(Mat mat) {
+		CellDetection.ContourData data = CellDetection.filterImage(mat, colorChannel, colorThreshold);
+		CellDetection.removeNoise(data, noiseThreshold);
+		//CellDetection.removeBackground(data, backgroundThreshold);
+		//CellDetection.removeDebris(data, debrisThreshold);
+		CellDetection.removeOblong(data, oblongThreshold);
+		
+		rects.clear();
+		data.getRects(rects);
+		int size = rects.size();
+		for (int i = 0; i < size; i ++) {
+			double area = rects.get(i).area();
+			if (area > maxSize || area < minSize) {
+				rects.remove(i);
+				i --;
+				size --;
+			}
+			else {
+				Rect r = rects.get(i);
+				MathUtils.resizeRect(r, addedMargin, addedMargin);
+				MathUtils.cropRectToRegion(r, imWidth, imHeight);
+			}
+		}
+		
 	}
 }

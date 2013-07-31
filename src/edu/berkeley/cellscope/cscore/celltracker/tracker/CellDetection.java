@@ -13,33 +13,26 @@ import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.RotatedRect;
-import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import android.graphics.Bitmap;
+import edu.berkeley.cellscope.cscore.celltracker.Colors;
 
 public class CellDetection {
 	public static final int CHANNEL_RED = 2;
 	public static final int CHANNEL_GREEN = 1;
 	public static final int CHANNEL_BLUE = 0;
-	private static final Scalar GREEN = new Scalar(0, 255, 0);
-	private static final Scalar RED = new Scalar(255, 0, 0);
-	private static final Scalar BLACK = new Scalar(0, 0, 0);
-	private static final Scalar WHITE = new Scalar(255, 255, 255);
 	private static final Point FILL_SEED = new Point(0, 0);
 	
-	public static ContourData filterImage(Bitmap image, int channel, int threshold) {
-		Mat img = new Mat();
-		Utils.bitmapToMat(image, img);
-
+	public static ContourData filterImage(Mat img, int channel, int threshold) {
 		List<Mat> channels = new ArrayList<Mat>(3);;
 		Core.split(img, channels);
 		Mat gray = channels.get(channel);
 		Mat bw = Mat.zeros(gray.size(), CvType.CV_8UC1);
 		
 		Imgproc.threshold(gray, bw, threshold, 255, Imgproc.THRESH_BINARY);
-		Core.rectangle(bw, new Point(0, 0), new Point(bw.cols(), bw.rows()), BLACK, 2);
+		Core.rectangle(bw, new Point(0, 0), new Point(bw.cols(), bw.rows()), Colors.BLACK, 2);
 		Mat bw2 = new Mat(bw.size(), bw.type());
 		bw.copyTo(bw2);
 		//Extract contours
@@ -51,6 +44,13 @@ public class CellDetection {
 		img.release();
 		return new ContourData(bw2, hierarchy, allContours);
 	}
+	public static ContourData filterImage(Bitmap image, int channel, int threshold) {
+		Mat img = new Mat();
+		Utils.bitmapToMat(image, img);
+		ContourData data = filterImage(img, channel, threshold);
+		img.release();
+		return data;
+	}
 	
 	public static ContourData removeNoise(ContourData data, int threshold) {
 		//Eliminate small debris
@@ -58,7 +58,7 @@ public class CellDetection {
 		for (int i = 0; i < elements; i ++) {
 			MatOfPoint contour = data.whiteContours.get(i);
 			if (Imgproc.contourArea(contour) <= threshold) {
-				Imgproc.drawContours(data.bw, data.whiteContours, i, BLACK, Core.FILLED); //erase from image
+				Imgproc.drawContours(data.bw, data.whiteContours, i, Colors.BLACK, Core.FILLED); //erase from image
 				data.whiteContours.remove(i);
 				elements --;
 				i --;
@@ -96,7 +96,7 @@ public class CellDetection {
 		List<MatOfPoint> backgroundContours = new ArrayList<MatOfPoint>();
 		int elements = contours.whiteContours.size();
 		int[] data = new int[4];
-		for (int i = 0, j = 0; i < elements; i ++, j ++) {
+		for (int i = 0; i < elements; i ++) {
 			double area = Imgproc.contourArea(contours.whiteContours.get(i));
 			if (area > max) {
 				addRegion(background, contours.allContours, contours.hierarchy, data,contours. allContours.indexOf(contours.whiteContours.get(i)));
@@ -256,6 +256,11 @@ public class CellDetection {
 				result.add(Imgproc.boundingRect(p));
 			return result;
 		}
+		
+		public void getRects(List<Rect> result) {
+			for (MatOfPoint p: whiteContours)
+				result.add(Imgproc.boundingRect(p));
+		}
 	}
 	
 
@@ -265,14 +270,14 @@ public class CellDetection {
 		 * Holes are recorded as child contours.
 		 * Drawing the child contours as black on top of the white contour will reveal the holes.
 		 */
-		Imgproc.drawContours(dst, contours, index, WHITE, Core.FILLED);
+		Imgproc.drawContours(dst, contours, index, Colors.WHITE, Core.FILLED);
 		hierarchy.get(0, index, data);
 		int black = data[2]; //First child
 		//Continue looping while there are more holes
 		while (black != -1) {
 			//Draw the hole
-			Imgproc.drawContours(dst, contours, black, BLACK, Core.FILLED);
-			Imgproc.drawContours(dst, contours, black, WHITE, 1); //Fill enlarges the hole by one pixel.
+			Imgproc.drawContours(dst, contours, black, Colors.BLACK, Core.FILLED);
+			Imgproc.drawContours(dst, contours, black, Colors.WHITE, 1); //Fill enlarges the hole by one pixel.
 			hierarchy.get(0, black, data);
 			black = data[0]; //next sibling
 		}
@@ -290,9 +295,9 @@ public class CellDetection {
 		src.copyTo(fill);
 		Mat mask = Mat.zeros(src.rows() + 2, src.cols() + 2, src.type());
 		src.copyTo(mask.submat(1, 1, src.rows() + 1, src.cols() + 1));
-		Imgproc.floodFill(fill, mask, FILL_SEED, WHITE);
+		Imgproc.floodFill(fill, mask, FILL_SEED, Colors.WHITE);
 		Core.subtract(fill, src, src);
-		Mat white = new Mat(src.size(), src.type(), WHITE);
+		Mat white = new Mat(src.size(), src.type(), Colors.WHITE);
 		Core.subtract(white, src, src);
 		fill.release();
 		white.release();

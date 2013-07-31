@@ -15,9 +15,10 @@ public class CompoundTouchListener implements View.OnTouchListener {
 	}
 
 	public boolean onTouch(View v, MotionEvent event) {
+		boolean result = false;
 		for (View.OnTouchListener lis: listeners)
-			lis.onTouch(v, event);
-		return true;
+			result = lis.onTouch(v, event) || result;
+		return result;
 	}
 	
 	public void addTouchListener(View.OnTouchListener lis) {

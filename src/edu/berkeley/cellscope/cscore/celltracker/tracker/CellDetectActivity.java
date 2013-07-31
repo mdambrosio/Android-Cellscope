@@ -26,33 +26,30 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 	ImageProcessView options;
 	ImageView preview;
 	boolean displayVisible;
-	String file;
-	int zoom, exposure;
-
-	private String save;
-	private boolean timelapse;
-	private int interval;
+	
+	public static final String DETECT_COLOR_INFO = "filter color";
+	public static final String DETECT_GRAYSCALE_INFO = "filter threshold";
+	public static final String DETECT_NOISE_INFO = "noise threshold";
+	public static final String DETECT_DEBRIS_INFO = "debris threshold";
+	public static final String DETECT_BACKGROUND_INFO = "background threshold";
+	public static final String DETECT_OBLONG_INFO = "oblong";
+	public static final String DATA_X_INFO = "x";
+	public static final String DATA_Y_INFO = "y";
+	public static final String DATA_W_INFO = "width";
+	public static final String DATA_H_INFO = "height";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_cell_detect);
 		Intent intent = getIntent();
-		file = intent.getStringExtra(InitialCameraActivity.TEMP_PATH_INFO);
+		String file = intent.getStringExtra(InitialCameraActivity.TEMP_PATH_INFO);
 		try {
 			FileInputStream fis = openFileInput(file);
 			image = BitmapFactory.decodeStream(fis);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-		
-		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
-		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
-		
-		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
-		if (save == null) save = "";
-		timelapse = intent.getBooleanExtra(TrackerSettingsActivity.TIMELAPSE_INFO, false);
-		interval = intent.getIntExtra(TrackerSettingsActivity.INTERVAL_INFO, TrackerSettingsActivity.DEFAULT_INTERVAL);
 		
 		//image = BitmapFactory.decodeResource(getResources(), R.drawable.celltest);
 		display = image.copy(Bitmap.Config.ARGB_8888, true);
@@ -114,16 +111,17 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		}
 			
 		Intent intent = new Intent(this, ViewFieldActivity.class);
-		intent.putExtra(InitialCameraActivity.TEMP_PATH_INFO, file);
-		intent.putExtra(ViewFieldActivity.DATA_X_INFO, x);
-		intent.putExtra(ViewFieldActivity.DATA_Y_INFO, y);
-		intent.putExtra(ViewFieldActivity.DATA_W_INFO, w);
-		intent.putExtra(ViewFieldActivity.DATA_H_INFO, h);
-		intent.putExtra(InitialCameraActivity.CAM_ZOOM_INFO, zoom);
-		intent.putExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, exposure);
-		intent.putExtra(TrackerSettingsActivity.SAVE_INFO, save);
-		intent.putExtra(TrackerSettingsActivity.INTERVAL_INFO, interval);
-		intent.putExtra(TrackerSettingsActivity.TIMELAPSE_INFO, timelapse);
+		intent.putExtras(getIntent());
+		intent.putExtra(DATA_X_INFO, x);
+		intent.putExtra(DATA_Y_INFO, y);
+		intent.putExtra(DATA_W_INFO, w);
+		intent.putExtra(DATA_H_INFO, h);
+		intent.putExtra(DETECT_COLOR_INFO, options.getColorChannel());
+		intent.putExtra(DETECT_GRAYSCALE_INFO, options.getColorThreshold());
+		intent.putExtra(DETECT_NOISE_INFO, options.getNoiseThreshold());
+		intent.putExtra(DETECT_DEBRIS_INFO, options.getDebrisThreshold());
+		intent.putExtra(DETECT_BACKGROUND_INFO, options.getBackgroundThreshold());
+		intent.putExtra(DETECT_OBLONG_INFO, options.getOblongThreshold());
 		startActivity(intent);
 		finish();
 	}
@@ -139,7 +137,7 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
     	if (item.getItemId() == R.id.cell_detect_skip) {
-    		complete(null);
+    		//complete(null);
     	}
         return true;
     }

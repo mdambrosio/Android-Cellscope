@@ -11,7 +11,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Message;
-import android.util.Log;
 import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.BluetoothSerialService;
 import edu.berkeley.cellscope.cscore.DeviceListActivity;

@@ -53,9 +53,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     protected MenuItem mMenuItemConnect, mMenuItemPinch;
 	
 	protected CompoundTouchListener compoundTouch;
-	protected TouchControl touchPan;
-	protected TouchControl touchZoom;
-	private TouchControl touchExposure;
+	protected TouchControl touchPan, touchZoom, touchExposure;
 	
 	private boolean maintainCamera; //Set to true for popup activities.
 	
@@ -194,11 +192,11 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
 	public void onCameraViewStarted(int width, int height) {
     	cameraView.disableAutoFocus();
-		
+		System.out.println("camera started");
 	}
 
 	public void onCameraViewStopped() {
-		System.out.println("stopped");
+		System.out.println("camera stopped");
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {

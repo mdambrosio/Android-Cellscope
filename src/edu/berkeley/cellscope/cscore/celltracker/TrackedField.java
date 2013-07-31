@@ -157,11 +157,11 @@ public class TrackedField {
 				System.out.println("invalidating update: out of bounds");
 				first.invalidateUpdate();
 			}
-			if (!first.followed)
+			if (!first.followed())
 				continue;
 			for (int j = i + 1; j < size; j ++) {
 				TrackedObject second = objects.get(j);
-				if (!second.followed || !first.followed)
+				if (!second.followed() || !first.followed())
 					continue;
 				if (!first.overlapViolation(second))
 					continue;
@@ -180,7 +180,7 @@ public class TrackedField {
 	
 	private void confirmUpdate() {
 		for (TrackedObject o: objects) {
-			if (o.followed)
+			if (o.followed())
 				o.confirmUpdate();
 		}
 	}
@@ -189,7 +189,7 @@ public class TrackedField {
 	public Mat display() {
 		synchronized(lockDisplay) {
 			nextFrame.copyTo(display);
-			Core.circle(display, center, radius, Colors.GREEN);
+			Core.circle(display, center, radius, Colors.WHITE);
 			for (TrackedObject o: objects) {
 				//if (o.roi != null) {
 				//	Core.rectangle(display, o.roi.tl(), o.roi.br(), GREEN);
@@ -225,6 +225,11 @@ public class TrackedField {
 		}
 	}
 	
+	public boolean isTracking() {
+		synchronized(lockUpdate) {
+			return tracking;
+		}
+	}
 	public void dumpOutputToFile() {
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
@@ -283,20 +288,25 @@ public class TrackedField {
 		header = title;
 	}
 	
+	public Rect selectObject(Point point) {
+		synchronized(lockDisplay) {
+			synchronized(lockUpdate) {
+				int size = objects.size();
+				for (int i = 0; i < size; i ++) {
+					TrackedObject obj = objects.get(i);
+					if (obj.boundingBox.contains(point)) {
+						obj.disable();
+						return obj.boundingBox;
+					}
+				}
+				return null;
+			}
+		}
+	}
+	
 	//Reduce the size of a rectangle to fit the matrix.
 	//Useful for Mat.submat(), when the rectangle has potential to go out of bounds.
 	public static void cropRectToMat(Rect rect, Mat mat) {
-		if (rect.x < 0) {
-			rect.width += rect.x;
-			rect.x = 0;
-		}
-		if (rect.y < 0) {
-			rect.height += rect.y;
-			rect.y = 0;
-		}
-		if (rect.x + rect.width >= mat.cols())
-			rect.width = mat.cols() - rect.x - 1;
-		if (rect.y + rect.height >= mat.rows())
-			rect.height = mat.rows() - rect.y - 1;
+		MathUtils.cropRectToRegion(rect, mat.width(), mat.height());
 	}
 }

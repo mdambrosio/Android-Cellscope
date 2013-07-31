@@ -20,8 +20,8 @@ public class TrackedObject {
 	//Fields that start with "t" store tentative data from update(), which can be confirmed using confirmUpdate();
 	Point position; //top left
 	private Point tPosition;
-	boolean followed; //False when position is unknown
-	private boolean tracking;
+	private boolean followed; //False when position is unknown
+	private int state;
 	Rect boundingBox, roi;
 	private Rect tBoundingBox, tRoi;
 	private double currentRoi, tCurrentRoi, minimumRoi;
@@ -34,9 +34,11 @@ public class TrackedObject {
 	private static final double TOLERATED_OVERLAP = 0.25;
 	private static final double MATCH_TOLERANCE = 0.00001;
 	private static final double MATCH_THRESHOLD = 0.925;
-	static final int MATCH = 0;
-	static final int BETTER = 1;
-	static final int WORSE = -1;
+	
+	private static final int STATE_TRACKING = 6;
+	private static final int STATE_WATCHING = 5;
+	private static final int STATE_DISABLED = 4;
+	
 	private static final double ROI_SIZE = 4; //Region about each object to check for new positions.
 											//Increase to track objects that accelerate suddenly, but will result in longer processing time.
 											//0 to disable.
@@ -60,11 +62,13 @@ public class TrackedObject {
 		int result_rows = field.rows() - image.rows() + 1;
 		corrResult = new Mat(result_rows, result_cols, CvType.CV_32FC1);
 		roi = null;
-		tracking = false;
+		state = STATE_WATCHING;
 	}
 	
 	//Tenatively updates the position of the object. confirmUpdate() must be called to finalize.
 	public void update(Mat field) {
+		if (state == STATE_DISABLED)
+			return;
 		//Check the entire image
 		followed = true;
 		if (ROI_SIZE == 0 || roi == null) {
@@ -163,12 +167,14 @@ public class TrackedObject {
 	
 	public void confirmUpdate() {
 		synchronized(this) {
+			if (state == STATE_DISABLED)
+				return;
 			position = tPosition;
 			boundingBox = tBoundingBox;
 			roi = tRoi;
 			currentRoi = tCurrentRoi;
 			image = tImage;
-			if (tracking)
+			if (state == STATE_TRACKING)
 				path.add(MathUtils.getRectCenter(position, size));
 			followed = true;
 		}
@@ -176,7 +182,7 @@ public class TrackedObject {
 	
 	public void invalidateUpdate() {
 		synchronized(this) {
-			if (tracking)
+			if (state == STATE_TRACKING)
 				path.add(null);
 			followed = false;
 		}
@@ -184,11 +190,13 @@ public class TrackedObject {
 	
 	public void drawInfo(Mat display) {
 		synchronized(this) {
+			if (state == STATE_DISABLED)
+				return;
 			if (!followed)
 				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.RED, 2);
 			else
 				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.GREEN, 2);
-			if (tracking) {
+			if (state == STATE_TRACKING) {
 				Point last = path.get(0);
 				boolean jump = false;
 				for (int i = 1; i < path.size(); i ++) {
@@ -224,9 +232,19 @@ public class TrackedObject {
 	
 	public void setTracking(boolean b) {
 		synchronized (this) {
-			tracking = b;
-			if (tracking)
+			if (b) {
 				path.add(MathUtils.getRectCenter(position, size));
+				state = STATE_TRACKING;
+			}
+			else
+				state = STATE_WATCHING;
+		}
+	}
+	
+	public void disable() {
+		synchronized(this) {
+			state = STATE_DISABLED;
+			followed = false;
 		}
 	}
 	
@@ -238,5 +256,9 @@ public class TrackedObject {
 		if (path.isEmpty())
 			return null;
 		return path.get(path.size() - 1);
+	}
+	
+	public boolean followed() {
+		return followed && state != STATE_DISABLED;
 	}
 }

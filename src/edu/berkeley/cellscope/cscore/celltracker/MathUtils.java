@@ -36,6 +36,36 @@ public class MathUtils {
 				s.height / 2);
 	}
 	
+	public static Rect cropRectToRegion(Rect rect, int regionWidth, int regionHeight) {
+		if (rect.x < 0) {
+			rect.width += rect.x;
+			rect.x = 0;
+		}
+		if (rect.y < 0) {
+			rect.height += rect.y;
+			rect.y = 0;
+		}
+		if (rect.x + rect.width >= regionWidth)
+			rect.width = regionWidth - rect.x - 1;
+		if (rect.y + rect.height >= regionHeight)
+			rect.height = regionHeight - rect.y - 1;
+		return rect;
+	}
+	
+	public static Rect resizeRect(Rect rect, int x, int y) {
+		int newW = rect.width + x;
+		int newH = rect.height + y;
+		if (newH < 2)
+			newH = 2;
+		if (newW < 2)
+			newW = 2;
+		rect.x -= (newW - rect.width) / 2;
+		rect.y -= (newH - rect.height) / 2;
+		rect.width = newW;
+		rect.height = newH;
+		return rect;
+	}
+	
 	public static Rect createCenteredRect(Point pt, Size s) {
 		return createCenteredRect(pt, s.width, s.height);
 	}

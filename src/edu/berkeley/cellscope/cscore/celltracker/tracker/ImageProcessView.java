@@ -107,5 +107,27 @@ public class ImageProcessView extends RelativeLayout {
 		 return null;
 	 }
 	 
+	 public int getColorChannel() {
+		 return filter.getChannel();
+	 }
 	 
+	 public int getColorThreshold() {
+		 return filter.getThreshold();
+	 }
+	 
+	 public int getNoiseThreshold() {
+		 return noise.getThreshold();
+	 }
+	 
+	 public double getDebrisThreshold() {
+		 return debris.getThreshold();
+	 }
+	 
+	 public double getBackgroundThreshold() {
+		 return background.getThreshold();
+	 }
+	 
+	 public double getOblongThreshold() {
+		 return oblong.getThreshold();
+	 }
 }

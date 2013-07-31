@@ -24,13 +24,16 @@
          android:title="resize all" />
     
     <item android:id="@+id/viewfield_add"
-         android:title="add" />
+         android:title="add"
+         android:visible="false"/>
     
     <item android:id="@+id/viewfield_edit"
-         android:title="edit" />
+         android:title="edit"
+         android:visible="false" />
     
     <item android:id="@+id/viewfield_remove"
-        android:title="remove" />
+        android:title="remove"
+         android:visible="false" />
 
     <item android:id="@+id/viewfield_finish"
         android:title="finish" />

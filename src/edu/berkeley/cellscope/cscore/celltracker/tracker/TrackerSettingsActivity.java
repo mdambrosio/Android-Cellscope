@@ -14,7 +14,7 @@ public class TrackerSettingsActivity extends Activity {
 	public static final String SAVE_INFO = "save";
 	public static final String INTERVAL_INFO = "interval";
 	public static final String TIMELAPSE_INFO = "timelapse";
-	public static final int DEFAULT_INTERVAL = 5000;
+	public static final int DEFAULT_INTERVAL = 1000;
 	public static final int MINIMUM_INTERVAL = 250;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {

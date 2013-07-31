@@ -19,8 +19,6 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.MotionEvent;
-import android.view.View;
 import android.widget.ImageView;
 import edu.berkeley.cellscope.cscore.R;
 import edu.berkeley.cellscope.cscore.ScreenDimension;
@@ -32,41 +30,34 @@ import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 import edu.berkeley.cellscope.cscore.celltracker.Colors;
 import edu.berkeley.cellscope.cscore.celltracker.MathUtils;
 
-public class ViewFieldActivity extends Activity implements ZoomablePreview, SlideableStage, View.OnTouchListener {
-	List<Rect> regions;
-	String file;
-	Bitmap display, image;
-	Mat img;
-	ImageView view;
-	Point center;
-	int radius;
-	int imWidth, imHeight;
-	int mode;
-	Rect selected;
-	double touchX, touchY;
-	int zoom, exposure;
+public class ViewFieldActivity extends Activity implements ZoomablePreview, SlideableStage {
+	private List<Rect> regions;
+	private Bitmap display, image;
+	private Mat img;
+	private ImageView view;
+	private Point center;
+	private int radius, imWidth, imHeight;
+	private double cellSizeLower, cellSizeUpper;
+	private int mode;
+	private Rect selected;
+	private int margin;
 
-	private int screenWidth, screenHeight;
-	
 
-	private String save;
-	private boolean timelapse;
-	private int interval;
-	
-	public static final String DATA_X_INFO = "x";
-	public static final String DATA_Y_INFO = "y";
-	public static final String DATA_W_INFO = "width";
-	public static final String DATA_H_INFO = "height";
 	public static final String FOV_X_INFO = "cx";
 	public static final String FOV_Y_INFO = "cy";
 	public static final String FOV_RADIUS_INFO = "cr";
 	public static final String IMG_WIDTH_INFO = "imwidth";
 	public static final String IMG_HEIGHT_INFO = "imheight";
+	public static final String PARAM_MARGIN_INFO = "margin";
+	public static final String PARAM_SIZE_LOWER_INFO = "size lower";
+	public static final String PARAM_SIZE_UPPER_INFO = "size upper";
 	
-	private static final double NEW_DEFAULT_SIZE = 40;
 	private static final double RESIZE_SENSITIVITY = 0.1;
-	private final int firstTouchEvent = -1;
 	static final int APPROXIMATE_TOUCH = 20;
+	
+	private static double CELL_SIZE_LOWER = 0.6;
+	private static double CELL_SIZE_UPPER = 1.4;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -74,7 +65,7 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		view = (ImageView)(findViewById(R.id.fieldview_display));
 
 		Intent intent = getIntent();
-		file = intent.getStringExtra(InitialCameraActivity.TEMP_PATH_INFO);
+		String file = intent.getStringExtra(InitialCameraActivity.TEMP_PATH_INFO);
 		try {
 			FileInputStream fis = openFileInput(file);
 			image = BitmapFactory.decodeStream(fis);
@@ -84,25 +75,23 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		imWidth = image.getWidth();
 		imHeight = image.getHeight();
 	
-		zoom = intent.getIntExtra(InitialCameraActivity.CAM_ZOOM_INFO, 0);
-		exposure = intent.getIntExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, 0);
-		
-		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
-		if (save == null) save = "";
-		timelapse = intent.getBooleanExtra(TrackerSettingsActivity.TIMELAPSE_INFO, false);
-		interval = intent.getIntExtra(TrackerSettingsActivity.INTERVAL_INFO, TrackerSettingsActivity.DEFAULT_INTERVAL);
-		
 		img = new Mat();
 		regions = new ArrayList<Rect>();
-		int[] x = intent.getIntArrayExtra(DATA_X_INFO);
-		int[] y = intent.getIntArrayExtra(DATA_Y_INFO);
-		int[] w = intent.getIntArrayExtra(DATA_W_INFO);
-		int[] h = intent.getIntArrayExtra(DATA_H_INFO);
+		int[] x = intent.getIntArrayExtra(CellDetectActivity.DATA_X_INFO);
+		int[] y = intent.getIntArrayExtra(CellDetectActivity.DATA_Y_INFO);
+		int[] w = intent.getIntArrayExtra(CellDetectActivity.DATA_W_INFO);
+		int[] h = intent.getIntArrayExtra(CellDetectActivity.DATA_H_INFO);
 		
 		int size = x.length;
+		double aveSize = 0;
 		for (int i = 0; i < size; i ++) {
 			regions.add(new Rect(x[i], y[i], w[i], h[i]));
+			aveSize += w[i] * h[i];
 		}
+		aveSize /= size;
+		cellSizeLower = aveSize * CELL_SIZE_LOWER;
+		cellSizeUpper = aveSize * CELL_SIZE_UPPER;
+		
 		
 		CompoundTouchListener compound = new CompoundTouchListener();
 		TouchZoomControl ctrl = new TouchZoomControl(this);
@@ -111,16 +100,12 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		TouchSlideControl slide = new TouchSlideControl(this, this);
 		slide.setEnabled(true);
 		compound.addTouchListener(slide);
-		compound.addTouchListener(this);
 		view.setOnTouchListener(compound);
 		
 		center = new Point(imWidth / 2, imHeight /2 );
 		radius = imHeight / 2;
 		
 
-		screenWidth = ScreenDimension.getScreenWidth(this);
-		screenHeight = ScreenDimension.getScreenHeight(this);
-		
 		updateDisplay();
 	}
 	
@@ -172,7 +157,7 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
     }
     
     public void complete() {
-    	int size = regions.size();
+/*    	int size = regions.size();
 
 		int[] x = new int[size];
 		int[] y = new int[size];
@@ -185,23 +170,26 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 			w[i] = r.width;
 			h[i] = r.height;
 		}
-			
+			*/
 		Intent intent = new Intent(this, CellTrackerActivity.class);
-		intent.putExtra(InitialCameraActivity.TEMP_PATH_INFO, file);
-		intent.putExtra(InitialCameraActivity.CAM_ZOOM_INFO, zoom);
-		intent.putExtra(InitialCameraActivity.CAM_EXPOSURE_INFO, exposure);
-		intent.putExtra(ViewFieldActivity.DATA_X_INFO, x);
-		intent.putExtra(ViewFieldActivity.DATA_Y_INFO, y);
-		intent.putExtra(ViewFieldActivity.DATA_W_INFO, w);
-		intent.putExtra(ViewFieldActivity.DATA_H_INFO, h);
-		intent.putExtra(ViewFieldActivity.FOV_X_INFO, (int)center.x);
-		intent.putExtra(ViewFieldActivity.FOV_Y_INFO, (int)center.y);
-		intent.putExtra(ViewFieldActivity.FOV_RADIUS_INFO, (int)radius);
-		intent.putExtra(ViewFieldActivity.IMG_HEIGHT_INFO, imHeight);
-		intent.putExtra(ViewFieldActivity.IMG_WIDTH_INFO, imWidth);
-		intent.putExtra(TrackerSettingsActivity.SAVE_INFO, save);
-		intent.putExtra(TrackerSettingsActivity.INTERVAL_INFO, interval);
-		intent.putExtra(TrackerSettingsActivity.TIMELAPSE_INFO, timelapse);
+		Intent source = getIntent();
+		source.removeExtra(CellDetectActivity.DATA_X_INFO);
+		source.removeExtra(CellDetectActivity.DATA_Y_INFO);
+		source.removeExtra(CellDetectActivity.DATA_W_INFO);
+		source.removeExtra(CellDetectActivity.DATA_H_INFO);
+		intent.putExtras(source);
+		/*intent.putExtra(CellDetectActivity.DATA_X_INFO, x);
+		intent.putExtra(CellDetectActivity.DATA_Y_INFO, y);
+		intent.putExtra(CellDetectActivity.DATA_W_INFO, w);
+		intent.putExtra(CellDetectActivity.DATA_H_INFO, h);*/
+		intent.putExtra(FOV_X_INFO, (int)center.x);
+		intent.putExtra(FOV_Y_INFO, (int)center.y);
+		intent.putExtra(FOV_RADIUS_INFO, (int)radius);
+		intent.putExtra(IMG_HEIGHT_INFO, imHeight);
+		intent.putExtra(IMG_WIDTH_INFO, imWidth);
+		intent.putExtra(PARAM_MARGIN_INFO, margin);
+		intent.putExtra(PARAM_SIZE_UPPER_INFO, cellSizeUpper);
+		intent.putExtra(PARAM_SIZE_LOWER_INFO, cellSizeLower);
 		startActivity(intent);
 		finish();
     }
@@ -222,6 +210,7 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	public void zoom(int amount) {
 		if (mode == R.id.viewfield_resize_all) {
 			amount = amount / 2 * 2;
+			margin += amount;
 			for (Rect r: regions) {
 				resizeRect(r, amount);
 			}
@@ -271,129 +260,14 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	}
 	
 	public void resizeRect(Rect rect, int x, int y) {
-		int newW = rect.width + x;
-		int newH = rect.height + y;
-		if (newH < 2)
-			newH = 2;
-		if (newW < 2)
-			newW = 2;
-		rect.x -= (newW - rect.width) / 2;
-		rect.y -= (newH - rect.height) / 2;
-		rect.width = newW;
-		rect.height = newH;
-		fitRect(rect);
+		MathUtils.resizeRect(rect, x, y);
+		MathUtils.cropRectToRegion(rect, imWidth, imHeight);
 	}
 	
-	private void fitRect(Rect rect) {
-		if (rect.x < 0) {
-			rect.width += rect.x;
-			rect.x = 0;
-		}
-		if (rect.y < 0) {
-			rect.height += rect.y;
-			rect.y = 0;
-		}
-		if (rect.x + rect.width >= imWidth)
-			rect.width = imWidth - rect.x - 1;
-		if (rect.y + rect.height >= imHeight)
-			rect.height = imHeight - rect.y - 1;
-	}
 	
 	public void translateRect(Rect rect, int x, int y) {
 		rect.x += x;
 		rect.y += y;
-		fitRect(rect);
-	}
-	
-	public boolean onTouch(View view, MotionEvent evt) {
-		int action = evt.getActionMasked();
-		int pointers = evt.getPointerCount();
-		if (mode == R.id.viewfield_remove && action == MotionEvent.ACTION_DOWN && pointers == 1) {
-			Point pt = convertPoint(evt.getX(), evt.getY());
-			if (selected == null) {
-				for (Rect r: regions) {
-					if (r.contains(pt))
-						selected = r;
-				}
-				if (selected == null) {
-					for (Rect r: regions)
-						if (Math.abs(pt.x - (r.x + r.width / 2)) < r.width / 2 + APPROXIMATE_TOUCH &&
-								Math.abs(pt.y - (r.y + r.height / 2)) < r.height/ 2 + APPROXIMATE_TOUCH)
-							selected = r;
-				}
-			}
-			else {
-				if (Math.abs(pt.x - (selected.x + selected.width / 2)) < selected.width / 2 + APPROXIMATE_TOUCH &&
-						Math.abs(pt.y - (selected.y + selected.height / 2)) < selected.height/ 2 + APPROXIMATE_TOUCH)
-					regions.remove(selected);
-				selected = null;
-			}
-			updateDisplay();
-		}
-		else if (mode == R.id.viewfield_add && action == MotionEvent.ACTION_DOWN && pointers == 1) {
-			Point pt = convertPoint(evt.getX(), evt.getY());
-			regions.add(MathUtils.createCenteredRect(pt, NEW_DEFAULT_SIZE, NEW_DEFAULT_SIZE));
-			updateDisplay();
-		}
-		else if (mode == R.id.viewfield_edit) {
-			Point pt = convertPoint(evt.getX(), evt.getY());
-			if (pointers == 1) {
-				if (action == MotionEvent.ACTION_DOWN) {
-					for (Rect r: regions)
-						if (r.contains(pt))
-							selected = r;
-					if (selected != null) {
-						touchX = pt.x;
-						touchY = pt.y;
-					}
-					else {
-						for (Rect r: regions)
-							if (Math.abs(pt.x - (r.x + r.width / 2)) < r.width / 2 + APPROXIMATE_TOUCH &&
-									Math.abs(pt.y - (r.y + r.height / 2)) < r.height/ 2 + APPROXIMATE_TOUCH)
-								selected = r;
-					}
-				}
-				else if (selected != null && action == MotionEvent.ACTION_MOVE && touchX != firstTouchEvent && touchY != firstTouchEvent) {
-					double x = pt.x - touchX;
-					double y = pt.y - touchY;
-					if (Math.abs(x) > Math.abs(y))
-						translateRect(selected, (int)(x * RESIZE_SENSITIVITY), 0);
-					else
-						translateRect(selected, 0, (int)(y * RESIZE_SENSITIVITY));
-					touchX = pt.x;
-					touchY = pt.y;
-				}
-				else {
-					touchX = touchY = firstTouchEvent;
-				}
-			}
-			else if (pointers == 2 && selected != null){
-				double xDist = Math.abs(evt.getX(0) - evt.getX(1));
-				double yDist = Math.abs(evt.getY(0) - evt.getY(1));
-				if (action == MotionEvent.ACTION_MOVE) {
-					if (touchX != firstTouchEvent && touchY != firstTouchEvent) { //Prevents jumping
-						if (Math.abs(xDist) > Math.abs(yDist))
-							resizeRect(selected, (int)( (xDist - touchX) * RESIZE_SENSITIVITY) / 2 * 2, 0);
-						else
-							resizeRect(selected, 0, (int)( (yDist - touchY) * RESIZE_SENSITIVITY) / 2 * 2);
-						
-					}
-					touchX = xDist;
-					touchY = yDist;
-				}
-				else {
-					touchX = touchY = firstTouchEvent;
-				}
-			}
-			updateDisplay();
-		}
-	
-		return true;
-	}
-	
-	public Point convertPoint(float tX, float tY) {
-		float x = tX / screenWidth;
-		float y = tY / screenHeight;
-		return new Point(imWidth * x, imHeight * y);
+		MathUtils.cropRectToRegion(rect, imWidth, imHeight);
 	}
 }
