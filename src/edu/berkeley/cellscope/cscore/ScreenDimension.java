@@ -6,8 +6,6 @@ import android.os.Build;
 import android.view.Display;
 
 public class ScreenDimension {
-
-	
 	public static double getScreenDiagonal(Activity activity) {
 		int width, height;
 		Display display = activity.getWindowManager().getDefaultDisplay();

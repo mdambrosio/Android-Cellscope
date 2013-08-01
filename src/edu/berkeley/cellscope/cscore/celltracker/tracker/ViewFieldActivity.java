@@ -21,16 +21,15 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import edu.berkeley.cellscope.cscore.R;
-import edu.berkeley.cellscope.cscore.ScreenDimension;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
 import edu.berkeley.cellscope.cscore.cameraui.SlideableStage;
+import edu.berkeley.cellscope.cscore.cameraui.TouchPinchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSlideControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
-import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 import edu.berkeley.cellscope.cscore.celltracker.Colors;
 import edu.berkeley.cellscope.cscore.celltracker.MathUtils;
 
-public class ViewFieldActivity extends Activity implements ZoomablePreview, SlideableStage {
+public class ViewFieldActivity extends Activity implements SlideableStage {
 	private List<Rect> regions;
 	private Bitmap display, image;
 	private Mat img;
@@ -41,6 +40,7 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	private int mode;
 	private Rect selected;
 	private int margin;
+	private int pinchLimit;
 
 
 	public static final String FOV_X_INFO = "cx";
@@ -94,8 +94,8 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		
 		
 		CompoundTouchListener compound = new CompoundTouchListener();
-		TouchZoomControl ctrl = new TouchZoomControl(this);
-		ctrl.setEnabled(true); //We use TouchZoomControl for its response to pinches.
+		FovResize ctrl = new FovResize(this);
+		ctrl.setEnabled(true);
 		compound.addTouchListener(ctrl);
 		TouchSlideControl slide = new TouchSlideControl(this, this);
 		slide.setEnabled(true);
@@ -194,20 +194,26 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 		finish();
     }
 
-	public double getDiagonal() {
-		return ScreenDimension.getScreenDiagonal(this);
-	}
+    
+    private class FovResize extends TouchPinchControl {
+    	public FovResize(Activity activity) {
+			super(activity);
+		}
 
-	public double getMaxZoom() {
-		int width = imWidth;
-		int height = imHeight;
-		if (height < width)
-			return height * RESIZE_SENSITIVITY;
-		else
-			return width * RESIZE_SENSITIVITY;
-	}
+		public boolean pinch(double amount) {
+    		if (pinchLimit == 0) {
+    			pinchLimit = (imWidth > imHeight) ? imWidth : imHeight;
+    			pinchLimit *= RESIZE_SENSITIVITY;
+    		}
+    		int resize = (int)(amount * pinchLimit);
+    		if (resize == 0)
+    			return false;
+    		resizeFov(resize);
+    		return true;
+    	}
+    }
 
-	public void zoom(int amount) {
+	public void resizeFov(int amount) {
 		if (mode == R.id.viewfield_resize_all) {
 			amount = amount / 2 * 2;
 			margin += amount;

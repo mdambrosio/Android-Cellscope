@@ -321,7 +321,7 @@ public class CameraActivity extends Activity implements PannableStage, ZoomableP
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
         CompoundTouchListener compoundTouch = new CompoundTouchListener();
         compoundTouch.addTouchListener(new TouchPanControl(this, this));
-        compoundTouch.addTouchListener(new TouchZoomControl(this));
+        compoundTouch.addTouchListener(new TouchZoomControl(this, this));
         mSurfaceView.setOnTouchListener(compoundTouch);
         mHolder = mSurfaceView.getHolder();
 	    mHolder.addCallback(mCallback);
@@ -724,7 +724,7 @@ public class CameraActivity extends Activity implements PannableStage, ZoomableP
 		return ScreenDimension.getScreenDiagonal(this);
 	}
 	
-	public double getMaxZoom() {
+	public int getMaxZoom() {
 		Camera.Parameters parameters = mCamera.getParameters();
 		if (!parameters.isZoomSupported())
 			return 0;

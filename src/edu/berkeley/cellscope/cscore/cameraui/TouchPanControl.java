@@ -2,8 +2,13 @@ package edu.berkeley.cellscope.cscore.cameraui;
 
 import android.app.Activity;
 import android.view.MotionEvent;
-import android.view.View;
-import edu.berkeley.cellscope.cscore.ScreenDimension;
+
+/*
+ * Touch listener that responds to single-finger gestures.
+ * 
+ * Sliding a finger in one direction will cause the stage to move in that direction. The panning
+ * will not stop until the finger is released.
+ */
 
 public class TouchPanControl extends TouchControl {
 	private PannableStage stage;
@@ -11,17 +16,17 @@ public class TouchPanControl extends TouchControl {
 	private double zZone;
 	private int panState;
 	
-	private static final int firstTouchEvent = -1;
+	private static final double PAN_THRESHOLD = 50; //Gestures smaller than this are ignored.
+	private static final double Z_CONTROL_ZONE = 0.3; //Gestures left of this part of the screen are used to control Z
+	
 	public TouchPanControl(PannableStage p, Activity activity) {
-		setEnabled(false);
+		super(activity);
 		stage = p;
-		zZone = ScreenDimension.getScreenWidth(activity) * PannableStage.Z_CONTROL_ZONE;
+		zZone = screenWidth * Z_CONTROL_ZONE;
 	}
 	
-
-	public boolean onTouch(View v, MotionEvent event) {
-		if (!enabled)
-			return false;
+	@Override
+	protected boolean touch(MotionEvent event) {
 		int pointers = event.getPointerCount();
 		int action = event.getActionMasked();
 		int newState = PannableStage.stopMotor;
@@ -36,11 +41,12 @@ public class TouchPanControl extends TouchControl {
 				double y = event.getY() - touchY;
 				double absX = Math.abs(x);
 				double absY = Math.abs(y);
-				if (absX >= absY && absX >= PannableStage.PAN_THRESHOLD) {
+				//Pan in the direction that the the gesture has moved more in.
+				if (absX >= absY && absX > PAN_THRESHOLD) {
 					newState = x > 0 ? PannableStage.yForwardMotor : PannableStage.yBackMotor;
 					//newState = x > 0 ? PannableStage.xRightMotor : PannableStage.xLeftMotor;
 				}
-				else if (absY > absX && absY > PannableStage.PAN_THRESHOLD) {
+				else if (absY > absX && absY > PAN_THRESHOLD) {
 					if (touchX < zZone)
 						newState = y > 0 ? PannableStage.zUpMotor : PannableStage.zDownMotor;
 					else
@@ -50,7 +56,6 @@ public class TouchPanControl extends TouchControl {
 			}
 			else if (action == MotionEvent.ACTION_UP) {
 				newState = PannableStage.stopMotor;
-				touchX = touchY = firstTouchEvent;
 			}
 		}
 		
@@ -61,9 +66,4 @@ public class TouchPanControl extends TouchControl {
 		
 		return true;
 	}
-	
-	public int getState() {
-		return panState;
-	}
-	
 }

@@ -2,8 +2,10 @@ package edu.berkeley.cellscope.cscore.cameraui;
 
 import android.app.Activity;
 import android.view.MotionEvent;
-import android.view.View;
-import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
+
+/*
+ * Touch listener that responds to single-finger gestures.
+ */
 
 public class TouchSlideControl extends TouchControl {
 	private SlideableStage stage;
@@ -11,15 +13,13 @@ public class TouchSlideControl extends TouchControl {
 	
 	private static final int firstTouchEvent = -1;
 	public TouchSlideControl(SlideableStage s, Activity activity) {
-		setEnabled(false);
+		super(activity);
 		stage = s;
 		touchX = touchY = firstTouchEvent;
 	}
 	
-
-	public boolean onTouch(View v, MotionEvent event) {
-		if (!enabled)
-			return false;
+	@Override
+	public boolean touch(MotionEvent event) {
 		int pointers = event.getPointerCount();
 		int action = event.getActionMasked();
 	
@@ -31,7 +31,7 @@ public class TouchSlideControl extends TouchControl {
 			else if (action == MotionEvent.ACTION_MOVE && touchX != firstTouchEvent && touchY != firstTouchEvent) {
 				double x = event.getX() - touchX;
 				double y = event.getY() - touchY;
-				stage.slide(x,  y);
+				stage.slide(x, y);
 				touchX = event.getX();
 				touchY = event.getY();
 			}

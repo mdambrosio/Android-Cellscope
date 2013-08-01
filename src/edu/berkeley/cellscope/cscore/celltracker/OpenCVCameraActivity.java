@@ -110,8 +110,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    
 	    compoundTouch = new CompoundTouchListener();
 	    touchPan = new TouchPanControl(this, this);
-	    touchZoom = new TouchZoomControl(this);
-	    touchExposure = new TouchExposureControl(this);
+	    touchZoom = new TouchZoomControl(this, this);
+	    touchExposure = new TouchExposureControl(this, this);
 	    touchPan.setEnabled(true);
 	    touchZoom.setEnabled(true);
 	    compoundTouch.addTouchListener(touchPan);
@@ -261,7 +261,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		return ScreenDimension.getScreenDiagonal(this);
 	}
 	
-	public double getMaxZoom() {
+	public int getMaxZoom() {
 		return cameraView.getMaxZoom();
 	}
 	
