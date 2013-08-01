@@ -55,8 +55,8 @@ public class ViewFieldActivity extends Activity implements ZoomablePreview, Slid
 	private static final double RESIZE_SENSITIVITY = 0.1;
 	static final int APPROXIMATE_TOUCH = 20;
 	
-	private static double CELL_SIZE_LOWER = 0.6;
-	private static double CELL_SIZE_UPPER = 1.4;
+	private static double CELL_SIZE_LOWER = 0.31;
+	private static double CELL_SIZE_UPPER = 3.24;//1.8 times along one dimension
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {

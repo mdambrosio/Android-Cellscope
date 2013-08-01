@@ -339,7 +339,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	
 	private void runDetection(Mat mat) {
 		CellDetection.ContourData data = CellDetection.filterImage(mat, colorChannel, colorThreshold);
-		CellDetection.removeNoise(data, noiseThreshold);
+		//CellDetection.removeNoise(data, noiseThreshold);
 		//CellDetection.removeBackground(data, backgroundThreshold);
 		//CellDetection.removeDebris(data, debrisThreshold);
 		CellDetection.removeOblong(data, oblongThreshold);

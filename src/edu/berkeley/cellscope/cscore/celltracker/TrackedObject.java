@@ -21,6 +21,7 @@ public class TrackedObject {
 	Point position; //top left
 	private Point tPosition;
 	private boolean followed; //False when position is unknown
+	private int lostCounter;
 	private int state;
 	Rect boundingBox, roi;
 	private Rect tBoundingBox, tRoi;
@@ -38,6 +39,8 @@ public class TrackedObject {
 	private static final int STATE_TRACKING = 6;
 	private static final int STATE_WATCHING = 5;
 	private static final int STATE_DISABLED = 4;
+	
+	private static final int AUTO_DISABLE = 12; //number of consecutive frames an object can be lost before it is removed
 	
 	private static final double ROI_SIZE = 4; //Region about each object to check for new positions.
 											//Increase to track objects that accelerate suddenly, but will result in longer processing time.
@@ -177,14 +180,20 @@ public class TrackedObject {
 			if (state == STATE_TRACKING)
 				path.add(MathUtils.getRectCenter(position, size));
 			followed = true;
+			lostCounter = 0;
 		}
 	}
 	
 	public void invalidateUpdate() {
 		synchronized(this) {
+			if (state == STATE_DISABLED)
+				return;
 			if (state == STATE_TRACKING)
 				path.add(null);
 			followed = false;
+			lostCounter ++;
+			if (lostCounter > AUTO_DISABLE)
+				disable();
 		}
 	}
 	

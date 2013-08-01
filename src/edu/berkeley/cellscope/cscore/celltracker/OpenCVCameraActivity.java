@@ -292,6 +292,12 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		byte[] buffer = new byte[1];
     	buffer[0] = (byte)newState;
     	btConnector.write(buffer);
+    	if (newState != zUpMotor && newState != zDownMotor) {
+    		System.out.println("write 0");
+    		byte[] buffer2 = new byte[1];
+    		buffer2[0] = (byte)0;
+    		//btConnector.write(buffer2);
+    	}
     	/*
 		if (btConnector.enabled()) {
 			/*
