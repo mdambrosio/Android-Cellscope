@@ -202,9 +202,9 @@ public class TrackedObject {
 			if (state == STATE_DISABLED)
 				return;
 			if (!followed)
-				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.RED, 2);
+				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.RED, 1);
 			else
-				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.GREEN, 2);
+				Core.rectangle(display, boundingBox.tl(), boundingBox.br(), Colors.GREEN, 1);
 			if (state == STATE_TRACKING) {
 				Point last = path.get(0);
 				boolean jump = false;

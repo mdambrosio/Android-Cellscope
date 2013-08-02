@@ -52,8 +52,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	private String fileHeader;
 	
 	//Cell detection parameters
-	private int colorChannel, colorThreshold, noiseThreshold;
-	private double debrisThreshold, backgroundThreshold, oblongThreshold;
+	private DetectionParameters[] detection;
 	private double minSize, maxSize;
 	private int addedMargin;
 	
@@ -87,12 +86,17 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		fovCenter = new Point(fovX, fovY);
 		fovRadius = intent.getIntExtra(ViewFieldActivity.FOV_RADIUS_INFO, imHeight / 2);
 		
-		colorChannel = intent.getIntExtra(CellDetectActivity.DETECT_COLOR_INFO, 0);
-		colorThreshold = intent.getIntExtra(CellDetectActivity.DETECT_GRAYSCALE_INFO, 0);
-		noiseThreshold = intent.getIntExtra(CellDetectActivity.DETECT_NOISE_INFO, 0);
-		debrisThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_DEBRIS_INFO, 0);
-		backgroundThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_BACKGROUND_INFO, 60);
-		oblongThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_OBLONG_INFO, 0);
+		int channels = intent.getIntExtra(CellDetectActivity.CHANNEL_INFO, 0);
+		detection = new DetectionParameters[channels];
+		for (int i = 0; i < channels; i ++) {
+			detection[i] = new DetectionParameters();
+			detection[i].colorChannel = intent.getIntExtra(CellDetectActivity.DETECT_COLOR_INFO + CellDetectActivity.CHANNEL_INFO_TAG[i], 0);
+			detection[i].colorThreshold = intent.getIntExtra(CellDetectActivity.DETECT_GRAYSCALE_INFO + CellDetectActivity.CHANNEL_INFO_TAG[i], 0);
+			detection[i].noiseThreshold = intent.getIntExtra(CellDetectActivity.DETECT_NOISE_INFO + CellDetectActivity.CHANNEL_INFO_TAG[i], 0);
+			detection[i].debrisThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_DEBRIS_INFO + CellDetectActivity.CHANNEL_INFO_TAG[i], 0);
+			detection[i].backgroundThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_BACKGROUND_INFO + CellDetectActivity.CHANNEL_INFO_TAG[i], 60);
+			detection[i].oblongThreshold = intent.getDoubleExtra(CellDetectActivity.DETECT_OBLONG_INFO + CellDetectActivity.CHANNEL_INFO_TAG[i], 0);
+		}
 		minSize = intent.getDoubleExtra(ViewFieldActivity.PARAM_SIZE_LOWER_INFO, 0);
 		maxSize = intent.getDoubleExtra(ViewFieldActivity.PARAM_SIZE_UPPER_INFO, 0);
 		addedMargin = intent.getIntExtra(ViewFieldActivity.PARAM_MARGIN_INFO, 0);
@@ -338,11 +342,18 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	}
 	
 	private void runDetection(Mat mat) {
-		CellDetection.ContourData data = CellDetection.filterImage(mat, colorChannel, colorThreshold);
-		//CellDetection.removeNoise(data, noiseThreshold);
-		//CellDetection.removeBackground(data, backgroundThreshold);
-		//CellDetection.removeDebris(data, debrisThreshold);
-		CellDetection.removeOblong(data, oblongThreshold);
+		CellDetection.MultiChannelContourData data = null;
+		for (int i = 0; i < detection.length; i ++ ) {
+			DetectionParameters params = detection[i];
+			CellDetection.ContourData contour = CellDetection.filterImage(mat, params.colorChannel, params.colorThreshold);
+			//CellDetection.removeNoise(data, noiseThresholdd);
+			//CellDetection.removeBackground(data, backgroundThreshold);
+			//CellDetection.removeDebris(data, debrisThreshold);
+			CellDetection.removeOblong(contour, params.oblongThreshold);
+			if (data == null)
+				data = contour.generateMultiChannelData();
+			data.add(contour);
+		}
 		
 		rects.clear();
 		data.getRects(rects);
@@ -361,5 +372,10 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 			}
 		}
 		
+	}
+	
+	private static class DetectionParameters {
+		int colorChannel, colorThreshold, noiseThreshold;
+		double debrisThreshold, backgroundThreshold, oblongThreshold;
 	}
 }

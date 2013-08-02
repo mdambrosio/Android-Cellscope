@@ -26,8 +26,9 @@ public class CellDetection {
 	private static final Point FILL_SEED = new Point(0, 0);
 	
 	public static ContourData filterImage(Mat img, int channel, int threshold) {
+		System.out.println(channel);
 		List<Mat> channels = new ArrayList<Mat>(3);;
-		Core.split(img, channels);
+		Core.split(img.clone(), channels);
 		Mat gray = channels.get(channel);
 		Mat bw = Mat.zeros(gray.size(), CvType.CV_8UC1);
 		
@@ -44,6 +45,7 @@ public class CellDetection {
 		img.release();
 		return new ContourData(bw2, hierarchy, allContours);
 	}
+	
 	public static ContourData filterImage(Bitmap image, int channel, int threshold) {
 		Mat img = new Mat();
 		Utils.bitmapToMat(image, img);
@@ -208,6 +210,40 @@ public class CellDetection {
 		return bmp;
 	}
 	
+	static class MultiChannelContourData {
+		private Mat accumulated;
+		public MultiChannelContourData(Mat bw) {
+			accumulated = Mat.zeros(bw.size(), bw.type());
+		}
+		
+		public List<Rect> getRects() {
+			List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+			Mat hierarchy = new Mat();
+			Mat copy = new Mat(accumulated.size(), accumulated.type());
+			accumulated.copyTo(copy);
+			Imgproc.findContours(copy, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+			List<Rect> result = new ArrayList<Rect>();
+			for (MatOfPoint p: contours)
+				result.add(Imgproc.boundingRect(p));
+			return result;
+		}
+		
+		public void getRects(List<Rect> result) {
+			result.clear();
+			List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+			Mat hierarchy = new Mat();
+			Mat copy = new Mat(accumulated.size(), accumulated.type());
+			accumulated.copyTo(copy);
+			Imgproc.findContours(copy, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+			for (MatOfPoint p: contours)
+				result.add(Imgproc.boundingRect(p));
+		}
+		
+		public void add(ContourData data) {
+			Core.add(accumulated, data.bw, accumulated);
+		}
+	}
+	
 	static class ContourData {
 		public Mat hierarchy, bw, background;
 		public List<MatOfPoint> allContours, whiteContours;
@@ -260,6 +296,14 @@ public class CellDetection {
 		public void getRects(List<Rect> result) {
 			for (MatOfPoint p: whiteContours)
 				result.add(Imgproc.boundingRect(p));
+		}
+		
+		public void addContours(Mat image) {
+			Core.add(image, bw, image);
+		}
+		
+		public MultiChannelContourData generateMultiChannelData() {
+			return new MultiChannelContourData(bw);
 		}
 	}
 	

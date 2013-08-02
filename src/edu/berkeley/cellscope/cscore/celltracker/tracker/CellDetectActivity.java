@@ -26,6 +26,8 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 	ImageProcessView options;
 	ImageView preview;
 	boolean displayVisible;
+	int channel;
+	Intent nextIntent;
 	
 	public static final String DETECT_COLOR_INFO = "filter color";
 	public static final String DETECT_GRAYSCALE_INFO = "filter threshold";
@@ -37,6 +39,8 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 	public static final String DATA_Y_INFO = "y";
 	public static final String DATA_W_INFO = "width";
 	public static final String DATA_H_INFO = "height";
+	public static final String CHANNEL_INFO = "channels";
+	public static final String[] CHANNEL_INFO_TAG = new String[]{"c1", "c2", "c3"};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +55,7 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 			e.printStackTrace();
 		}
 		
-		//image = BitmapFactory.decodeResource(getResources(), R.drawable.celltest);
+		//image = BitmapFactory.decodeResource(getResources(), R.drawable.tracking);
 		display = image.copy(Bitmap.Config.ARGB_8888, true);
 		preview = (ImageView)(findViewById(R.id.cell_preview));
 		preview.setImageBitmap(display);
@@ -62,6 +66,7 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		preview.setOnTouchListener(this);
 		displayVisible = false;
 		drawImage();
+		channel = 0;
 	}
 	public void drawImage() {
 		preview.setImageBitmap(image);
@@ -88,9 +93,30 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 	}
 	
 	public void next(View view) {
-		List<Rect> regions = options.next();
-		if (regions != null)
-			complete(regions);
+		boolean result = options.next();
+		if (result) {
+			saveParams();
+			channel ++;
+			if (channel < CHANNEL_INFO_TAG.length)
+				options.init(this);
+			else
+				complete(options.getRects());
+		}
+	}
+	
+	public void saveParams() {
+		
+		if (nextIntent == null) {
+			nextIntent = new Intent(this, ViewFieldActivity.class);
+			nextIntent.putExtras(getIntent());
+		}
+		nextIntent.putExtra(DETECT_COLOR_INFO + CHANNEL_INFO_TAG[channel], options.getColorChannel());
+		nextIntent.putExtra(DETECT_GRAYSCALE_INFO + CHANNEL_INFO_TAG[channel], options.getColorThreshold());
+		nextIntent.putExtra(DETECT_NOISE_INFO + CHANNEL_INFO_TAG[channel], options.getNoiseThreshold());
+		nextIntent.putExtra(DETECT_DEBRIS_INFO + CHANNEL_INFO_TAG[channel], options.getDebrisThreshold());
+		nextIntent.putExtra(DETECT_BACKGROUND_INFO + CHANNEL_INFO_TAG[channel], options.getBackgroundThreshold());
+		nextIntent.putExtra(DETECT_OBLONG_INFO + CHANNEL_INFO_TAG[channel], options.getOblongThreshold());
+		nextIntent.putExtra(CHANNEL_INFO, channel);
 	}
 	
 	public void complete(List<Rect> regions) {
@@ -109,20 +135,12 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 			w[i] = r.width;
 			h[i] = r.height;
 		}
-			
-		Intent intent = new Intent(this, ViewFieldActivity.class);
-		intent.putExtras(getIntent());
-		intent.putExtra(DATA_X_INFO, x);
-		intent.putExtra(DATA_Y_INFO, y);
-		intent.putExtra(DATA_W_INFO, w);
-		intent.putExtra(DATA_H_INFO, h);
-		intent.putExtra(DETECT_COLOR_INFO, options.getColorChannel());
-		intent.putExtra(DETECT_GRAYSCALE_INFO, options.getColorThreshold());
-		intent.putExtra(DETECT_NOISE_INFO, options.getNoiseThreshold());
-		intent.putExtra(DETECT_DEBRIS_INFO, options.getDebrisThreshold());
-		intent.putExtra(DETECT_BACKGROUND_INFO, options.getBackgroundThreshold());
-		intent.putExtra(DETECT_OBLONG_INFO, options.getOblongThreshold());
-		startActivity(intent);
+
+		nextIntent.putExtra(DATA_X_INFO, x);
+		nextIntent.putExtra(DATA_Y_INFO, y);
+		nextIntent.putExtra(DATA_W_INFO, w);
+		nextIntent.putExtra(DATA_H_INFO, h);
+		startActivity(nextIntent);
 		finish();
 	}
 	
@@ -137,7 +155,9 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
     	if (item.getItemId() == R.id.cell_detect_skip) {
-    		//complete(null);
+    		if (channel != 0) {
+    			complete(options.getRects());
+    		}
     	}
         return true;
     }

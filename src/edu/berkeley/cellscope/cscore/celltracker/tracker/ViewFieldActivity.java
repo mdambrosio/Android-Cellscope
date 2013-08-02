@@ -25,7 +25,6 @@ import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
 import edu.berkeley.cellscope.cscore.cameraui.SlideableStage;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPinchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSlideControl;
-import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 import edu.berkeley.cellscope.cscore.celltracker.Colors;
 import edu.berkeley.cellscope.cscore.celltracker.MathUtils;
 
@@ -157,20 +156,6 @@ public class ViewFieldActivity extends Activity implements SlideableStage {
     }
     
     public void complete() {
-/*    	int size = regions.size();
-
-		int[] x = new int[size];
-		int[] y = new int[size];
-		int[] w = new int[size];
-		int[] h = new int[size];
-		for (int i = 0; i < size; i ++) {
-			Rect r = regions.get(i);
-			x[i] = r.x;
-			y[i] = r.y;
-			w[i] = r.width;
-			h[i] = r.height;
-		}
-			*/
 		Intent intent = new Intent(this, CellTrackerActivity.class);
 		Intent source = getIntent();
 		source.removeExtra(CellDetectActivity.DATA_X_INFO);
@@ -178,10 +163,6 @@ public class ViewFieldActivity extends Activity implements SlideableStage {
 		source.removeExtra(CellDetectActivity.DATA_W_INFO);
 		source.removeExtra(CellDetectActivity.DATA_H_INFO);
 		intent.putExtras(source);
-		/*intent.putExtra(CellDetectActivity.DATA_X_INFO, x);
-		intent.putExtra(CellDetectActivity.DATA_Y_INFO, y);
-		intent.putExtra(CellDetectActivity.DATA_W_INFO, w);
-		intent.putExtra(CellDetectActivity.DATA_H_INFO, h);*/
 		intent.putExtra(FOV_X_INFO, (int)center.x);
 		intent.putExtra(FOV_Y_INFO, (int)center.y);
 		intent.putExtra(FOV_RADIUS_INFO, (int)radius);
@@ -270,10 +251,4 @@ public class ViewFieldActivity extends Activity implements SlideableStage {
 		MathUtils.cropRectToRegion(rect, imWidth, imHeight);
 	}
 	
-	
-	public void translateRect(Rect rect, int x, int y) {
-		rect.x += x;
-		rect.y += y;
-		MathUtils.cropRectToRegion(rect, imWidth, imHeight);
-	}
 }

@@ -10,20 +10,20 @@ import android.view.View;
 import android.widget.RelativeLayout;
 
 public class ImageProcessView extends RelativeLayout {
-	Context context;
-	ImageFilterView filter;
-	ImageNoiseView noise;
-	ImageDebrisView debris;
-	ImageBackgroundView background;
-	ImageIsolateView isolate;
-	ImageOblongView oblong;
-	CellDetectActivity activity;
-	int index;
+	private Context context;
+	private ImageFilterView filter;
+	private ImageNoiseView noise;
+	private ImageDebrisView debris;
+	private ImageBackgroundView background;
+	private ImageIsolateView isolate;
+	private ImageOblongView oblong;
+	private CellDetectActivity activity;
+	private CellDetection.MultiChannelContourData contours;
+	private int step;
 	
 	private static final int FILTER = 0;
 	private static final int NOISE = 1;
 	private static final int BACKGROUND = 2;
-	private static final int ISOLATE = -1;
 	private static final int DEBRIS = 3;
 	private static final int OBLONG = 4;
 	
@@ -43,12 +43,14 @@ public class ImageProcessView extends RelativeLayout {
 	}
 
 	public void init(CellDetectActivity act) {
+		removeAllViews();
+		step = FILTER;
 		activity = act;
 	 	filter = new ImageFilterView(context);
 	 	
 	 	filter.init(act);
 	 	addView(filter);
-	 	index = 0;
+	 	step = 0;
 	 	filter.setVisibility(View.VISIBLE);
 	 	
 	 	noise = new ImageNoiseView(context);
@@ -73,38 +75,45 @@ public class ImageProcessView extends RelativeLayout {
 	 	
 	}
 	 
-	 public List<Rect> next() {
-		 index ++;
-		 if (index == NOISE) {
+	//Return true if all steps are complete. Otherwise, return false.
+	 public boolean next() {
+		 step ++;
+		 if (step == NOISE) {
 			 filter.setVisibility(View.GONE);
 			 noise.init(activity, filter.contours);
 			 noise.setVisibility(View.VISIBLE);
 		 }
-		 else if (index == BACKGROUND) {
+		 else if (step == BACKGROUND) {
 			 noise.setVisibility(View.GONE);
 			 background.init(activity, noise.contours);
 			 background.setVisibility(View.VISIBLE);
 		 }/*
-		 else if (index == ISOLATE) {
+		 else if (step == ISOLATE) {
 			 background.setVisibility(View.GONE);
 			 isolate.init(activity, background.contours);
 			 isolate.setVisibility(View.VISIBLE);
 		 }*/
-		 else if (index == DEBRIS) {
+		 else if (step == DEBRIS) {
 			 background.setVisibility(View.GONE);
 			 debris.init(activity, background.contours);
 			 debris.setVisibility(View.VISIBLE);
 		 }
-		 else if (index == OBLONG) {
+		 else if (step == OBLONG) {
 			 debris.setVisibility(View.GONE);
 			 oblong.init(activity, debris.contours);
 			 oblong.setVisibility(View.VISIBLE);
 		 }
 		 else {
-			 index --;
-			 return oblong.contours.getRects();
+			 if (contours == null)
+				 contours = oblong.contours.generateMultiChannelData();
+			 contours.add(oblong.contours);
+			 return true;
 		 }
-		 return null;
+		 return false;
+	 }
+	 
+	 public List<Rect> getRects() {
+		 return contours.getRects();
 	 }
 	 
 	 public int getColorChannel() {
