@@ -317,7 +317,6 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 			double yDist = Math.abs(evt.getY(0) - evt.getY(1));
 			if (action == MotionEvent.ACTION_MOVE) {
 				if (touchX != firstTouchEvent && touchY != firstTouchEvent) { //Prevents jumping
-					System.out.println(xDist + " " + yDist);
 					if (Math.abs(xDist) > Math.abs(yDist))
 						MathUtils.resizeRect(selected, (int)( (xDist - touchX) * TOUCH_SENSITIVITY) / 2 * 2, 0);
 					else
@@ -345,7 +344,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		CellDetection.MultiChannelContourData data = null;
 		for (int i = 0; i < detection.length; i ++ ) {
 			DetectionParameters params = detection[i];
-			CellDetection.ContourData contour = CellDetection.filterImage(mat, params.colorChannel, params.colorThreshold);
+			CellDetection.ContourData contour = CellDetection.filterImage(mat.clone(), params.colorChannel, params.colorThreshold);
 			//CellDetection.removeNoise(data, noiseThresholdd);
 			//CellDetection.removeBackground(data, backgroundThreshold);
 			//CellDetection.removeDebris(data, debrisThreshold);

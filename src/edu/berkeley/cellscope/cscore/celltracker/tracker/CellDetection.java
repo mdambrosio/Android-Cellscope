@@ -26,8 +26,7 @@ public class CellDetection {
 	private static final Point FILL_SEED = new Point(0, 0);
 	
 	public static ContourData filterImage(Mat img, int channel, int threshold) {
-		System.out.println(channel);
-		List<Mat> channels = new ArrayList<Mat>(3);;
+		List<Mat> channels = new ArrayList<Mat>(3);
 		Core.split(img.clone(), channels);
 		Mat gray = channels.get(channel);
 		Mat bw = Mat.zeros(gray.size(), CvType.CV_8UC1);

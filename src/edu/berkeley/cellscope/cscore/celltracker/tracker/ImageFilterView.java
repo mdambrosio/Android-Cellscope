@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -33,7 +34,7 @@ public class ImageFilterView extends RelativeLayout {
 		 this.context = context;
 	 }
 	 
-	 public void init(CellDetectActivity act) {
+	 public void init(CellDetectActivity act, boolean[] disable) {
 		 activity = act;
 		 LayoutInflater inflater = LayoutInflater.from(context);
 		 View v = inflater.inflate(R.layout.cell_filter, null);
@@ -42,6 +43,16 @@ public class ImageFilterView extends RelativeLayout {
 		thresholder = (SeekBar)(findViewById(R.id.filter_threshold));
 		text = (TextView)(findViewById(R.id.filter_threshold_text));
 		radio = (RadioGroup)(findViewById(R.id.filter_group));
+
+		for (int i = 0; i < radio.getChildCount() && i < disable.length; i ++) {
+			radio.getChildAt(i).setEnabled(!disable[i]);
+			System.out.println(disable[i]);
+			if (!disable[i]) {
+				radio.check(i);
+				((RadioButton)(radio.getChildAt(i))).toggle();
+			}
+		}
+		
 		
 		radio.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
 			public void onCheckedChanged(RadioGroup group, int checkedId) {

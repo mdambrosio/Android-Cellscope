@@ -20,6 +20,7 @@ public class ImageProcessView extends RelativeLayout {
 	private CellDetectActivity activity;
 	private CellDetection.MultiChannelContourData contours;
 	private int step;
+	private boolean[] disableChannels;
 	
 	private static final int FILTER = 0;
 	private static final int NOISE = 1;
@@ -30,16 +31,19 @@ public class ImageProcessView extends RelativeLayout {
 	public ImageProcessView(Context context) {
 		super(context);
 		this.context = context;
+		disableChannels = new boolean[3];
 	}
 	
 	public ImageProcessView(Context context, AttributeSet attrs) {
 		 super(context, attrs);
 		 this.context = context;
+		 disableChannels = new boolean[3];
 	}
 	 
 	public ImageProcessView(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
 		this.context = context;
+		disableChannels = new boolean[3];
 	}
 
 	public void init(CellDetectActivity act) {
@@ -48,7 +52,7 @@ public class ImageProcessView extends RelativeLayout {
 		activity = act;
 	 	filter = new ImageFilterView(context);
 	 	
-	 	filter.init(act);
+	 	filter.init(act, disableChannels);
 	 	addView(filter);
 	 	step = 0;
 	 	filter.setVisibility(View.VISIBLE);
@@ -82,6 +86,7 @@ public class ImageProcessView extends RelativeLayout {
 			 filter.setVisibility(View.GONE);
 			 noise.init(activity, filter.contours);
 			 noise.setVisibility(View.VISIBLE);
+			 disableChannels[filter.getChannel()] = true;
 		 }
 		 else if (step == BACKGROUND) {
 			 noise.setVisibility(View.GONE);

@@ -116,7 +116,7 @@ public class CellDetectActivity extends Activity implements View.OnTouchListener
 		nextIntent.putExtra(DETECT_DEBRIS_INFO + CHANNEL_INFO_TAG[channel], options.getDebrisThreshold());
 		nextIntent.putExtra(DETECT_BACKGROUND_INFO + CHANNEL_INFO_TAG[channel], options.getBackgroundThreshold());
 		nextIntent.putExtra(DETECT_OBLONG_INFO + CHANNEL_INFO_TAG[channel], options.getOblongThreshold());
-		nextIntent.putExtra(CHANNEL_INFO, channel);
+		nextIntent.putExtra(CHANNEL_INFO, channel + 1);
 	}
 	
 	public void complete(List<Rect> regions) {
