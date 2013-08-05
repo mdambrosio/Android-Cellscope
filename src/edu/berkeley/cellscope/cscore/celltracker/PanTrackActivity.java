@@ -12,7 +12,7 @@ import android.view.MenuItem;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
 
-public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator.CalibratorCallback, PanTracker.TrackerCallback {
+public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator.CalibratorCallback, PanTracker.PanCallback {
 	
 	private MenuItem mMenuItemCalibrate;
 	private MenuItem mMenuItemTrackPan;
@@ -75,7 +75,7 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	/* Override this to perform post-calculation operations
 	 * in subclasses.
 	 */
-	public void onTrackResult(Point result) {
+	public void onPanResult(Point result) {
 		//System.out.println(result);
 	}
 	

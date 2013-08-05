@@ -23,6 +23,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/oblong_threshold"
-        android:text="Ratio: 3"
+        android:text="Oblong Ratio: 3"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 </RelativeLayout>

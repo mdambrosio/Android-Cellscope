@@ -1,6 +1,7 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
 import android.content.Intent;
+import android.os.Message;
 
 public interface BluetoothConnectable {
     static final int REQUEST_CONNECT_DEVICE = BluetoothConnector.REQUEST_CONNECT_DEVICE;
@@ -10,5 +11,6 @@ public interface BluetoothConnectable {
 	public void bluetoothConnected();
 	public void bluetoothDisconnected();
 	public void updateStatusMessage(int id);
+	public void readMessage(Message msg);
 	public void onActivityResult(int requestCode, int resultCode, Intent data);
 }

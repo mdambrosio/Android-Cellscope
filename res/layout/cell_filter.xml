@@ -26,7 +26,18 @@
         android:layout_alignParentRight="true"
         android:layout_below="@+id/filter_threshold"
         android:orientation="horizontal">
-
+        <RadioButton
+            android:id="@+id/filter_blue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="blue"
+       		android:textAppearance="?android:attr/textAppearanceMedium" />
+        <RadioButton
+            android:id="@+id/filter_green"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="green"
+       		android:textAppearance="?android:attr/textAppearanceMedium"  />
         <RadioButton
             android:id="@+id/filter_red"
             android:layout_width="wrap_content"
@@ -35,19 +46,6 @@
             android:text="red" 
       	  	android:textAppearance="?android:attr/textAppearanceMedium" />
 
-        <RadioButton
-            android:id="@+id/filter_green"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="green"
-       		android:textAppearance="?android:attr/textAppearanceMedium"  />
-
-        <RadioButton
-            android:id="@+id/filter_blue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="blue"
-       		android:textAppearance="?android:attr/textAppearanceMedium" />
     </RadioGroup>
     
 

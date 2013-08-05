@@ -193,7 +193,6 @@ public class BluetoothSerialService {
      * @see ConnectedThread#write(byte[])
      */
     public void write(byte[] out) {
-    	System.out.println(out);
         // Create temporary object
         ConnectedThread r;
         // Synchronize a copy of the ConnectedThread
@@ -340,7 +339,7 @@ public class BluetoothSerialService {
 
 //                    mEmulatorView.write(buffer, bytes);
                     // Send the obtained bytes to the UI Activity
-                    //mHandler.obtainMessage(BluetoothActivity.MESSAGE_READ, bytes, -1, buffer).sendToTarget();
+                    mHandler.obtainMessage(BluetoothActivity.MESSAGE_READ, bytes, -1, buffer).sendToTarget();
                     
                     String a = buffer.toString();
                     a = "";

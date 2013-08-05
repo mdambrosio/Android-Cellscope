@@ -1,5 +1,6 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
+import edu.berkeley.cellscope.cscore.BluetoothActivity;
 import android.app.Activity;
 import android.view.MotionEvent;
 
@@ -8,11 +9,19 @@ import android.view.MotionEvent;
  */
 
 public class TouchSlideControl extends TouchControl {
-	private SlideableStage stage;
+	private Slideable stage;
 	private double touchX, touchY;
 	
+    public static final int xRightMotor = BluetoothActivity.xRightMotor;
+    public static final int xLeftMotor = BluetoothActivity.xLeftMotor;
+    public static final int yBackMotor = BluetoothActivity.yBackMotor;
+    public static final int yForwardMotor = BluetoothActivity.yForwardMotor;
+    public static final int zUpMotor = BluetoothActivity.zUpMotor;
+    public static final int zDownMotor = BluetoothActivity.zDownMotor;
+    public static final int stopMotor = 0;
+	
 	private static final int firstTouchEvent = -1;
-	public TouchSlideControl(SlideableStage s, Activity activity) {
+	public TouchSlideControl(Slideable s, Activity activity) {
 		super(activity);
 		stage = s;
 		touchX = touchY = firstTouchEvent;
@@ -43,4 +52,9 @@ public class TouchSlideControl extends TouchControl {
 			touchX = touchY = firstTouchEvent;
 		return true;
 	}
+	
+	public static interface Slideable {
+		public void slide(double x, double y);
+	}
+
 }

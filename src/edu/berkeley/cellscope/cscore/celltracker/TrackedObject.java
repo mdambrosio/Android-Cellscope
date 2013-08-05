@@ -241,6 +241,8 @@ public class TrackedObject {
 	
 	public void setTracking(boolean b) {
 		synchronized (this) {
+			if (state == STATE_DISABLED)
+				return;
 			if (b) {
 				path.add(MathUtils.getRectCenter(position, size));
 				state = STATE_TRACKING;
@@ -257,6 +259,10 @@ public class TrackedObject {
 		}
 	}
 	
+	public boolean isDisabled() {
+		return state == STATE_DISABLED;
+	}
+	
 	public void reset() {
 		path.clear();
 	}
@@ -266,6 +272,7 @@ public class TrackedObject {
 			return null;
 		return path.get(path.size() - 1);
 	}
+	
 	
 	public boolean followed() {
 		return followed && state != STATE_DISABLED;

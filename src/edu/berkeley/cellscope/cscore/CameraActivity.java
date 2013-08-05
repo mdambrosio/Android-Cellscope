@@ -36,16 +36,14 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
-import edu.berkeley.cellscope.cscore.cameraui.PannableStage;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
-import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 
 /**
  * This activity runs the camera, allowing either photos or video to be taken.
  */
 
-public class CameraActivity extends Activity implements PannableStage, ZoomablePreview {
+public class CameraActivity extends Activity implements TouchPanControl.PannableStage, TouchZoomControl.Zoomable {
 	//PhotoSurface mSurfaceView; 
 	SurfaceView mSurfaceView;
 	SurfaceHolder mHolder;

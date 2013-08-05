@@ -31,7 +31,7 @@ public class PanTracker {
 	protected int frameCounter;
 	protected boolean firstFrame;
 	
-	TrackerCallback callback;
+	PanCallback callback;
 	
 	protected static final int TRACK_INTERVAL = 1; //Minimum number of frames between every update
 	private static final int CALC_CAP = 1; //Maximum number of queued calculations. No real point in having this more than 1.
@@ -122,7 +122,7 @@ public class PanTracker {
 		queuedCalcs += i;
 	}
 	
-	public void setCallback(TrackerCallback c) {
+	public void setCallback(PanCallback c) {
 		callback = c;
 	}
 
@@ -152,7 +152,7 @@ public class PanTracker {
 	    		updateCalcQueueCount(-1);
         	}
         	if (callback != null)
-        		callback.onTrackResult(MathUtils.set(result, translation));
+        		callback.onPanResult(MathUtils.set(result, translation));
             return translation;
 		}
 		
@@ -161,8 +161,8 @@ public class PanTracker {
 		}
 	}
 	
-	public interface TrackerCallback {
-		public void onTrackResult(Point result);
+	public interface PanCallback {
+		public void onPanResult(Point result);
 	}
 
 	//Performs cross-correlation on two matrixes.

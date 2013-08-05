@@ -1,6 +1,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/cell_detect_skip"
-        android:title="skip cell detection"
+        android:title="complete detection"
         android:orderInCategory="100"
        />
 </menu>

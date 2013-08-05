@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -31,16 +32,13 @@ import edu.berkeley.cellscope.cscore.ScreenDimension;
 import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnectable;
 import edu.berkeley.cellscope.cscore.cameraui.BluetoothConnector;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
-import edu.berkeley.cellscope.cscore.cameraui.ManualExposure;
-import edu.berkeley.cellscope.cscore.cameraui.PannableStage;
 import edu.berkeley.cellscope.cscore.cameraui.PinchSelectActivity;
 import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchExposureControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
-import edu.berkeley.cellscope.cscore.cameraui.ZoomablePreview;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, PannableStage, ZoomablePreview, ManualExposure, BluetoothConnectable {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, TouchPanControl.PannableStage, TouchZoomControl.Zoomable, TouchExposureControl.ManualExposure, BluetoothConnectable {
 	
 	BluetoothConnector btConnector;
 	private static final String TAG = "OpenCV_Camera";
@@ -288,15 +286,15 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public void panStage(int newState) {
-		System.out.println(newState);
+		System.out.println("pan " + newState);
 		byte[] buffer = new byte[1];
     	buffer[0] = (byte)newState;
     	btConnector.write(buffer);
-    	if (newState != zUpMotor && newState != zDownMotor) {
+    	if (newState == TouchPanControl.xLeftMotor || newState == TouchPanControl.xRightMotor || newState == TouchPanControl.yBackMotor || newState == TouchPanControl.yForwardMotor) {
     		System.out.println("write 0");
     		byte[] buffer2 = new byte[1];
     		buffer2[0] = (byte)0;
-    		//btConnector.write(buffer2);
+    		btConnector.write(buffer2);
     	}
     	/*
 		if (btConnector.enabled()) {
@@ -317,6 +315,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			}
 			
 		}*/
+	}
+	
+	public void readMessage(Message msg) {
+		
 	}
 	
 	@Override

@@ -38,4 +38,10 @@ public abstract class TouchControl implements View.OnTouchListener {
 	
 	protected abstract boolean touch(MotionEvent event);
 	
+
+	public static interface TouchControllable {
+	
+		public double getDiagonal();
+	}
+
 }

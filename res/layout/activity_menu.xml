@@ -46,6 +46,12 @@
         android:text="Pan Track"
         android:onClick="goToPanTrack"/>
     
+    <Button
+        android:id="@+id/button_swipe_pan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Swipe Pan"
+        android:onClick="goToSwipePan"/>
     
     <Button
         android:id="@+id/button_track_cam"

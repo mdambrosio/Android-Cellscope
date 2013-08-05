@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.celltracker.OpenCVCameraActivity;
 import edu.berkeley.cellscope.cscore.celltracker.PanTrackActivity;
+import edu.berkeley.cellscope.cscore.celltracker.SwipePanActivity;
 import edu.berkeley.cellscope.cscore.celltracker.TrackedCameraActivity;
 import edu.berkeley.cellscope.cscore.celltracker.tracker.TrackerSettingsActivity;
 
@@ -65,6 +66,11 @@ public class MenuActivity extends Activity {
     
     public void goToCellTracker(View v) {
     	Intent intent = new Intent(this, TrackerSettingsActivity.class);
+    	startActivity(intent);
+    }
+    
+    public void goToSwipePan(View v) {
+    	Intent intent = new Intent(this, SwipePanActivity.class);
     	startActivity(intent);
     }
 }

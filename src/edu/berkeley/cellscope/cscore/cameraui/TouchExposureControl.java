@@ -1,5 +1,6 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl.TouchControllable;
 import android.app.Activity;
 
 
@@ -23,5 +24,11 @@ public class TouchExposureControl extends TouchPinchControl {
 			return false;
 		screen.adjustExposure(exposure);
 		return true;
+	}
+	
+	public interface ManualExposure extends TouchControllable {
+		public int getMinExposure();
+		public int getMaxExposure();
+		public void adjustExposure(int amount);
 	}
 }

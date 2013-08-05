@@ -22,13 +22,12 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 import edu.berkeley.cellscope.cscore.R;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
-import edu.berkeley.cellscope.cscore.cameraui.SlideableStage;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPinchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSlideControl;
 import edu.berkeley.cellscope.cscore.celltracker.Colors;
 import edu.berkeley.cellscope.cscore.celltracker.MathUtils;
 
-public class ViewFieldActivity extends Activity implements SlideableStage {
+public class ViewFieldActivity extends Activity implements TouchSlideControl.Slideable {
 	private List<Rect> regions;
 	private Bitmap display, image;
 	private Mat img;

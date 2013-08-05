@@ -92,7 +92,8 @@ public class TrackedField {
 		synchronized(lockUpdate) {
 			List<Rect> list = new ArrayList<Rect>();
 			for (TrackedObject o: objects)
-				list.add(o.boundingBox);
+				if (!o.isDisabled())
+					list.add(o.boundingBox);
 			return list;
 		}
 	}
@@ -113,12 +114,14 @@ public class TrackedField {
 			Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
 			long time = System.currentTimeMillis();
 			long total = 0;
-			for (TrackedObject o: objects) {;
-				o.update(currentField);
-				long oldTime = time;
-				time = System.currentTimeMillis();
-				total += (time - oldTime);
-				System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
+			for (TrackedObject o: objects) {
+				if (!o.isDisabled()) {
+					o.update(currentField);
+					long oldTime = time;
+					time = System.currentTimeMillis();
+					total += (time - oldTime);
+					System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
+				}
 			}
 			
 			resolveIssues();
@@ -153,6 +156,8 @@ public class TrackedField {
 		int size = objects.size();
 		for (int i = 0; i < size; i ++) {
 			TrackedObject first = objects.get(i);
+			if (first.isDisabled())
+				continue;
 			if (!first.newPosInFov(center, radius)) {
 				System.out.println("invalidating update: out of bounds");
 				first.invalidateUpdate();
@@ -161,6 +166,8 @@ public class TrackedField {
 				continue;
 			for (int j = i + 1; j < size; j ++) {
 				TrackedObject second = objects.get(j);
+				if (second.isDisabled())
+					continue;
 				if (!second.followed() || !first.followed())
 					continue;
 				if (!first.overlapViolation(second))
@@ -180,7 +187,7 @@ public class TrackedField {
 	
 	private void confirmUpdate() {
 		for (TrackedObject o: objects) {
-			if (o.followed())
+			if (o.followed() && !o.isDisabled())
 				o.confirmUpdate();
 		}
 	}
@@ -194,7 +201,8 @@ public class TrackedField {
 				//if (o.roi != null) {
 				//	Core.rectangle(display, o.roi.tl(), o.roi.br(), GREEN);
 				//}
-				o.drawInfo(display);
+				if (!o.isDisabled())
+					o.drawInfo(display);
 			}
 			return display;
 		}
@@ -208,7 +216,8 @@ public class TrackedField {
 			if (startTime == NULL_TIME)
 				startTime = System.currentTimeMillis();
 			for (TrackedObject o: objects)
-				o.setTracking(true);
+				if (!o.isDisabled())
+					o.setTracking(true);
 		}
 	}
 	

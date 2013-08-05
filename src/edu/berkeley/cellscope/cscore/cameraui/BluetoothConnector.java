@@ -1,14 +1,12 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.widget.Toast;
@@ -24,9 +22,6 @@ public class BluetoothConnector {
     private static BluetoothSerialService mSerialService = null;
     private boolean mEnablingBT;
     private BluetoothHandler mHandlerBT;
-
-	private ScheduledExecutorService stepperThread;
-	private StageStepper stepper;
 
     // Name of the connected device
     private String mConnectedDeviceName = null;
@@ -69,16 +64,10 @@ public class BluetoothConnector {
     	connectable.bluetoothConnected();
 		bluetoothEnabled = true;
 		
-		stepperThread = Executors.newScheduledThreadPool(1);
-		//stepperThread.schedule(stepper, 0, TimeUnit.MILLISECONDS);
     }
     
     private void bluetoothDisconnected() {
     	connectable.bluetoothDisconnected();
-    	if (stepperThread != null) {
-    		stepperThread.shutdownNow();
-    		stepperThread = null;
-    	}
     }
 
     
@@ -108,6 +97,7 @@ public class BluetoothConnector {
                  break;
                  
              case MESSAGE_READ:
+            	 connectable.readMessage(msg);
                  break;
                  
              case MESSAGE_DEVICE_NAME:
@@ -201,39 +191,6 @@ public class BluetoothConnector {
     }
     
 
-	class StageStepper implements Runnable {
-		volatile byte[] one, two;
-		boolean switcher = true;
-		int delayOne, delayTwo;
-		
-		StageStepper(byte[] a, byte[] b) {
-			one = a;
-			two = b;
-		}
-		
-		public synchronized void run() {
-			if (mSerialService != null) {
-				if (switcher) {
-					mSerialService.write(one);
-					//stepperThread.schedule(this, delayOne, TimeUnit.MILLISECONDS);
-				}
-				else {
-					mSerialService.write(two);
-					//stepperThread.schedule(this, delayTwo, TimeUnit.MILLISECONDS);
-				}
-				switcher = !switcher;
-			}
-		}
-		
-		public synchronized void setFirst(byte[] b) {
-			one = b;
-		}
-		
-		public synchronized void setSecond(byte[] b) {
-			two = b;
-		}
-	}
-	
 	public int getConnectionState() {
 		return mSerialService.getState();
 	}

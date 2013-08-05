@@ -127,6 +127,12 @@
             android:name="edu.berkeley.cellscope.cscore.celltracker.tracker.TrackerSettingsActivity"
             android:label="@string/title_activity_tracker_settings" >
         </activity>
+        <activity
+            android:name="edu.berkeley.cellscope.cscore.celltracker.SwipePanActivity"
+            android:label="@string/title_activity_open_cvcamera"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        </activity>
     </application>
 
 </manifest>

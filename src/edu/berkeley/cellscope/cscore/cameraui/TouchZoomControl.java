@@ -3,9 +3,9 @@ package edu.berkeley.cellscope.cscore.cameraui;
 import android.app.Activity;
 
 public class TouchZoomControl extends TouchPinchControl {
-	private ZoomablePreview screen;
+	private Zoomable screen;
 	private int maxZoom;
-	public TouchZoomControl(ZoomablePreview p, Activity activity) {
+	public TouchZoomControl(Zoomable p, Activity activity) {
 		super(activity);
 		screen = p;
 	}
@@ -20,4 +20,11 @@ public class TouchZoomControl extends TouchPinchControl {
 		screen.zoom(zoom);
 		return true;
 	}
+	
+	public static interface Zoomable extends TouchControllable {
+
+		public int getMaxZoom();
+		public void zoom(int amount);
+	}
+
 }
