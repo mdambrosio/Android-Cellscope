@@ -8,17 +8,16 @@ import org.opencv.core.Point;
 
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl.PannableStage;
-import edu.berkeley.cellscope.cscore.celltracker.PanTracker.PanCallback;
 
-public class Calibrator implements PanTracker.PanCallback {
+public class Calibrator implements FovTracker.MotionCallback {
 	private boolean busy;
 	private boolean calibrated;
 	Point xPosRate, xNegRate, yPosRate, yNegRate;
 	private Point start, end;
-	private PanTracker tracker;
+	private FovTracker tracker;
 	private TouchPanControl.PannableStage stage;
 	private CalibratorCallback callback;
-	PanCallback tCallback;
+	FovTracker.MotionCallback tCallback;
 	private ScheduledExecutorService service;
 	private boolean wait;
 	private int step;
@@ -34,7 +33,7 @@ public class Calibrator implements PanTracker.PanCallback {
 	private static final int TIME = 8000; //milliseconds
 	private static final TimeUnit UNIT = TimeUnit.MILLISECONDS;
 	
-	public Calibrator(PannableStage stage, PanTracker pt) {
+	public Calibrator(PannableStage stage, FovTracker pt) {
 		xPosRate = new Point();
         xNegRate = new Point();
         yPosRate = new Point();
@@ -68,9 +67,9 @@ public class Calibrator implements PanTracker.PanCallback {
 		wait = b;
 	}
 	
-	public void onPanResult(Point result) {
+	public void onMotionResult(Point result) {
 		if (tCallback != null)
-			tCallback.onPanResult(result);
+			tCallback.onMotionResult(result);
 		if (wait) {
 			setWait(false);
 			executeTask(result);

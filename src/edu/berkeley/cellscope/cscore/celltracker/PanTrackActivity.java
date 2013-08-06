@@ -12,13 +12,13 @@ import android.view.MenuItem;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
 
-public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator.CalibratorCallback, PanTracker.PanCallback {
+public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator.CalibratorCallback, FovTracker.MotionCallback {
 	
 	private MenuItem mMenuItemCalibrate;
 	private MenuItem mMenuItemTrackPan;
 	
 	private Calibrator calibrator;
-	private PanTracker pantracker;
+	private FovTracker tracker;
 	private boolean reenableControls;
 	private String preparedMessage;
 	
@@ -33,13 +33,13 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	}
 	
 	public void enableTracking() {
-		pantracker.enableTracking();
+		tracker.enableTracking();
 		if (mMenuItemTrackPan != null)
 			mMenuItemTrackPan.setTitle(R.string.track_pan_disable);
 	}
 	
 	public void disableTracking() {
-		pantracker.disableTracking();
+		tracker.disableTracking();
 		if (mMenuItemTrackPan != null)
 			mMenuItemTrackPan.setTitle(R.string.track_pan_enable);
 	}
@@ -52,9 +52,9 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
         		reenableControls = false;
         	}
         }
-        if (pantracker.isTracking()) {
-        	pantracker.track(mRgba);
-        	pantracker.draw(mRgba);
+        if (tracker.isTracking()) {
+        	tracker.track(mRgba);
+        	tracker.draw(mRgba);
         }
         //if (preparedMessage != null)
         //	Toast.makeText(getApplicationContext(), preparedMessage, Toast.LENGTH_SHORT).show();
@@ -67,15 +67,15 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	@Override
 	public void onCameraViewStarted(int width, int height) {
     	super.onCameraViewStarted(width, height);
-        pantracker = new PanTracker(width, height);
-        pantracker.setCallback(this);
-        calibrator = new Calibrator(this, pantracker);
+    	tracker = new FovTracker(width, height);
+    	tracker.setCallback(this);
+        calibrator = new Calibrator(this, tracker);
         calibrator.setCallback(this);
 	}
 	/* Override this to perform post-calculation operations
 	 * in subclasses.
 	 */
-	public void onPanResult(Point result) {
+	public void onMotionResult(Point result) {
 		//System.out.println(result);
 	}
 	
@@ -127,7 +127,7 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 			return true;
 		int id = item.getItemId();
 		if (id == R.id.track_pan) {
-			if (pantracker.isTracking())
+			if (tracker.isTracking())
 				disableTracking();
 			else
 				enableTracking();

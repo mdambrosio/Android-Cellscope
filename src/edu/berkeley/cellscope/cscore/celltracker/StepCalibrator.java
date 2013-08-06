@@ -1,161 +1,117 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import org.opencv.core.Point;
 
-import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
-import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl.PannableStage;
-import edu.berkeley.cellscope.cscore.celltracker.MathUtils;
-import edu.berkeley.cellscope.cscore.celltracker.PanTracker;
-import edu.berkeley.cellscope.cscore.celltracker.PanTracker.PanCallback;
+import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 
-public class StepCalibrator implements PanTracker.PanCallback {
+/*
+ * Calibration steps:
+ * 1. Calibrator started. Calibrator instructs Tracker to begin.
+ * 2. Tracker notifies Calibrator of frame, then pauses.
+ * 3. Calibrator saves Tracker data.
+ * 4. Calibrator instructs stage to move.
+ * 5. Stage notifies calibrator that the stage has stopped moving.
+ * 6. Calibrator instructs Tracker to resume.
+ * 7. Tracker notifies Calibrator of frame, then pauses.
+ * 6. Repeat steps 2 thru 5.
+ */
+public class StepCalibrator implements FovTracker.MotionCallback {
 	private boolean busy;
 	private boolean calibrated;
 	Point xPosRate, xNegRate, yPosRate, yNegRate;
-	private Point start, end;
-	private PanTracker tracker;
-	private TouchPanControl.PannableStage stage;
-	private CalibratorCallback callback;
-	PanCallback tCallback;
-	private ScheduledExecutorService service;
-	private boolean wait;
-	private int step;
-	private long timeStart, timeStop;
-	private PanCommand xPos, xNeg, yPos, yNeg, stop;
+	private Point accumulated;
+	private Point[] results;
+	private int currentState;
+	private FovTracker tracker;
+	private Calibratable stage;
+	private Calibratable callback;
+	FovTracker.MotionCallback tCallback;
+	private int substep;
 	
-	private static int X_POS = 0;
-	private static int X_NEG = 1;
-	private static int Y_POS = 2;
-	private static int Y_NEG = 3;
-	private static int DONE = 4;
+	private static int[] DIR_ORDER = new int[]{TouchSwipeControl.xRightMotor, TouchSwipeControl.xLeftMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yBackMotor};
+	//private static int[] DIR_ORDER = new int[]{TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor};
+	private static int[] STEPS = new int[]{8, 8, 7, 7, 6, 6, 5, 5, 4, 4};
+	private static int REALIGN_STEP_SIZE = 24;
+	private static int REALIGN_STEP = -1;
 	
-	private static final int TIME = 8000; //milliseconds
-	private static final TimeUnit UNIT = TimeUnit.MILLISECONDS;
-	
-	public StepCalibrator(PannableStage stage, PanTracker pt) {
+	public StepCalibrator(Calibratable s, FovTracker pt) {
 		xPosRate = new Point();
         xNegRate = new Point();
         yPosRate = new Point();
         yNegRate = new Point();
+        results = new Point[]{xPosRate, xNegRate, yPosRate, yNegRate};
         calibrated = false;
         busy = false;
-        this.stage = stage;
+        stage = s;
         tracker = pt;
-        start = new Point();
-        end = new Point();
-        
-        xPos = new PanCommand(TouchPanControl.xRightMotor);
-        xNeg = new PanCommand(TouchPanControl.xLeftMotor);
-        yPos = new PanCommand(TouchPanControl.yForwardMotor);
-        yNeg = new PanCommand(TouchPanControl.yBackMotor);
-        stop = new PanCommand(TouchPanControl.stopMotor);
+        accumulated = new Point();
 	}
 	
 	public void calibrate() {
 		busy = true;
-		service = Executors.newScheduledThreadPool(1);
+		currentState = 0;
+		substep = REALIGN_STEP;
+		calibrated = false;
 		tCallback = tracker.callback;
 		tracker.setCallback(this);
 		if (!tracker.isTracking())
 			tracker.enableTracking();
-		step = X_POS;
-		setWait(true);
+		tracker.resumeTracking();
 	}
 	
-	private synchronized void setWait(boolean b) {
-		wait = b;
+	public void onMotionResult(Point result) {
+		if (tCallback != null) {
+			tCallback.onMotionResult(result);
+		}
+		saveResult(result);
+		executeStep();
+		tracker.pauseTracking();
 	}
-	
-	public void onPanResult(Point result) {
-		if (tCallback != null)
-			tCallback.onPanResult(result);
-		if (wait) {
-			setWait(false);
-			executeTask(result);
+
+	public void saveResult(Point point) {
+		int prevState = currentState;
+		int prevStep = substep - 1;
+		if (prevStep < REALIGN_STEP) {
+			prevStep = STEPS.length - 1;
+			prevState --;
 		}
-	}
-	
-	private void executeTask(Point result) {
-		if (step == X_POS) {
-			MathUtils.set(start, result);
-			timeStart = System.currentTimeMillis();
-			service.schedule(xPos, 0, UNIT);
-			service.schedule(stop, TIME, UNIT);
-
-			if (callback != null)
-				callback.toastMessage("Calibrating positive x...");
-		}
-		else if (step == X_NEG) {
-			MathUtils.set(end, result);
-			long timeDiff = UNIT.toSeconds(timeStop - timeStart);
-			MathUtils.set(xPosRate, start, end);
-			MathUtils.divide(xPosRate, timeDiff);
-
-			MathUtils.set(start, result);
-			timeStart = System.currentTimeMillis();
-			service.schedule(xNeg, 0, UNIT);
-			service.schedule(stop, TIME, UNIT);
-
-			if (callback != null)
-				callback.toastMessage("Calibrating negative x...");
-		}
-		else if (step == Y_POS) {
-			MathUtils.set(end, result);
-			long timeDiff = timeStop - timeStart;
-			MathUtils.set(xNegRate, start, end);
-			MathUtils.divide(xNegRate, timeDiff);
-
-			MathUtils.set(start, result);
-			timeStart = System.currentTimeMillis();
-			service.schedule(yPos, 0, UNIT);
-			service.schedule(stop, TIME, UNIT);
-
-			if (callback != null)
-				callback.toastMessage("Calibrating positive y...");
-		}
-		else if (step == Y_NEG) {
-			MathUtils.set(end, result);
-			long timeDiff = timeStop - timeStart;
-			MathUtils.set(yPosRate, start, end);
-			MathUtils.divide(yPosRate, timeDiff);
-
-			MathUtils.set(start, result);
-			timeStart = System.currentTimeMillis();
-			service.schedule(yNeg, 0, UNIT);
-			service.schedule(stop, TIME, UNIT);
-			
-			if (callback != null)
-				callback.toastMessage("Calibrating negative y...");
-		}
-		else if (step == DONE){
-			MathUtils.set(end, result);
-			long timeDiff = timeStop - timeStart;
-			MathUtils.set(yNegRate, start, end);
-			MathUtils.divide(yNegRate, timeDiff);
-			
-			service.shutdown();
-			tracker.setCallback(tCallback);
-			tCallback = null;
-			busy = false;
-			calibrated = true;
-			tracker.disableTracking();
-			
-			System.out.println(xPosRate + " " + xNegRate + " " + yPosRate + " " + yNegRate);
-			if (callback != null) {
-	            callback.toastMessage("Calibration complete!");
-				callback.calibrationComplete();
+		System.out.println("save " + prevStep);
+		if (prevState >= 0 && prevStep != REALIGN_STEP) {
+			System.out.println("accumulated " + point);
+			MathUtils.add(accumulated, point);
+			if (prevStep == STEPS.length -1) {
+				System.out.println("recording... " + prevState);
+				int weights = 0;
+				for (int i = 0; i < STEPS.length; i ++)
+					weights += STEPS[i];
+				MathUtils.divide(accumulated, weights);
+				MathUtils.set(results[prevState], accumulated);
+				MathUtils.set(accumulated, 0, 0);
 			}
 		}
+		else
+			MathUtils.set(accumulated, 0, 0);
 	}
 	
-	private void taskComplete() {
-		timeStop = System.currentTimeMillis();
-		setWait(true);
-		step ++;
+	public void executeStep() {
+		if (currentState < DIR_ORDER.length) {
+			int steps = substep == REALIGN_STEP ? REALIGN_STEP_SIZE : STEPS[substep];
+			stage.swipe(DIR_ORDER[currentState], steps);
+			System.out.println("swipe " + DIR_ORDER[currentState] + " " + steps + "\n.");
+		}
+		else
+			calibrationComplete();
+		
+		substep ++;
+		if (substep >= STEPS.length) {
+			substep = REALIGN_STEP;
+			currentState ++;
+		}
+	}
+	
+	public void notifyMovementCompleted() {
+		System.out.println("resumed");
+		tracker.resumeTracking();
 	}
 	
 	public boolean isCalibrated() {
@@ -166,26 +122,24 @@ public class StepCalibrator implements PanTracker.PanCallback {
 		return busy;
 	}
 	
-	public static interface CalibratorCallback {
-		public void calibrationComplete();
-		public void toastMessage(String s);
+	private void calibrationComplete() {
+		tracker.setCallback(tCallback);
+		tCallback = null;
+		busy = false;
+		calibrated = true;
+		tracker.disableTracking();
+		System.out.println(xPosRate);
+		System.out.println(xNegRate);
+		System.out.println(yPosRate);
+		System.out.println(yNegRate);
 	}
 	
-	public void setCallback(CalibratorCallback c) {
+	public void setCallback(Calibratable c) {
 		callback = c;
 	}
-
-	private class PanCommand implements Runnable {
-		int direction;
-		
-		PanCommand(int i) {
-			direction = i;
-		}
-		public void run() {
-			stage.panStage(direction);
-			if (direction == TouchPanControl.stopMotor)
-				taskComplete();
-		}
+	
+	public static interface Calibratable extends TouchSwipeControl.Swipeable {
+		public void calibrationComplete();
 	}
 
 }
