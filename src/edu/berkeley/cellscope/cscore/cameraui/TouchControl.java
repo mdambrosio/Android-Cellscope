@@ -43,5 +43,10 @@ public abstract class TouchControl implements View.OnTouchListener {
 	
 		public double getDiagonal();
 	}
+	
+	public static interface BluetoothControllable {
+		public boolean controlReady();
+		public BluetoothConnector getBluetooth();
+	}
 
 }

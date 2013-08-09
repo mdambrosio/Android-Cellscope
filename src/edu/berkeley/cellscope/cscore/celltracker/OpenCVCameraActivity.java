@@ -36,9 +36,10 @@ import edu.berkeley.cellscope.cscore.cameraui.PinchSelectActivity;
 import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchExposureControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
+import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, TouchPanControl.PannableStage, TouchZoomControl.Zoomable, TouchExposureControl.ManualExposure, BluetoothConnectable {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, Autofocus.Autofocusable, TouchControl.BluetoothControllable, TouchZoomControl.Zoomable, TouchExposureControl.ManualExposure, BluetoothConnectable {
 	
 	BluetoothConnector btConnector;
 	private static final String TAG = "OpenCV_Camera";
@@ -49,7 +50,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	protected Mat mRgba;
 	private boolean firstFrame;
     protected MenuItem mMenuItemConnect, mMenuItemPinch;
-	
+	private Autofocus autofocus;
 	protected CompoundTouchListener compoundTouch;
 	protected TouchControl touchPan, touchZoom, touchExposure;
 	
@@ -120,6 +121,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
 		firstFrame = true;
 		btConnector = new BluetoothConnector(this, this);
+		autofocus = new Autofocus(new TouchSwipeControl(this, this));
 		
 
 		synchronized(this) {
@@ -128,7 +130,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	        cameraView.setCvCameraViewListener(this);
 	        cameraView.setActivity(this);
 		    cameraView.setOnTouchListener(compoundTouch);
-		    
 		}
     }
 	
@@ -142,6 +143,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     public void onPause()
     {
         super.onPause();
+        if (autofocus.isFocusing())
+        	autofocus.focusFailed();
         if (cameraView != null && !maintainCamera)
            cameraView.disableView();
         else
@@ -205,11 +208,17 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		}
 		if (record)
 			record();
+		queueAutofocusFrame(mRgba);
 		return mRgba;
 	}
 	
 	public void initialFrame() {
 		
+	}
+	public void queueAutofocusFrame(Mat m) {
+		if (autofocus.isFocusing()) {
+			autofocus.queueFrame(m);
+		}
 	}
 	
 	public void record() {
@@ -226,6 +235,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			currentTime = System.currentTimeMillis();
 	}
 	
+
 	public void toggleTimelapse(View v) {
 		if (!record) {
 			toggleRecord.setImageResource(R.drawable.stop);
@@ -279,46 +289,27 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	public void adjustExposure(int amount) {
 		String str = cameraView.adjustExposure(amount);
 		infoText.setText(getString(R.string.exposure_label) + str);
-	}
+	}	
 	
-	public boolean panAvailable() {
+	public boolean controlReady() {
 		return btConnector.enabled();
 	}
 	
-	public void panStage(int newState) {
-		System.out.println("pan " + newState);
-		byte[] buffer = new byte[1];
-    	buffer[0] = (byte)newState;
-    	btConnector.write(buffer);
-    	if (newState == TouchPanControl.xLeftMotor || newState == TouchPanControl.xRightMotor || newState == TouchPanControl.yBackMotor || newState == TouchPanControl.yForwardMotor) {
-    		System.out.println("write 0");
-    		byte[] buffer2 = new byte[1];
-    		buffer2[0] = (byte)0;
-    		btConnector.write(buffer2);
-    	}
-    	/*
-		if (btConnector.enabled()) {
-			/*
-			if (panState == zUpMotor || panState == zDownMotor || panState == stopMotor) {
-				byte[] buffer = new byte[]{(byte)panState};
-				stepper.setFirst(buffer);
-				stepper.setSecond(buffer);
-				stepper.delayOne = stepper.delayTwo = 100;
-			}
-			else {
-				byte[] stop = new byte[]{(byte)stopMotor};
-				byte[] command = new byte[]{(byte)panState};
-				stepper.setFirst(stop);
-				stepper.setSecond(command);
-				stepper.delayOne = 200;
-				stepper.delayTwo = 5;
-			}
-			
-		}*/
+	public BluetoothConnector getBluetooth() {
+		return btConnector;
 	}
 	
+	
 	public void readMessage(Message msg) {
-		
+		byte[] buffer = (byte[])(msg.obj);
+		//System.out.println("message read + " + buffer[0]);
+		if (buffer.length > 0 && autofocus.isFocusing()) {
+			notifyAutofocus((int)buffer[0]);
+		}
+	}
+	
+	public void notifyAutofocus(int message) {
+		autofocus.motionComplete();
 	}
 	
 	@Override
@@ -345,6 +336,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
        		Intent intent = new Intent(this, PinchSelectActivity.class);
     		startActivityForResult(intent, REQUEST_PINCH_CONTROL);
        	}
+       	else if (id == R.id.autofocus)
+       		autofocus.focus();
         return false;
     }
     

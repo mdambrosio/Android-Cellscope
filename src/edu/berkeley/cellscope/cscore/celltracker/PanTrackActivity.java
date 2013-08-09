@@ -12,12 +12,11 @@ import android.view.MenuItem;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
 
-public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator.CalibratorCallback, FovTracker.MotionCallback {
+public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker.MotionCallback {
 	
 	private MenuItem mMenuItemCalibrate;
 	private MenuItem mMenuItemTrackPan;
 	
-	private Calibrator calibrator;
 	private FovTracker tracker;
 	private boolean reenableControls;
 	private String preparedMessage;
@@ -47,11 +46,6 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
         super.onCameraFrame(inputFrame);
-        synchronized(calibrator) {
-        	if (reenableControls) {
-        		reenableControls = false;
-        	}
-        }
         if (tracker.isTracking()) {
         	tracker.track(mRgba);
         	tracker.draw(mRgba);
@@ -69,8 +63,6 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
     	super.onCameraViewStarted(width, height);
     	tracker = new FovTracker(width, height);
     	tracker.setCallback(this);
-        calibrator = new Calibrator(this, tracker);
-        calibrator.setCallback(this);
 	}
 	/* Override this to perform post-calculation operations
 	 * in subclasses.
@@ -94,11 +86,6 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 			//mMenuItemCalibrate.setEnabled(false);
 		}
     }
-	
-	@Override
-	public boolean panAvailable() {
-		return super.panAvailable() && !calibrator.isCalibrating();
-	}
 	
 	public void hideControls() {
 		takePicture.setVisibility(View.INVISIBLE);
@@ -133,22 +120,8 @@ public class PanTrackActivity extends OpenCVCameraActivity implements Calibrator
 				enableTracking();
 			return true;
 		}
-		else if (id == R.id.calibrate) {
-			runStageCalibration();
-			return true;
-		}
 		return false;
     }
-	
-	public void runStageCalibration() {
-		calibrator.calibrate();
-	}
-	
-	public void calibrationComplete() {
-		synchronized (calibrator) {
-			reenableControls = true;
-		}
-	}
 	
 	public void toastMessage(String s) {
 		preparedMessage = s;

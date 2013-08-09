@@ -275,63 +275,10 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		if (field == null || field.isTracking())
 			return true;
 		Point pt = convertPoint(evt.getX(), evt.getY());
-		synchronized(this) {
-		//If no object is currently selected, select whatever is touched
-		//If nothing is touched, create an object
 		if (pointers == 1 && action == MotionEvent.ACTION_DOWN && selected == null) {
-			selected = field.selectObject(pt);
-			if (selected == null) {
-				int aveSize = (int)(Math.sqrt((minSize + maxSize) / 2)) + addedMargin;
-				if (aveSize < MINIMUM_SIZE) aveSize = MINIMUM_SIZE;
-				selected = MathUtils.createCenteredRect(pt, aveSize, aveSize);
-			}
-			return true;
-		}
-		
-		//If the currently selected object is touched, add to field
-		if (pointers == 1 && action == MotionEvent.ACTION_DOWN && selected.contains(pt)) {
-			field.addObject(selected);
-			selected = null;
-			return true;
-		}
-		
-		//Translate the rectangle 
-		if (pointers == 1) {
-			if (touchX != firstTouchEvent && touchY != firstTouchEvent) {
-				double x = pt.x - touchX;
-				double y = pt.y - touchY;
-				if (Math.abs(x) > Math.abs(y))
-					selected.x += x * TOUCH_SENSITIVITY;
-				else
-					selected.y += y * TOUCH_SENSITIVITY;
-				MathUtils.cropRectToRegion(selected, imWidth, imHeight);
-			}
-			touchX = pt.x;
-			touchY = pt.y;
-			return true;
-		}
-		
-		//Expand the rectangle
-		if (pointers == 2) {
-			double xDist = Math.abs(evt.getX(0) - evt.getX(1));
-			double yDist = Math.abs(evt.getY(0) - evt.getY(1));
-			if (action == MotionEvent.ACTION_MOVE) {
-				if (touchX != firstTouchEvent && touchY != firstTouchEvent) { //Prevents jumping
-					if (Math.abs(xDist) > Math.abs(yDist))
-						MathUtils.resizeRect(selected, (int)( (xDist - touchX) * TOUCH_SENSITIVITY) / 2 * 2, 0);
-					else
-						MathUtils.resizeRect(selected, 0, (int)( (yDist - touchY) * TOUCH_SENSITIVITY) / 2 * 2);
-					//MathUtils.cropRectToRegion(selected, imWidth, imHeight);
-				}
-				touchX = xDist;
-				touchY = yDist;
-			}
-			else {
-				touchX = touchY = firstTouchEvent;
-			}
+			field.selectObject(pt);
 		}
 		return true;
-		}
 	}
 
 	public Point convertPoint(float tX, float tY) {

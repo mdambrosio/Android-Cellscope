@@ -50,6 +50,7 @@
 
     <!-- Options Menu -->
     <string name="connect">Connect device</string>
+    <string name="autofocus">Autofocus</string>
     <string name="track_pan_enable">Enable pan tracking</string>
     <string name="track_pan_disable">Disable pan tracking</string>
     <string name="pinch_control">Pinch controls</string>

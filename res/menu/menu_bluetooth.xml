@@ -20,5 +20,7 @@
     <item android:id="@+id/connect"
           android:icon="@android:drawable/ic_menu_search"
           android:title="@string/connect" /> 
-
+	<item android:id="@+id/autofocus"
+	    android:icon="@android:drawable/ic_menu_view"
+	    android:title="@string/autofocus" />
 </menu>

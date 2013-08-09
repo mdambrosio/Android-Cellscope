@@ -1,8 +1,8 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import edu.berkeley.cellscope.cscore.BluetoothActivity;
 import android.app.Activity;
 import android.view.MotionEvent;
+import edu.berkeley.cellscope.cscore.BluetoothActivity;
 
 /*
  * Touch listener that responds to single-finger gestures.
@@ -12,7 +12,7 @@ import android.view.MotionEvent;
  */
 
 public class TouchPanControl extends TouchControl {
-	private PannableStage stage;
+	private BluetoothControllable stage;
 	private double touchX, touchY;
 	private double zZone;
 	private int panState;
@@ -29,7 +29,7 @@ public class TouchPanControl extends TouchControl {
 	private static final double PAN_THRESHOLD = 50; //Gestures smaller than this are ignored.
 	private static final double Z_CONTROL_ZONE = 0.3; //Gestures left of this part of the screen are used to control Z
 	
-	public TouchPanControl(PannableStage p, Activity activity) {
+	public TouchPanControl(BluetoothControllable p, Activity activity) {
 		super(activity);
 		stage = p;
 		zZone = screenWidth * Z_CONTROL_ZONE;
@@ -41,7 +41,7 @@ public class TouchPanControl extends TouchControl {
 		int action = event.getActionMasked();
 		int newState = stopMotor;
 	
-		if (stage.panAvailable() && pointers == 1) {
+		if (stage.controlReady() && pointers == 1) {
 			if (action == MotionEvent.ACTION_DOWN) {
 				touchX = event.getX();
 				touchY = event.getY();
@@ -71,15 +71,21 @@ public class TouchPanControl extends TouchControl {
 		
 		if (newState != panState) {
 			panState = newState;
-			stage.panStage(newState);
+			panStage(newState);
 		}
 		
 		return true;
 	}
 
-	public static interface PannableStage extends TouchControllable {
-		
-		public void panStage(int newStage);
-		public boolean panAvailable();
+
+	public void panStage(int newState) {
+		System.out.println("pan " + newState);
+    	BluetoothConnector bt = stage.getBluetooth();
+		byte[] buffer = new byte[1];
+    	buffer[0] = (byte)newState;
+    	bt.write(buffer);
+		byte[] buffer2 = new byte[1];
+		buffer2[0] = (byte)0;
+		bt.write(buffer2);
 	}
 }

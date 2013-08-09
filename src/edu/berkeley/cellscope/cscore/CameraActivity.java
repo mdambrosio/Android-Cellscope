@@ -36,6 +36,9 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl.BluetoothControllable;
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl.TouchControllable;
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 
@@ -43,7 +46,7 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
  * This activity runs the camera, allowing either photos or video to be taken.
  */
 
-public class CameraActivity extends Activity implements TouchPanControl.PannableStage, TouchZoomControl.Zoomable {
+public class CameraActivity extends Activity implements TouchZoomControl.Zoomable {
 	//PhotoSurface mSurfaceView; 
 	SurfaceView mSurfaceView;
 	SurfaceHolder mHolder;
@@ -318,7 +321,6 @@ public class CameraActivity extends Activity implements TouchPanControl.Pannable
         setContentView(R.layout.activity_camera);
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
         CompoundTouchListener compoundTouch = new CompoundTouchListener();
-        compoundTouch.addTouchListener(new TouchPanControl(this, this));
         compoundTouch.addTouchListener(new TouchZoomControl(this, this));
         mSurfaceView.setOnTouchListener(compoundTouch);
         mHolder = mSurfaceView.getHolder();
@@ -712,10 +714,6 @@ public class CameraActivity extends Activity implements TouchPanControl.Pannable
 		int duration = Toast.LENGTH_SHORT;
 		Toast toast = Toast.makeText(context, message, duration);
 		toast.show();
-	}
-
-	public boolean panAvailable() {
-		return bluetoothEnabled;
 	}
 
 	public double getDiagonal() {

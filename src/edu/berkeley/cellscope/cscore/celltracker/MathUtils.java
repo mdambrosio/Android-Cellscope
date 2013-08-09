@@ -133,6 +133,10 @@ public class MathUtils {
 		return x * x + y * y;
 	}
 	
+	public static double len(Point a) {
+		return Math.hypot(a.x * a.x, a.y * a.y);
+	}
+	
 	public static double angle(Point pt) {
 		return Math.atan2(pt.y, pt.x);
 	}
@@ -153,6 +157,10 @@ public class MathUtils {
 	
 	public static Point set(Point pt, Point start, Point end) {
 		return set(pt, end.x - start.x, end.y - start.y);
+	}
+	
+	public static double dot(Point a, Point b) {
+		return a.dot(b);
 	}
 	
 }

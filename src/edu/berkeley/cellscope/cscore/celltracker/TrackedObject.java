@@ -19,6 +19,7 @@ public class TrackedObject {
 	final Size size;
 	//Fields that start with "t" store tentative data from update(), which can be confirmed using confirmUpdate();
 	Point position; //top left
+	Point lastDirection;
 	private Point tPosition;
 	private boolean followed; //False when position is unknown
 	private int lostCounter;
@@ -27,14 +28,14 @@ public class TrackedObject {
 	private Rect tBoundingBox, tRoi;
 	private double currentRoi, tCurrentRoi, minimumRoi;
 	private Mat image, tImage; //clipped image of object used for cross-correlation
-	double match, tMatch; //Correlation coefficient. Used to resolve conflicts with two objects tracking to the same spot
+	private double tMatch; //Correlation coefficient. Used to resolve conflicts with two objects tracking to the same spot
 	
 	private Mat corrResult; //Used to store the result of cross-correlation
 	private boolean first = true;
 	
-	private static final double TOLERATED_OVERLAP = 0.25;
+	private static final double TOLERATED_OVERLAP = 0.2;
 	private static final double MATCH_TOLERANCE = 0.00001;
-	private static final double MATCH_THRESHOLD = 0.925;
+	private static final double MATCH_THRESHOLD = 0.95;
 	
 	private static final int STATE_TRACKING = 6;
 	private static final int STATE_WATCHING = 5;
@@ -45,16 +46,20 @@ public class TrackedObject {
 	private static final double ROI_SIZE = 4; //Region about each object to check for new positions.
 											//Increase to track objects that accelerate suddenly, but will result in longer processing time.
 											//0 to disable.
-	private static final double MINIMUM_ROI = 3; //Relative to own size.
+	private static final double MINIMUM_ROI = 1.2; //Relative to own size.
+	private static final double MINIMUM_ABSOLUTE_ROI = 4; //In pixels
 	private static final int ROI_VARIABILITY = 4; //Number of steps to average to find the updated ROI. Decrease for larger changes.
 													//Decrease if object being tracked has high acceleration (but smooth).
+	private static final int PERMITTED_JUMP = 1; //If the object moves more than this many times the length of its diagonal, consider it invalid
+	private static final int MINIMUM_DIAGONAL = 10;
+	private static final double PERMITTED_PATH_DEVIATION = Math.PI / 2;
+	private static final int MINIMUM_PATH_LENGTH = 12;
 	public TrackedObject(Rect location, Mat field) {
 		path = new ArrayList<Point>();
 		size = location.size();
 		position = location.tl();
 		boundingBox = location.clone();
 		image = field.submat(location);
-		match = 1;
 		currentRoi = 0;
 		followed = true;
 		if (size.width < size.height)
@@ -66,6 +71,7 @@ public class TrackedObject {
 		corrResult = new Mat(result_rows, result_cols, CvType.CV_32FC1);
 		roi = null;
 		state = STATE_WATCHING;
+		lastDirection = new Point();
 	}
 	
 	//Tenatively updates the position of the object. confirmUpdate() must be called to finalize.
@@ -88,6 +94,7 @@ public class TrackedObject {
 			tMatch = minMax.maxVal;
 			tImage = field.submat(tBoundingBox);
 			updateRoi(field);
+			//examinePath();
 		}
 		//Check only a subset of the image, determined by roi
 		else {
@@ -101,6 +108,7 @@ public class TrackedObject {
 			tMatch = minMax.maxVal;
 			tImage = field.submat(tBoundingBox);
 			updateRoi(field);
+			//examinePath();
 		}
 		if (tMatch < MATCH_THRESHOLD) {
 			System.out.println("invalidating update: poor match");
@@ -124,9 +132,26 @@ public class TrackedObject {
 		int roiSize = (int)tCurrentRoi;
 		int roiX = (int)(tPosition.x + size.width / 2);
 		int roiY = (int)(tPosition.y + size.height / 2);
-		tRoi = MathUtils.createCenteredRect(roiX, roiY, roiSize, roiSize);
+		int roiSizeX = (int) ((roiSize < size.width + MINIMUM_ABSOLUTE_ROI) ? size.width + MINIMUM_ABSOLUTE_ROI : roiSize);
+		int roiSizeY = (int) ((roiSize < size.height + MINIMUM_ABSOLUTE_ROI) ? size.height + MINIMUM_ABSOLUTE_ROI : roiSize);
+		tRoi = MathUtils.createCenteredRect(roiX, roiY, roiSizeX, roiSizeY);
 		TrackedField.cropRectToMat(tRoi, field);
 		//System.out.println(tRoi);
+	}
+	
+	public void examinePath() {
+		if (path.size() < MINIMUM_PATH_LENGTH)
+			return;
+		Point current = new Point();
+		MathUtils.set(current, position, tPosition);
+		double diagonal = Math.hypot(size.width, size.height);
+		if (diagonal < MINIMUM_DIAGONAL)
+			diagonal = MINIMUM_DIAGONAL;
+		double angle = (MathUtils.angle(lastDirection) - MathUtils.angle(current));
+		if (Math.abs(angle) > PERMITTED_PATH_DEVIATION && MathUtils.len(current) > diagonal * PERMITTED_JUMP) {
+			disable();
+			System.out.println("disabling: path deviated");
+		}
 	}
 	
 	public double newStepDistance() {
@@ -142,8 +167,8 @@ public class TrackedObject {
 	public boolean overlapViolation(TrackedObject obj) {
 		double x = Math.abs(obj.tPosition.x - this.tPosition.x);
 		double y = Math.abs(obj.tPosition.y - this.tPosition.y);
-		double w = (obj.size.width > this.size.width) ? obj.size.width :  this.size.width;
-		double h = (obj.size.height > this.size.height) ? obj.size.height :  this.size.height;
+		double w = obj.size.width + this.size.width;
+		double h = obj.size.height + this.size.height;
 		return (x < w * TOLERATED_OVERLAP) && (y < h * TOLERATED_OVERLAP);
 	}
 	/*
@@ -170,8 +195,10 @@ public class TrackedObject {
 	
 	public void confirmUpdate() {
 		synchronized(this) {
-			if (state == STATE_DISABLED)
+			if (state == STATE_DISABLED || !followed)
 				return;
+			if (position != null)
+				MathUtils.set(lastDirection, position, tPosition);
 			position = tPosition;
 			boundingBox = tBoundingBox;
 			roi = tRoi;
@@ -179,7 +206,6 @@ public class TrackedObject {
 			image = tImage;
 			if (state == STATE_TRACKING)
 				path.add(MathUtils.getRectCenter(position, size));
-			followed = true;
 			lostCounter = 0;
 		}
 	}
@@ -272,7 +298,6 @@ public class TrackedObject {
 			return null;
 		return path.get(path.size() - 1);
 	}
-	
 	
 	public boolean followed() {
 		return followed && state != STATE_DISABLED;

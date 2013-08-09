@@ -23,9 +23,9 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 	private Point[] results;
 	private int currentState;
 	private FovTracker tracker;
-	private Calibratable stage;
-	private Calibratable callback;
-	FovTracker.MotionCallback tCallback;
+	private TouchSwipeControl stage;
+	private CalibrationCallback callback;
+	private FovTracker.MotionCallback tCallback;
 	private int substep;
 	
 	private static int[] DIR_ORDER = new int[]{TouchSwipeControl.xRightMotor, TouchSwipeControl.xLeftMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yBackMotor};
@@ -34,7 +34,10 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 	private static int REALIGN_STEP_SIZE = 24;
 	private static int REALIGN_STEP = -1;
 	
-	public StepCalibrator(Calibratable s, FovTracker pt) {
+	public static final int PROCEED = 0;
+	public static final int FAILED = 1;
+	
+	public StepCalibrator(TouchSwipeControl s, FovTracker pt) {
 		xPosRate = new Point();
         xNegRate = new Point();
         yPosRate = new Point();
@@ -48,6 +51,8 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 	}
 	
 	public void calibrate() {
+		if (busy || !stage.bluetoothConnected())
+			return;
 		busy = true;
 		currentState = 0;
 		substep = REALIGN_STEP;
@@ -68,7 +73,7 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		tracker.pauseTracking();
 	}
 
-	public void saveResult(Point point) {
+	private void saveResult(Point point) {
 		int prevState = currentState;
 		int prevStep = substep - 1;
 		if (prevStep < REALIGN_STEP) {
@@ -93,7 +98,7 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 			MathUtils.set(accumulated, 0, 0);
 	}
 	
-	public void executeStep() {
+	private void executeStep() {
 		if (currentState < DIR_ORDER.length) {
 			int steps = substep == REALIGN_STEP ? REALIGN_STEP_SIZE : STEPS[substep];
 			stage.swipe(DIR_ORDER[currentState], steps);
@@ -109,7 +114,7 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		}
 	}
 	
-	public void notifyMovementCompleted() {
+	public void proceedWithCalibration() {
 		System.out.println("resumed");
 		tracker.resumeTracking();
 	}
@@ -132,14 +137,25 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		System.out.println(xNegRate);
 		System.out.println(yPosRate);
 		System.out.println(yNegRate);
+		callback.calibrationComplete(true);
 	}
 	
-	public void setCallback(Calibratable c) {
+	public void calibrationFailed() {
+		tracker.setCallback(tCallback);
+		tCallback = null;
+		busy = false;
+		calibrated = false;
+		tracker.disableTracking();
+		callback.calibrationComplete(true);
+	}
+	
+	public void setCallback(CalibrationCallback c) {
 		callback = c;
 	}
 	
-	public static interface Calibratable extends TouchSwipeControl.Swipeable {
-		public void calibrationComplete();
+	public static interface CalibrationCallback {
+		public void calibrationComplete(boolean success);
+		public void notifyCalibrator(int message);
 	}
 
 }

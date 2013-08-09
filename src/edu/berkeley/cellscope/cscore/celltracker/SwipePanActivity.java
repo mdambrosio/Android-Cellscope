@@ -11,8 +11,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
-import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
+import edu.berkeley.cellscope.cscore.celltracker.StepCalibrator.CalibrationCallback;
 
 /*
  * Class for testing the stepper counter.
@@ -22,7 +22,7 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
  * to count down. When the first command is done executing (i.e. no more steps remaining), 
  * the next command will be executed if it has remaining steps.
  */
-public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibrator.Calibratable, FovTracker.MotionCallback {
+public class SwipePanActivity extends OpenCVCameraActivity implements CalibrationCallback, FovTracker.MotionCallback {
 	private MenuItem mMenuItemCalibrate;
 	private MenuItem mMenuItemTrackPan;
 	
@@ -40,33 +40,30 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
 		compoundTouch.addTouchListener(touchSwipe);
 	}
 	
-	public void swipe(int dir, int dist) {
-		//System.out.println("swipe " + dir + " " + dist);
-		byte[] buffer = new byte[1];
-		buffer[0] = (byte)dir;
-		btConnector.write(buffer);
-		byte[] buffer2 = new byte[1];
-		buffer2[0] = (byte)dist;
-		btConnector.write(buffer2);
+	@Override
+	public void onPause() {
+		super.onPause();
+		if (calibrator.isCalibrating())
+			calibrator.calibrationFailed();
 	}
 	
 	@Override
 	public void readMessage(Message msg) {
 		super.readMessage(msg);
 		byte[] buffer = (byte[])(msg.obj);
-		if (buffer.length > 0 && (int)buffer[0] == TouchPanControl.stopMotor)
-			swipeComplete();
+		System.out.println("message read + " + buffer[0]);
+		if (buffer.length > 0 && calibrator.isCalibrating()) {
+			notifyCalibrator((int)buffer[0]);
+		}
 	}
 	
-	public void swipeComplete() {
-		if (calibrator.isCalibrating())
-			calibrator.notifyMovementCompleted();
+	public void notifyCalibrator(int message) {
+		if (message == StepCalibrator.PROCEED)
+			calibrator.proceedWithCalibration();
+		else if (message == StepCalibrator.FAILED)
+			calibrator.calibrationFailed();
 	}
 	
-	public boolean swipeAvailable() {
-		return panAvailable();
-	}
-
 	public void enableTracking() {
 		tracker.enableTracking();
 		if (mMenuItemTrackPan != null)
@@ -97,7 +94,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
     	super.onCameraViewStarted(width, height);
     	tracker = new FovTracker(width, height);
     	tracker.setCallback(this);
-        calibrator = new StepCalibrator(this, tracker);
+        calibrator = new StepCalibrator(touchSwipe, tracker);
         calibrator.setCallback(this);
 	}
 	/* Override this to perform post-calculation operations
@@ -124,8 +121,8 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
     }
 	
 	@Override
-	public boolean panAvailable() {
-		return super.panAvailable() && !calibrator.isCalibrating();
+	public boolean controlReady() {
+		return super.controlReady() && !calibrator.isCalibrating();
 	}
 	
 	public void hideControls() {
@@ -172,7 +169,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
 		calibrator.calibrate();
 	}
 	
-	public void calibrationComplete() {
+	public void calibrationComplete(boolean success) {
 	}
 	
 }

@@ -53,8 +53,11 @@ public class ViewFieldActivity extends Activity implements TouchSlideControl.Sli
 	private static final double RESIZE_SENSITIVITY = 0.1;
 	static final int APPROXIMATE_TOUCH = 20;
 	
-	private static double CELL_SIZE_LOWER = 0.31;
-	private static double CELL_SIZE_UPPER = 3.24;//1.8 times along one dimension
+	//private static double CELL_SIZE_LOWER = 0.31;
+	//private static double CELL_SIZE_UPPER = 3.24;//1.8 times along one dimension
+	private static double CELL_SIZE_LOWER = 0.8;
+	private static double CELL_SIZE_UPPER = 1.2;//1.8 times along one dimension
+
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -81,14 +84,23 @@ public class ViewFieldActivity extends Activity implements TouchSlideControl.Sli
 		int[] h = intent.getIntArrayExtra(CellDetectActivity.DATA_H_INFO);
 		
 		int size = x.length;
-		double aveSize = 0;
+		//double aveSize = 0;
+		cellSizeLower = imWidth * imHeight;
+		cellSizeUpper = 0;
 		for (int i = 0; i < size; i ++) {
 			regions.add(new Rect(x[i], y[i], w[i], h[i]));
-			aveSize += w[i] * h[i];
+			//aveSize += w[i] * h[i];
+			double area = w[i] * h[i];
+			if (area < cellSizeLower)
+				cellSizeLower = area;
+			if (area > cellSizeUpper)
+				cellSizeUpper = area;
 		}
-		aveSize /= size;
-		cellSizeLower = aveSize * CELL_SIZE_LOWER;
-		cellSizeUpper = aveSize * CELL_SIZE_UPPER;
+		//aveSize /= size;
+		//cellSizeLower = aveSize * CELL_SIZE_LOWER;
+		//cellSizeUpper = aveSize * CELL_SIZE_UPPER;
+		cellSizeLower *= CELL_SIZE_LOWER;
+		cellSizeUpper *= CELL_SIZE_UPPER;
 		
 		
 		CompoundTouchListener compound = new CompoundTouchListener();

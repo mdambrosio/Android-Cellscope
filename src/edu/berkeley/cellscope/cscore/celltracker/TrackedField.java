@@ -14,6 +14,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -49,13 +50,30 @@ public class TrackedField {
 		radius = fovRadius;
 		display = new Mat(currentField.size(), currentField.type());
 		img.copyTo(display);
-		Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
+		processImage(currentField);
 		objects = new ArrayList<TrackedObject>();
 		lockDisplay = new Object();
 		lockUpdate = new Object();
 		times = new ArrayList<Long>();
 		startTime = NULL_TIME;
 		output = new ArrayList<String>();
+	}
+	
+	private static void processImage(Mat mat) {
+		Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2GRAY);
+		Core.normalize(mat, mat, 0, 255, Core.NORM_MINMAX, -1);
+		Scalar sum = Core.sumElems(mat);
+		int count = Core.countNonZero(mat);
+		double ave = sum.val[0] / count;
+		Core.subtract(mat, new Scalar(ave), mat);
+		Imgproc.equalizeHist(mat, mat);
+		Core.normalize(mat, mat, 0, 255, Core.NORM_MINMAX, -1);
+		sum = Core.sumElems(mat);
+		count = Core.countNonZero(mat);
+		ave = sum.val[0] / count;
+		Core.subtract(mat, new Scalar(ave), mat);
+		Core.normalize(mat, mat, 0, 255, Core.NORM_MINMAX, -1);
+		Imgproc.equalizeHist(mat, mat);
 	}
 	
 	public void addObject(Rect region) {
@@ -111,7 +129,7 @@ public class TrackedField {
 		synchronized(lockUpdate) {
 			//newField.copyTo(display);
 			newField.copyTo(currentField);
-			Imgproc.cvtColor(currentField, currentField, Imgproc.COLOR_BGR2GRAY);
+			processImage(currentField);
 			long time = System.currentTimeMillis();
 			long total = 0;
 			for (TrackedObject o: objects) {
@@ -120,10 +138,9 @@ public class TrackedField {
 					long oldTime = time;
 					time = System.currentTimeMillis();
 					total += (time - oldTime);
-					System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
+				//	System.out.println("\tUpdated one object in " + (time - oldTime) + "; match " + o.tMatch);
 				}
 			}
-			
 			resolveIssues();
 			confirmUpdate();
 			long oldTime = time;
@@ -131,7 +148,7 @@ public class TrackedField {
 			total += (time - oldTime);
 			//System.out.println("\tResolved conflicts in " + (time - oldTime));
 			time = System.currentTimeMillis();
-			System.out.println("Update complete in " + total + " with " + objects.size() + " object(s)");
+			//System.out.println("Update complete in " + total + " with " + objects.size() + " object(s)");
 			if (tracking) {
 				long newtime = nextTime - startTime;
 				if (callback != null)
@@ -159,7 +176,6 @@ public class TrackedField {
 			if (first.isDisabled())
 				continue;
 			if (!first.newPosInFov(center, radius)) {
-				System.out.println("invalidating update: out of bounds");
 				first.invalidateUpdate();
 			}
 			if (!first.followed())

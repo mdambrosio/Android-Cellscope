@@ -9,7 +9,7 @@ import android.view.MotionEvent;
  */
 
 public class TouchSwipeControl extends TouchControl {
-	private Swipeable stage;
+	private BluetoothControllable stage;
 	private double touchX, touchY;
 	
 	private static final double SENSITIVITY = 0.1;
@@ -22,7 +22,7 @@ public class TouchSwipeControl extends TouchControl {
     public static final int zDownMotor = BluetoothActivity.zDownMotor;
     public static final int stopMotor = 0;
 	
-	public TouchSwipeControl(Swipeable s, Activity activity) {
+	public TouchSwipeControl(BluetoothControllable s, Activity activity) {
 		super(activity);
 		stage = s;
 		touchX = touchY = firstTouchEvent;
@@ -50,7 +50,7 @@ public class TouchSwipeControl extends TouchControl {
 	}
 	
 	public void swipeStage(double x, double y) {
-		if (!stage.swipeAvailable())
+		if (!stage.controlReady())
 			return;
 		int dir = 0, dist = 0;
 		if (Math.abs(x) > Math.abs(y)) {
@@ -61,13 +61,23 @@ public class TouchSwipeControl extends TouchControl {
 			dir = y < 0 ? TouchPanControl.xLeftMotor : TouchPanControl.xRightMotor;
 			dist = (int)(Math.abs(y) * SENSITIVITY);
 		}
-		stage.swipe(dir, dist);
+		swipe(dir, dist);
 	}
 	
-	public static interface Swipeable {
-		public void swipe(int dir, int dist);
-		public boolean swipeAvailable();
-		public void swipeComplete();
-	}
 
+	public void swipe(int dir, int dist) {
+		//System.out.println("swipe " + dir + " " + dist);
+		BluetoothConnector bt = stage.getBluetooth();
+		byte[] buffer = new byte[1];
+		buffer[0] = (byte)dir;
+		bt.write(buffer);
+		byte[] buffer2 = new byte[1];
+		buffer2[0] = (byte)dist;
+		bt.write(buffer2);
+	}
+	
+	public boolean bluetoothConnected() {
+		return stage.controlReady();
+	}
+	
 }

@@ -25,12 +25,12 @@
         android:text="@string/title_activity_video"
         android:onClick="goToVideoLibrary"/>
 
-    <Button
+    <!-- Button
         android:id="@+id/button_bluetooth"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/title_activity_bluetooth"
-        android:onClick="goToBluetooth"/>
+        android:onClick="goToBluetooth"/-->
  
     <Button
         android:id="@+id/button_opencv_camera"

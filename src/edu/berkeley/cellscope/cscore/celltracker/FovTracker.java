@@ -154,6 +154,7 @@ public class FovTracker {
 		
 		public Point call() {
 			//Compare the newest frame to the frame when the last calculation was run.
+			System.out.println("call");
 			synchronized (FovTracker.this) {
 				currImg.copyTo(curr);
 				lastImg.copyTo(last);
