@@ -10,12 +10,12 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
  * Autofocus algorithm:
  * 1. Move up 8 levels.
  * 2. Switch direction.
- * 3. Scan 16 levels. Keep track of the highest and lowest scores.
- * 4. If scores increase to more than twice the lowest score, then decrease to less than twice the lowest score, stop.
- * 		4a. If 16 steps are reached without this happening, stop.
+ * 3. Sweep 16 levels. Keep track of the highest and lowest scores.
+ * 4. If scores increase to more than twice the lowest score, then starts to decrease, stop.
+ * 		4a. If 16 steps are reached without this happening, quit and report failure.
  * 5. Compare the highest score to the best score. If better, replace.
  * 6. Halve level size.
- * 7. Repeat 2 thru 6 until stopped, or until level size drops below a minimum.
+ * 7. Repeat 2 thru 6 until stopped, or until level size drops below a minimum. If latter, quit and report success.
  *  
  * Scores are calculated via edge detection. The scores peak in a range fo about 128 steps,
  * and is noisy on either side of the peak. Start the initial level size at 64 steps.
