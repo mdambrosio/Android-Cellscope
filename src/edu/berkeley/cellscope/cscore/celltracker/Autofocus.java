@@ -38,7 +38,7 @@ public class Autofocus {
 	private static final int MINIMUM_STEP = 2;
 	private static final double STRICTNESS = 0.85; //0~1. How close to perfect do we stop at? Autofocus will be more likely to fail
 													//and overshoot if this is too high, but will stop out of focus when too low
-	private static final int PAUSE = 1; //Number of frames to wait after motion stops for the camera to catch up.
+	private static final int PAUSE = 2; //Number of frames to wait after motion stops for the camera to catch up.
 	private static final double EDGE_THRESHOLD_RATIO = 1;
 	private static final double EDGE_LOWER_THRESHOLD = 64;
 	private static final int STATE_READY = 0; //At rest, preparing for direct movement
