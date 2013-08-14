@@ -122,6 +122,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		firstFrame = true;
 		btConnector = new BluetoothConnector(this, this);
 		autofocus = new Autofocus(new TouchSwipeControl(this, this));
+		autofocus.setCallback(this);
 		
 
 		synchronized(this) {
@@ -221,6 +222,13 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		}
 	}
 	
+	public void focusCallback(boolean success) {
+		if (success)
+			toast(Autofocus.SUCCESS_MESSAGE);
+		else
+			toast(Autofocus.FAILURE_MESSAGE);
+	}
+	
 	public void record() {
 		if (currentTime != -1) {
 			long newTime = System.currentTimeMillis();
@@ -309,7 +317,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 	
 	public void notifyAutofocus(int message) {
-		autofocus.motionComplete();
+		autofocus.run();
 	}
 	
 	@Override

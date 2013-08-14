@@ -66,7 +66,6 @@ public class TouchSwipeControl extends TouchControl {
 	
 
 	public void swipe(int dir, int dist) {
-		//System.out.println("swipe " + dir + " " + dist);
 		BluetoothConnector bt = stage.getBluetooth();
 		byte[] buffer = new byte[1];
 		buffer[0] = (byte)dir;
