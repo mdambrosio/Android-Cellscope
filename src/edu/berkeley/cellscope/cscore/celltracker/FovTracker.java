@@ -12,7 +12,16 @@ import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-public class FovTracker {
+/*
+ * When enabled, will asynchronously calculate how much the contents of the screen move by.
+ * This is done by sampling a small area on the screen and cross correlating its position several
+ * frames later.
+ * Note that if the screen moves too quickly and the sampled region moves off the field of view
+ * before cross correlation can be run, the result will be false. Motion blur will also introduce error.
+ * If the sample area being tracked lacks features, cross correlation will likely produce an invalid
+ * result. It is advisable to 
+ */
+public class FovTracker implements RealtimeImageProcessor {
 	private final Mat currImg, lastImg;
 	private final int width, height;
 	
@@ -38,7 +47,7 @@ public class FovTracker {
 	private static final int CALC_CAP = 1; //Maximum number of queued calculations. No real point in having this more than 1.
 	//A larger sample size will give greater accuracy for slow pans, but cannot detect fast pans
 	private static final double SAMPLE_SIZE = 0.2;
-	private static final int WAIT_AFTER_PAUSE = 2; //After resuming from pause, wait for motion blur to disappear.
+	private static final int WAIT_AFTER_PAUSE = 2; //After resuming from pause, wait this many frames for the camera preview to catch up.
 	
 	protected static Scalar RED = new Scalar(255, 0, 0, 255);
 	protected static Scalar GREEN = new Scalar(0, 255, 0, 255);
@@ -62,7 +71,7 @@ public class FovTracker {
         calculation = new PositionCalculation();
 	}
 	
-	public boolean isTracking() {
+	public boolean isRunning() {
 		return tracking;
 	}
 	
@@ -76,7 +85,7 @@ public class FovTracker {
     	Core.rectangle(mRgba, panCorner1, panCorner2, BLUE);
 	}
 	
-	public synchronized void enableTracking() {
+	public synchronized void start() {
 		MathUtils.set(translation, 0, 0);
 		tracking = true;
 		paused = false;
@@ -85,22 +94,22 @@ public class FovTracker {
         calcThread = Executors.newSingleThreadExecutor();
 	}
 	
-	public synchronized void pauseTracking() {
+	public synchronized void pause() {
 		paused = true;
 	}
 	
-	public synchronized void resumeTracking() {
+	public synchronized void resume() {
 		paused = false;
 		wait = WAIT_AFTER_PAUSE;
 	}
 	
-	public synchronized void disableTracking() {
+	public synchronized void stop() {
 		tracking = false;
 		calcThread.shutdown();
 		calcThread = null;
 	}
 	
-	public synchronized void track(Mat mRgba) {
+	public synchronized void processFrame(Mat mRgba) {
 		if (!tracking || paused)
 			return;
 		if (wait > 0) {

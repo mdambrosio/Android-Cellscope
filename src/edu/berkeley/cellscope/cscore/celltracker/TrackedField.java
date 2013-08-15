@@ -21,7 +21,7 @@ import org.opencv.imgproc.Imgproc;
 /*
  * Manages the objects being tracked in the current field of vision.
  */
-public class TrackedField {
+public class TrackedField implements RealtimeImageProcessor {
 	private Mat currentField;
 	private Mat nextFrame;
 	private Mat display;
@@ -116,7 +116,7 @@ public class TrackedField {
 		}
 	}
 	
-	public void queueFrame(Mat frame) {
+	public void processFrame(Mat frame) {
 		synchronized(lockDisplay) {
 			synchronized(lockUpdate) {
 				nextFrame = frame;
@@ -224,7 +224,7 @@ public class TrackedField {
 		}
 	}
 	
-	public void startTracking() {
+	public void start() {
 		synchronized(lockUpdate) {
 			if (tracking)
 				return;
@@ -237,7 +237,7 @@ public class TrackedField {
 		}
 	}
 	
-	public void stopTracking() {
+	public void stop() {
 		synchronized(lockUpdate) {
 			if (!tracking)
 				return;
@@ -250,7 +250,7 @@ public class TrackedField {
 		}
 	}
 	
-	public boolean isTracking() {
+	public boolean isRunning() {
 		synchronized(lockUpdate) {
 			return tracking;
 		}

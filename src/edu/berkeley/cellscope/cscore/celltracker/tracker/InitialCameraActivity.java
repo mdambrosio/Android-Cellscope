@@ -22,6 +22,11 @@ public class InitialCameraActivity extends OpenCVCameraActivity {
 		super.onCreate(savedInstanceState);
 		available = true;
 		toggleRecord.setVisibility(View.GONE);
+	}
+	
+	@Override
+	protected void createAddons(int width, int height) {
+		super.createAddons(width, height);
 		touchExposure.setEnabled(true);
 		touchZoom.setEnabled(false);
 	}

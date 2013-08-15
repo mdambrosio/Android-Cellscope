@@ -35,10 +35,10 @@ public class Autofocus {
 	
 	private static final int INITIAL_STEP = 64; //Step size cannot be greater than 127, due to size limitations on byte
 	private static final int Z_RANGE = 16; //Check 4 levels on either side of the current position
-	private static final int MINIMUM_STEP = 2;
-	private static final double STRICTNESS = 0.85; //0~1. How close to perfect do we stop at? Autofocus will be more likely to fail
+	private static final int MINIMUM_STEP = 4;
+	private static final double STRICTNESS = 0.9; //0~1. How close to perfect do we stop at? Autofocus will be more likely to fail
 													//and overshoot if this is too high, but will stop out of focus when too low
-	private static final int PAUSE = 2; //Number of frames to wait after motion stops for the camera to catch up.
+	private static final int PAUSE = 3; //Number of frames to wait after motion stops for the camera to catch up.
 	private static final double EDGE_THRESHOLD_RATIO = 1;
 	private static final double EDGE_LOWER_THRESHOLD = 64;
 	private static final int STATE_READY = 0; //At rest, preparing for direct movement
@@ -49,7 +49,7 @@ public class Autofocus {
 	
 	private static final int SCORE_PEAK_SIZE = 2;
 	
-	private static final Size BLUR = new Size(2, 2);
+	private static final Size BLUR = new Size(3, 3);
 	
 	public static final String SUCCESS_MESSAGE = "Autofocus successful";
 	public static final String FAILURE_MESSAGE = "Autofocus failed";
@@ -174,9 +174,13 @@ public class Autofocus {
 		stepsTaken = 0;
 		stepSize /= 2;
 		System.out.println("new step size " + stepSize);
+		//bestNetScore = bestScore;
 		bestScore = lowestNetScore;
 		passedPeak = false;
-		stage.swipe(direction, stepSize);
+		if (stepSize <= MINIMUM_STEP)
+			run();
+		else
+			stage.swipe(direction, stepSize);
 	}
 	
 	//return true when the peak is passed
@@ -204,10 +208,16 @@ public class Autofocus {
 		}
 		else if (bestScore > lowestNetScore * SCORE_PEAK_SIZE && score >= bestNetScore * STRICTNESS) {
 			if (stepSize <= MINIMUM_STEP && score <= bestScore) {
+				System.out.println("quick complete");
 				calculationComplete();
 				return true;
 			}
 			passedPeak = true;
+		}
+		else if (stepSize <= MINIMUM_STEP && score <= bestScore) {
+			System.out.println("quick complete");
+			calculationComplete();
+			return true;
 		}
 		return false;
 	}

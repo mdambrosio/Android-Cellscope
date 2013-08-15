@@ -8,8 +8,8 @@ public class TouchExposureControl extends TouchPinchControl {
 	private ManualExposure screen;
 	private int maxExposure, minExposure;
 	
-	public TouchExposureControl(ManualExposure m, Activity activity) {
-		super(activity);
+	public TouchExposureControl(ManualExposure m, int w, int h) {
+		super(w, h);
 		screen = m;
 	}
 	

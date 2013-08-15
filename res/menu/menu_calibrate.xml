@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
        
-    <item android:id="@+id/track_pan"
+    <!--item android:id="@+id/track_pan"
 	          android:icon="@android:drawable/ic_menu_directions"
-	          android:title="@string/track_pan_enable" /> 
+	          android:title="@string/track_pan_enable" /--> 
 	          
 	<item android:id="@+id/calibrate"
 	          android:icon="@android:drawable/ic_menu_compass"

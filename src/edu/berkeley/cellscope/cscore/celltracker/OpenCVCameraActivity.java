@@ -100,30 +100,17 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.activity_opencv_camera);
-		
 	    
         takePicture = (ImageButton)findViewById(R.id.takePhotoButton);
         toggleRecord = (ImageButton)findViewById(R.id.record_button);
-	    
-	    infoText = (TextView)findViewById(R.id.infotext);
-	    
-	    compoundTouch = new CompoundTouchListener();
-	    touchPan = new TouchPanControl(this, this);
-	    touchZoom = new TouchZoomControl(this, this);
-	    touchExposure = new TouchExposureControl(this, this);
-	    touchPan.setEnabled(true);
-	    touchZoom.setEnabled(true);
-	    compoundTouch.addTouchListener(touchPan);
-	    compoundTouch.addTouchListener(touchZoom);
-	    compoundTouch.addTouchListener(touchExposure);
-	    
 		bluetoothNameLabel = (TextView) findViewById(R.id.bluetoothtext);
 
 		firstFrame = true;
 		btConnector = new BluetoothConnector(this, this);
-		autofocus = new Autofocus(new TouchSwipeControl(this, this));
-		autofocus.setCallback(this);
 		
+	    infoText = (TextView)findViewById(R.id.infotext);
+	    
+	    compoundTouch = new CompoundTouchListener();
 
 		synchronized(this) {
 	        cameraView = (OpenCVCameraView) findViewById(R.id.opencv_camera_view);
@@ -133,6 +120,20 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		    cameraView.setOnTouchListener(compoundTouch);
 		}
     }
+	
+	protected void createAddons(int width, int height) {
+		compoundTouch.clearTouchListeners();
+	    touchPan = new TouchPanControl(this, width, height);
+	    touchZoom = new TouchZoomControl(this, width, height);
+	    touchExposure = new TouchExposureControl(this, width, height);
+	    touchPan.setEnabled(true);
+	    touchZoom.setEnabled(true);
+	    compoundTouch.addTouchListener(touchPan);
+	    compoundTouch.addTouchListener(touchZoom);
+	    compoundTouch.addTouchListener(touchExposure);
+	    autofocus = new Autofocus(new TouchSwipeControl(this, this));
+		autofocus.setCallback(this);
+	}
 	
     @Override
     public void onStart() {
@@ -194,6 +195,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 
 	public void onCameraViewStarted(int width, int height) {
     	cameraView.disableAutoFocus();
+    	createAddons(width, height);
 		System.out.println("camera started");
 	}
 
@@ -322,12 +324,12 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	@Override
     public boolean onCreateOptionsMenu(Menu menu) {
-		System.out.println("creation");
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_bluetooth, menu);
         mMenuItemConnect = menu.getItem(0);
         inflater.inflate(R.menu.menu_controls, menu);
         mMenuItemPinch = menu.getItem(1);
+        inflater.inflate(R.menu.menu_autofocus, menu);
         return true;
     }
 

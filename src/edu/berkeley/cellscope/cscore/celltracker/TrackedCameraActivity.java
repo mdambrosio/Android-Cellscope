@@ -21,9 +21,14 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		compoundTouch.addTouchListener(this);
 		screenWidth = ScreenDimension.getScreenWidth(this);
 		screenHeight = ScreenDimension.getScreenHeight(this);
+	}
+	
+	@Override
+	protected void createAddons(int width, int height) {
+		super.createAddons(width, height);
+		compoundTouch.addTouchListener(this);
 	}
 	
 	@Override
@@ -36,7 +41,7 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		super.onCameraFrame(inputFrame);
-		field.queueFrame(mRgba);
+		field.processFrame(mRgba);
 		return field.display();
 	}
 
@@ -49,9 +54,9 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 			float y = evt.getY() / screenHeight;
 			Point p = new Point(cameraView.width * x, cameraView.height * y);
 			Size s = new Size(TEST_WIDTH, TEST_HEIGHT);
-			field.stopTracking();
+			field.stop();
 			field.addObject(MathUtils.createCenteredRect(p, s));
-			field.startTracking();
+			field.start();
 		}
 		return true;
 	}

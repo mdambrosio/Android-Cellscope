@@ -1,6 +1,5 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import android.app.Activity;
 import android.view.MotionEvent;
 
 /*
@@ -12,8 +11,8 @@ public abstract class TouchPinchControl extends TouchControl {
 	private double pinchDist; //How far apart were the fingers when they started?
 	private double lastAmount;
 	
-	public TouchPinchControl(Activity activity) {
-		super(activity);
+	public TouchPinchControl(int w, int h) {
+		super(w, h);
 		screenDiagonal = Math.hypot(screenWidth, screenHeight);
 		pinchDist = firstTouchEvent;
 	}

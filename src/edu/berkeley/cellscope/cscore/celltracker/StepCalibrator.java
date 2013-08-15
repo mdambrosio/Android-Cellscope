@@ -1,10 +1,19 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
+import java.util.Arrays;
+import java.util.HashMap;
+
+import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 
 /*
+ * Runs x/y motor calibration to determine how many pixels a step is.
+ * The result is not precise or accurate, so use it to calculate roughly
+ * the number of steps necessary to reach a certain position. It is not
+ * reliable enough to be used directly in gathering data.
+ * 
  * Calibration steps:
  * 1. Calibrator started. Calibrator instructs Tracker to begin.
  * 2. Tracker notifies Calibrator of frame, then pauses.
@@ -15,10 +24,11 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
  * 7. Tracker notifies Calibrator of frame, then pauses.
  * 6. Repeat steps 2 thru 5.
  */
-public class StepCalibrator implements FovTracker.MotionCallback {
+public class StepCalibrator implements RealtimeImageProcessor, FovTracker.MotionCallback {
 	private boolean busy;
 	private boolean calibrated;
-	Point xPosRate, xNegRate, yPosRate, yNegRate;
+	private Point xPosRate, xNegRate, yPosRate, yNegRate;
+	private HashMap<Integer, Point> rates;
 	private Point accumulated;
 	private Point[] results;
 	private int currentState;
@@ -37,6 +47,9 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 	public static final int PROCEED = 0;
 	public static final int FAILED = 1;
 	
+	public static final String SUCCESS_MESSAGE = "Calibration successful";
+	public static final String FAILURE_MESSAGE = "Calibration failed";
+	
 	public StepCalibrator(TouchSwipeControl s, FovTracker pt) {
 		xPosRate = new Point();
         xNegRate = new Point();
@@ -48,9 +61,10 @@ public class StepCalibrator implements FovTracker.MotionCallback {
         stage = s;
         tracker = pt;
         accumulated = new Point();
+        rates = new HashMap<Integer, Point>(4);
 	}
 	
-	public void calibrate() {
+	public void start() {
 		if (busy || !stage.bluetoothConnected())
 			return;
 		busy = true;
@@ -59,9 +73,10 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		calibrated = false;
 		tCallback = tracker.callback;
 		tracker.setCallback(this);
-		if (!tracker.isTracking())
-			tracker.enableTracking();
-		tracker.resumeTracking();
+		rates.clear();
+		if (!tracker.isRunning())
+			tracker.start();
+		tracker.resume();
 	}
 	
 	public void onMotionResult(Point result) {
@@ -70,7 +85,7 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		}
 		saveResult(result);
 		executeStep();
-		tracker.pauseTracking();
+		tracker.pause();
 	}
 
 	private void saveResult(Point point) {
@@ -114,16 +129,20 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		}
 	}
 	
+	public void processFrame(Mat mat) {
+		
+	}
+	
 	public void proceedWithCalibration() {
 		System.out.println("resumed");
-		tracker.resumeTracking();
+		tracker.resume();
 	}
 	
 	public boolean isCalibrated() {
 		return calibrated;
 	}
 	
-	public boolean isCalibrating() {
+	public boolean isRunning() {
 		return busy;
 	}
 	
@@ -132,12 +151,25 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		tCallback = null;
 		busy = false;
 		calibrated = true;
-		tracker.disableTracking();
-		System.out.println(xPosRate);
-		System.out.println(xNegRate);
-		System.out.println(yPosRate);
-		System.out.println(yNegRate);
+		tracker.stop();
+		Point tmp = MathUtils.subtract(xPosRate.clone(), xNegRate);
+		MathUtils.multiply(tmp, 0.5);
+		MathUtils.set(xPosRate, tmp);
+		MathUtils.set(xNegRate, MathUtils.multiply(tmp, -1));
+		tmp = MathUtils.subtract(yPosRate.clone(), yNegRate);
+		MathUtils.multiply(tmp, 0.5);
+		MathUtils.set(yPosRate, tmp);
+		MathUtils.set(yNegRate, MathUtils.multiply(tmp, -1));
+		rates.put(DIR_ORDER[0], results[0]);
+		rates.put(DIR_ORDER[1], results[1]);
+		rates.put(DIR_ORDER[2], results[2]);
+		rates.put(DIR_ORDER[3], results[3]);
+		System.out.println(Arrays.toString(results));
 		callback.calibrationComplete(true);
+	}
+	
+	public void stop() {
+		calibrationFailed();
 	}
 	
 	public void calibrationFailed() {
@@ -145,7 +177,7 @@ public class StepCalibrator implements FovTracker.MotionCallback {
 		tCallback = null;
 		busy = false;
 		calibrated = false;
-		tracker.disableTracking();
+		tracker.stop();
 		callback.calibrationComplete(true);
 	}
 	

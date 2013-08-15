@@ -12,8 +12,8 @@ public class TouchSlideControl extends TouchControl {
 	private double touchX, touchY;
 	
 	private static final int firstTouchEvent = -1;
-	public TouchSlideControl(Slideable s, Activity activity) {
-		super(activity);
+	public TouchSlideControl(Slideable s, int w, int h) {
+		super(w, h);
 		stage = s;
 		touchX = touchY = firstTouchEvent;
 	}

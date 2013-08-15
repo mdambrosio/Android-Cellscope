@@ -5,8 +5,8 @@ import android.app.Activity;
 public class TouchZoomControl extends TouchPinchControl {
 	private Zoomable screen;
 	private int maxZoom;
-	public TouchZoomControl(Zoomable p, Activity activity) {
-		super(activity);
+	public TouchZoomControl(Zoomable p, int w, int h) {
+		super(w, h);
 		screen = p;
 	}
 	

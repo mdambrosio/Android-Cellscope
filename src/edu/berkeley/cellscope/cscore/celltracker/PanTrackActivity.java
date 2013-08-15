@@ -32,13 +32,13 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
 	}
 	
 	public void enableTracking() {
-		tracker.enableTracking();
+		tracker.start();
 		if (mMenuItemTrackPan != null)
 			mMenuItemTrackPan.setTitle(R.string.track_pan_disable);
 	}
 	
 	public void disableTracking() {
-		tracker.disableTracking();
+		tracker.stop();
 		if (mMenuItemTrackPan != null)
 			mMenuItemTrackPan.setTitle(R.string.track_pan_enable);
 	}
@@ -46,8 +46,8 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
         super.onCameraFrame(inputFrame);
-        if (tracker.isTracking()) {
-        	tracker.track(mRgba);
+        if (tracker.isRunning()) {
+        	tracker.processFrame(mRgba);
         	tracker.draw(mRgba);
         }
         //if (preparedMessage != null)
@@ -113,13 +113,13 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
 		if (super.onOptionsItemSelected(item))
 			return true;
 		int id = item.getItemId();
-		if (id == R.id.track_pan) {
-			if (tracker.isTracking())
-				disableTracking();
-			else
-				enableTracking();
-			return true;
-		}
+		//if (id == R.id.track_pan) {
+		//	if (tracker.isTracking())
+		//		disableTracking();
+		//	else
+		//		enableTracking();
+		//	return true;
+		//}
 		return false;
     }
 	

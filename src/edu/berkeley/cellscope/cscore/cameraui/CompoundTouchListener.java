@@ -25,4 +25,8 @@ public class CompoundTouchListener implements View.OnTouchListener {
 		if (!listeners.contains(lis))
 			listeners.add(lis);
 	}
+	
+	public void clearTouchListeners() {
+		listeners.clear();
+	}
 }

@@ -4,7 +4,6 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
-import android.os.Bundle;
 import android.os.Message;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,26 +23,28 @@ import edu.berkeley.cellscope.cscore.celltracker.StepCalibrator.CalibrationCallb
  */
 public class SwipePanActivity extends OpenCVCameraActivity implements CalibrationCallback, FovTracker.MotionCallback {
 	private MenuItem mMenuItemCalibrate;
-	private MenuItem mMenuItemTrackPan;
 	
 	protected TouchSwipeControl touchSwipe;
 	private StepCalibrator calibrator;
 	private FovTracker tracker;
 	
 	@Override
-	public void onCreate(Bundle bundle) {
-		super.onCreate(bundle);
+	protected void createAddons(int width, int height) {
+		super.createAddons(width, height);
 		touchPan.setEnabled(false);
 		touchSwipe = new TouchSwipeControl(this, this);
 		touchSwipe.setEnabled(true);
-		
 		compoundTouch.addTouchListener(touchSwipe);
+    	tracker = new FovTracker(width, height);
+    	tracker.setCallback(this);
+        calibrator = new StepCalibrator(touchSwipe, tracker);
+        calibrator.setCallback(this);
 	}
 	
 	@Override
 	public void onPause() {
 		super.onPause();
-		if (calibrator.isCalibrating())
+		if (calibrator.isRunning())
 			calibrator.calibrationFailed();
 	}
 	
@@ -51,8 +52,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 	public void readMessage(Message msg) {
 		super.readMessage(msg);
 		byte[] buffer = (byte[])(msg.obj);
-		System.out.println("message read + " + buffer[0]);
-		if (buffer.length > 0 && calibrator.isCalibrating()) {
+		if (buffer.length > 0 && calibrator.isRunning()) {
 			notifyCalibrator((int)buffer[0]);
 		}
 	}
@@ -64,39 +64,16 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 			calibrator.calibrationFailed();
 	}
 	
-	public void enableTracking() {
-		tracker.enableTracking();
-		if (mMenuItemTrackPan != null)
-			mMenuItemTrackPan.setTitle(R.string.track_pan_disable);
-	}
-	
-	public void disableTracking() {
-		tracker.disableTracking();
-		if (mMenuItemTrackPan != null)
-			mMenuItemTrackPan.setTitle(R.string.track_pan_enable);
-	}
-	
 	@Override
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
         super.onCameraFrame(inputFrame);
-        if (tracker.isTracking()) {
-        	tracker.track(mRgba);
+        if (tracker.isRunning()) {
+        	tracker.processFrame(mRgba);
         	tracker.draw(mRgba);
         }
         return mRgba;
     }
 	
-	/* OpenCV-related classes cannot be constructed onCreate, because OpenCV is loaded
-	 * asynchronously. onCreate is likely to be called before loading is complete.
-	 */
-	@Override
-	public void onCameraViewStarted(int width, int height) {
-    	super.onCameraViewStarted(width, height);
-    	tracker = new FovTracker(width, height);
-    	tracker.setCallback(this);
-        calibrator = new StepCalibrator(touchSwipe, tracker);
-        calibrator.setCallback(this);
-	}
 	/* Override this to perform post-calculation operations
 	 * in subclasses.
 	 */
@@ -122,7 +99,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 	
 	@Override
 	public boolean controlReady() {
-		return super.controlReady() && !calibrator.isCalibrating();
+		return super.controlReady() && !calibrator.isRunning();
 	}
 	
 	public void hideControls() {
@@ -140,8 +117,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 		super.onCreateOptionsMenu(menu);
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_calibrate, menu);
-        mMenuItemTrackPan = menu.getItem(2);
-        mMenuItemCalibrate = menu.getItem(3);
+        mMenuItemCalibrate = menu.getItem(2);
         //mMenuItemCalibrate.setEnabled(false);
         return true;
     }
@@ -151,14 +127,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 		if (super.onOptionsItemSelected(item))
 			return true;
 		int id = item.getItemId();
-		if (id == R.id.track_pan) {
-			if (tracker.isTracking())
-				disableTracking();
-			else
-				enableTracking();
-			return true;
-		}
-		else if (id == R.id.calibrate) {
+		if (id == R.id.calibrate) {
 			runStageCalibration();
 			return true;
 		}
@@ -166,10 +135,14 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
     }
 	
 	public void runStageCalibration() {
-		calibrator.calibrate();
+		calibrator.start();
 	}
 	
 	public void calibrationComplete(boolean success) {
+		if (success)
+			toast(StepCalibrator.SUCCESS_MESSAGE);
+		else
+			toast(StepCalibrator.FAILURE_MESSAGE);
 	}
 	
 }

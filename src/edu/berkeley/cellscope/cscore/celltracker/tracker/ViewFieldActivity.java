@@ -21,6 +21,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import edu.berkeley.cellscope.cscore.R;
+import edu.berkeley.cellscope.cscore.ScreenDimension;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPinchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSlideControl;
@@ -102,12 +103,13 @@ public class ViewFieldActivity extends Activity implements TouchSlideControl.Sli
 		cellSizeLower *= CELL_SIZE_LOWER;
 		cellSizeUpper *= CELL_SIZE_UPPER;
 		
-		
+		int screenWidth = ScreenDimension.getScreenWidth(this);
+		int screenHeight = ScreenDimension.getScreenHeight(this);
 		CompoundTouchListener compound = new CompoundTouchListener();
-		FovResize ctrl = new FovResize(this);
+		FovResize ctrl = new FovResize(screenWidth, screenHeight);
 		ctrl.setEnabled(true);
 		compound.addTouchListener(ctrl);
-		TouchSlideControl slide = new TouchSlideControl(this, this);
+		TouchSlideControl slide = new TouchSlideControl(this, screenWidth, screenHeight);
 		slide.setEnabled(true);
 		compound.addTouchListener(slide);
 		view.setOnTouchListener(compound);
@@ -188,8 +190,8 @@ public class ViewFieldActivity extends Activity implements TouchSlideControl.Sli
 
     
     private class FovResize extends TouchPinchControl {
-    	public FovResize(Activity activity) {
-			super(activity);
+    	public FovResize(int w, int h) {
+			super(w, h);
 		}
 
 		public boolean pinch(double amount) {

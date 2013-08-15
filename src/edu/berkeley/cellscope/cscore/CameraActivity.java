@@ -36,10 +36,6 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import edu.berkeley.cellscope.cscore.cameraui.CompoundTouchListener;
-import edu.berkeley.cellscope.cscore.cameraui.TouchControl.BluetoothControllable;
-import edu.berkeley.cellscope.cscore.cameraui.TouchControl.TouchControllable;
-import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
-import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 
 /**
@@ -321,7 +317,7 @@ public class CameraActivity extends Activity implements TouchZoomControl.Zoomabl
         setContentView(R.layout.activity_camera);
         mSurfaceView = (SurfaceView)findViewById(R.id.previewSurface);
         CompoundTouchListener compoundTouch = new CompoundTouchListener();
-        compoundTouch.addTouchListener(new TouchZoomControl(this, this));
+        compoundTouch.addTouchListener(new TouchZoomControl(this, ScreenDimension.getScreenWidth(this), ScreenDimension.getScreenHeight(this)));
         mSurfaceView.setOnTouchListener(compoundTouch);
         mHolder = mSurfaceView.getHolder();
 	    mHolder.addCallback(mCallback);

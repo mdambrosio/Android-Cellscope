@@ -29,8 +29,8 @@ public class TouchPanControl extends TouchControl {
 	private static final double PAN_THRESHOLD = 50; //Gestures smaller than this are ignored.
 	private static final double Z_CONTROL_ZONE = 0.3; //Gestures left of this part of the screen are used to control Z
 	
-	public TouchPanControl(BluetoothControllable p, Activity activity) {
-		super(activity);
+	public TouchPanControl(BluetoothControllable p, int w, int h) {
+		super(w, h);
 		stage = p;
 		zZone = screenWidth * Z_CONTROL_ZONE;
 	}

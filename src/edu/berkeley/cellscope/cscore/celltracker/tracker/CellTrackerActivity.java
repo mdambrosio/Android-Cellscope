@@ -101,11 +101,6 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		maxSize = intent.getDoubleExtra(ViewFieldActivity.PARAM_SIZE_UPPER_INFO, 0);
 		addedMargin = intent.getIntExtra(ViewFieldActivity.PARAM_MARGIN_INFO, 0);
 		
-		touchZoom.setEnabled(false);
-		touchPan.setEnabled(false);
-		toggleRecord.setVisibility(View.INVISIBLE);
-		compoundTouch.addTouchListener(this);
-		
 		fieldReady = false;
 
 		save = intent.getStringExtra(TrackerSettingsActivity.SAVE_INFO);
@@ -132,6 +127,15 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 
 		touchX = touchY = firstTouchEvent;
 	}
+	
+	@Override
+	protected void createAddons(int width, int height) {
+		super.createAddons(width, height);
+		touchZoom.setEnabled(false);
+		touchPan.setEnabled(false);
+		toggleRecord.setVisibility(View.INVISIBLE);
+		compoundTouch.addTouchListener(this);
+	}
 
 	@Override
 	public void onCameraViewStarted(int width, int height) {
@@ -144,7 +148,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	public void onCameraViewStopped() {
 		super.onCameraViewStopped();
 		if (field != null)
-			field.stopTracking();
+			field.stop();
 		resetField();
 	}
 	
@@ -182,7 +186,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		synchronized(this) {
 			if (field == null || !fieldReady)
 				return temporaryDisplay(mRgba);
-			field.queueFrame(mRgba);
+			field.processFrame(mRgba);
 			Mat display = field.display();
 			if (selected != null) {
 				if (MathUtils.circleContainsRect(selected, fovCenter, fovRadius))
@@ -234,9 +238,9 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	    	}
 	    	super.toggleTimelapse(v);
 	    	if (record)
-    			field.startTracking();
+    			field.start();
 	    	else
-	    		field.stopTracking();
+	    		field.stop();
     	}
     }
 
@@ -272,7 +276,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 			touchX = touchY = firstTouchEvent;
 			return true;
 		}
-		if (field == null || field.isTracking())
+		if (field == null || field.isRunning())
 			return true;
 		Point pt = convertPoint(evt.getX(), evt.getY());
 		if (pointers == 1 && action == MotionEvent.ACTION_DOWN && selected == null) {
