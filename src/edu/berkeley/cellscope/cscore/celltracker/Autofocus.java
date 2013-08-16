@@ -20,7 +20,7 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
  * Scores are calculated via edge detection. The scores peak in a range fo about 128 steps,
  * and is noisy on either side of the peak. Start the initial level size at 64 steps.
  */
-public class Autofocus {
+public class Autofocus implements RealtimeImageProcessor {
 	private TouchSwipeControl stage;
 	private Autofocusable callback;
 	private boolean busy;
@@ -28,22 +28,25 @@ public class Autofocus {
 	private int currentPosition, targetPosition;
 	private int stepsTaken;
 	private int waitFrames, state;
-	private int bestScore, bestNetScore, lowestNetScore;
+	private int bestScore, bestNetScore, lowestNetScore, unfocusedScore;
 	private boolean passedPeak;
 	
 	private final Object lockStatus;
 	
+	private static final int QUICK_INITIAL_STEP = 16;
 	private static final int INITIAL_STEP = 64; //Step size cannot be greater than 127, due to size limitations on byte
 	private static final int Z_RANGE = 16; //Check 4 levels on either side of the current position
-	private static final int MINIMUM_STEP = 4;
+	private static final int MINIMUM_STEP = 8;
 	private static final double STRICTNESS = 0.9; //0~1. How close to perfect do we stop at? Autofocus will be more likely to fail
 													//and overshoot if this is too high, but will stop out of focus when too low
 	private static final int PAUSE = 3; //Number of frames to wait after motion stops for the camera to catch up.
-	private static final double EDGE_THRESHOLD_RATIO = 1;
+	private static final double EDGE_THRESHOLD_RATIO = 1.5;
 	private static final double EDGE_LOWER_THRESHOLD = 64;
 	private static final int STATE_READY = 0; //At rest, preparing for direct movement
 	private static final int STATE_MOVING = 1; //Currently in direct movement
 	private static final int STATE_STEPPING = 2; //In movement, stopping at intervals for analysis
+	private static final int STARTING_DIRECTION = TouchSwipeControl.zPositive;
+	private static final int OPPOSITE_DIRECTION = TouchSwipeControl.zNegative;
 	
 	private static final int NO_CALCULATION = -1;
 	
@@ -64,7 +67,7 @@ public class Autofocus {
 		callback = a;
 	}
 	
-	public void focus() {
+	public void start() {
 		if (busy || !stage.bluetoothConnected())
 			return;
 		System.out.println("begin focus");
@@ -72,9 +75,25 @@ public class Autofocus {
 			busy = true;
 			stepsTaken = 0;
 			bestNetScore = bestScore = lowestNetScore = 0;
-			direction = TouchSwipeControl.zUpMotor;
+			direction = STARTING_DIRECTION;
 			passedPeak = false;
 			stepSize = INITIAL_STEP;
+			state = STATE_READY;
+			run();
+		}
+	}
+	
+	public void quickFocus() {
+		if (busy || !stage.bluetoothConnected())
+			return;
+		System.out.println("begin focus");
+		synchronized(lockStatus) {
+			busy = true;
+			stepsTaken = 0;
+			bestNetScore = bestScore = lowestNetScore = 0;
+			direction = STARTING_DIRECTION;
+			passedPeak = false;
+			stepSize = QUICK_INITIAL_STEP;
 			state = STATE_READY;
 			run();
 		}
@@ -85,11 +104,11 @@ public class Autofocus {
 		if (!busy)
 			return;
 		if (!stage.bluetoothConnected()) {
-			focusFailed();
+			stop();
 			return;
 		}
 		if (stepSize < MINIMUM_STEP) {
-			focusComplete();
+			complete();
 		}
 		if (state == STATE_READY) {
 			System.out.println("Moving to starting position...");
@@ -110,7 +129,7 @@ public class Autofocus {
 		}
 	}
 	
-	public synchronized void queueFrame(Mat mat) {
+	public synchronized void processFrame(Mat mat) {
 		synchronized(lockStatus) {
 			if (!busy || waitFrames == NO_CALCULATION || state != STATE_STEPPING)
 				return;
@@ -121,7 +140,7 @@ public class Autofocus {
 			waitFrames = NO_CALCULATION;
 		}
 		if (stepsTaken > Z_RANGE)
-			focusFailed();
+			stop();
 		stepsTaken ++;
 		Mat data = new Mat(mat.size(), mat.type());
 		mat.copyTo(data);
@@ -130,10 +149,10 @@ public class Autofocus {
 	}
 	
 	private void switchDirection() {
-		if (direction == TouchSwipeControl.zUpMotor)
-			direction = TouchSwipeControl.zDownMotor;
+		if (direction == STARTING_DIRECTION)
+			direction = OPPOSITE_DIRECTION;
 		else
-			direction = TouchSwipeControl.zUpMotor;
+			direction = STARTING_DIRECTION;
 	}
 	
 	private void moveInZ(int position) {
@@ -151,18 +170,22 @@ public class Autofocus {
 		return false;
 	}
 	
-	public boolean isFocusing() {
+	public boolean isRunning() {
 		return busy;
 	}
 	
-	public void focusFailed() {
+	public void stop() {
+		if (!busy)
+			return;
 		busy = false;
 		if (callback != null)
 			callback.focusCallback(false);
 		System.out.println("focus failed");
 	}
 	
-	public void focusComplete() {
+	public void complete() {
+		if (!busy)
+			return;
 		busy = false;
 		if (callback != null)
 			callback.focusCallback(true);
@@ -195,18 +218,23 @@ public class Autofocus {
 		if (score == 0)
 			return false;
 		
-		if (lowestNetScore > score || lowestNetScore == 0)
+		if (lowestNetScore > score || lowestNetScore == 0) {
 			lowestNetScore = score;
+			if (lowestNetScore < unfocusedScore || unfocusedScore == 0)
+				unfocusedScore = lowestNetScore;
+		}
 		if (score > bestScore || bestScore == 0) {
 			bestScore = score;
 			if (bestNetScore < bestScore)
 				bestNetScore = bestScore;
 		}
 		if (passedPeak && score < bestScore) {
-			calculationComplete();
-			return true;
+			//if (stepSize != INITIAL_STEP || stepsTaken == Z_RANGE) {
+				calculationComplete();
+				return true;
+			//}
 		}
-		else if (bestScore > lowestNetScore * SCORE_PEAK_SIZE && score >= bestNetScore * STRICTNESS) {
+		else if (bestScore > lowestNetScore * SCORE_PEAK_SIZE && score >= bestNetScore * STRICTNESS /*&& stepSize != INITIAL_STEP*/) {
 			if (stepSize <= MINIMUM_STEP && score <= bestScore) {
 				System.out.println("quick complete");
 				calculationComplete();
@@ -214,6 +242,8 @@ public class Autofocus {
 			}
 			passedPeak = true;
 		}
+		//else if (stepSize == INITIAL_STEP && stepsTaken == Z_RANGE)
+		//	passedPeak = true;
 		else if (stepSize <= MINIMUM_STEP && score <= bestScore) {
 			System.out.println("quick complete");
 			calculationComplete();
@@ -222,9 +252,11 @@ public class Autofocus {
 		return false;
 	}
 	
+	public void displayFrame(Mat mat) {
+		return;
+	}
 	
 	public static interface Autofocusable {
-		public void queueAutofocusFrame(Mat m);
 		public void notifyAutofocus(int message);
 		public void focusCallback(boolean success);
 	}

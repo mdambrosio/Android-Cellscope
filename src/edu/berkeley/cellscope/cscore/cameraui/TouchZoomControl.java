@@ -1,6 +1,5 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import android.app.Activity;
 
 public class TouchZoomControl extends TouchPinchControl {
 	private Zoomable screen;

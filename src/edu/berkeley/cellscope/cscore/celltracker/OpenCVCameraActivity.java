@@ -2,6 +2,8 @@ package edu.berkeley.cellscope.cscore.celltracker;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -53,6 +55,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	private Autofocus autofocus;
 	protected CompoundTouchListener compoundTouch;
 	protected TouchControl touchPan, touchZoom, touchExposure;
+	protected List<RealtimeImageProcessor> realtimeProcessors;
 	
 	private boolean maintainCamera; //Set to true for popup activities.
 	
@@ -67,7 +70,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 
     TextView bluetoothNameLabel;
-    
 
 	protected static final int COMPRESSION_QUALITY = 90; //0-100
     private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
@@ -111,7 +113,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    infoText = (TextView)findViewById(R.id.infotext);
 	    
 	    compoundTouch = new CompoundTouchListener();
-
+	    realtimeProcessors = new ArrayList<RealtimeImageProcessor>();
 		synchronized(this) {
 	        cameraView = (OpenCVCameraView) findViewById(R.id.opencv_camera_view);
 	        cameraView.setVisibility(SurfaceView.VISIBLE);
@@ -131,8 +133,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    compoundTouch.addTouchListener(touchPan);
 	    compoundTouch.addTouchListener(touchZoom);
 	    compoundTouch.addTouchListener(touchExposure);
-	    autofocus = new Autofocus(new TouchSwipeControl(this, this));
+	    realtimeProcessors.clear();
+	    autofocus = new Autofocus(new TouchSwipeControl(this, width, height));
 		autofocus.setCallback(this);
+		realtimeProcessors.add(autofocus);
 	}
 	
     @Override
@@ -145,17 +149,20 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     public void onPause()
     {
         super.onPause();
-        if (autofocus.isFocusing())
-        	autofocus.focusFailed();
         if (cameraView != null && !maintainCamera)
            cameraView.disableView();
         else
         	maintainCamera = false;
     }
+    
+    public void stopImageProcessors() {
+    	for (RealtimeImageProcessor processor: realtimeProcessors)
+    		if (processor.isRunning())
+    			processor.stop();
+    }
 
     @Override
-    public void onResume()
-    {
+    public void onResume() {
         super.onResume();
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_5, this, mLoaderCallback);
     }
@@ -200,6 +207,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	}
 
 	public void onCameraViewStopped() {
+        stopImageProcessors();
 		System.out.println("camera stopped");
 	}
 
@@ -211,17 +219,25 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		}
 		if (record)
 			record();
-		queueAutofocusFrame(mRgba);
+		processImage(mRgba);
+		drawImageProcessors(mRgba);
 		return mRgba;
 	}
 	
-	public void initialFrame() {
-		
+	protected void processImage(Mat mRgba) {
+		for (RealtimeImageProcessor processor: realtimeProcessors) 
+			if (processor.isRunning())
+				processor.processFrame(mRgba);
 	}
-	public void queueAutofocusFrame(Mat m) {
-		if (autofocus.isFocusing()) {
-			autofocus.queueFrame(m);
-		}
+	
+	protected void drawImageProcessors(Mat mat) {
+		for (RealtimeImageProcessor processor: realtimeProcessors) 
+			if (processor.isRunning())
+				processor.displayFrame(mRgba);
+	}
+	
+	protected void initialFrame() {
+		
 	}
 	
 	public void focusCallback(boolean success) {
@@ -313,7 +329,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	public void readMessage(Message msg) {
 		byte[] buffer = (byte[])(msg.obj);
 		//System.out.println("message read + " + buffer[0]);
-		if (buffer.length > 0 && autofocus.isFocusing()) {
+		if (buffer.length > 0 && autofocus.isRunning()) {
 			notifyAutofocus((int)buffer[0]);
 		}
 	}
@@ -347,7 +363,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     		startActivityForResult(intent, REQUEST_PINCH_CONTROL);
        	}
        	else if (id == R.id.autofocus)
-       		autofocus.focus();
+       		autofocus.start();
         return false;
     }
     

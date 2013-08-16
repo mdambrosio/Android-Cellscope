@@ -1,10 +1,9 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import edu.berkeley.cellscope.cscore.R;
 import android.app.Activity;
 import android.os.Bundle;
-import android.view.Menu;
 import android.view.View;
+import edu.berkeley.cellscope.cscore.R;
 
 public class PinchSelectActivity extends Activity {
 	public static final int SELECT_ZOOM = 1;

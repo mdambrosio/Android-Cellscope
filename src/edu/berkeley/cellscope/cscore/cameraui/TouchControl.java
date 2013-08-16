@@ -3,6 +3,7 @@ package edu.berkeley.cellscope.cscore.cameraui;
 import android.app.Activity;
 import android.view.MotionEvent;
 import android.view.View;
+import edu.berkeley.cellscope.cscore.BluetoothActivity;
 import edu.berkeley.cellscope.cscore.ScreenDimension;
 
 /*
@@ -14,7 +15,23 @@ public abstract class TouchControl implements View.OnTouchListener {
 	private boolean enabled;
 	protected final int screenWidth, screenHeight;
 	protected static final int firstTouchEvent = -1;
+
 	
+	private static final int xRightMotor = BluetoothActivity.xRightMotor;
+    private static final int xLeftMotor = BluetoothActivity.xLeftMotor;
+    private static final int yBackMotor = BluetoothActivity.yBackMotor;
+    private static final int yForwardMotor = BluetoothActivity.yForwardMotor;
+    private static final int zUpMotor = BluetoothActivity.zUpMotor;
+    private static final int zDownMotor = BluetoothActivity.zDownMotor;
+    
+    public static final int xPositive = yForwardMotor;
+    public static final int xNegative = yBackMotor;
+    public static final int yPositive = xRightMotor;
+    public static final int yNegative = xLeftMotor;
+    public static final int zPositive = zUpMotor;
+    public static final int zNegative =  zDownMotor;
+    public static final int stopMotor = 0;
+    
 	public TouchControl(Activity activity) {
 		this(ScreenDimension.getScreenWidth(activity), ScreenDimension.getScreenHeight(activity));
 	}

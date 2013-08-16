@@ -311,6 +311,7 @@ public class CameraActivity extends Activity implements TouchZoomControl.Zoomabl
 		}
 	}
 
+	@SuppressWarnings("deprecation")
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         activity = this;

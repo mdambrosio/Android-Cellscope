@@ -1,7 +1,5 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import edu.berkeley.cellscope.cscore.BluetoothActivity;
-import android.app.Activity;
 import android.view.MotionEvent;
 
 /*
@@ -14,16 +12,8 @@ public class TouchSwipeControl extends TouchControl {
 	
 	private static final double SENSITIVITY = 0.1;
 
-    public static final int xRightMotor = BluetoothActivity.xRightMotor;
-    public static final int xLeftMotor = BluetoothActivity.xLeftMotor;
-    public static final int yBackMotor = BluetoothActivity.yBackMotor;
-    public static final int yForwardMotor = BluetoothActivity.yForwardMotor;
-    public static final int zUpMotor = BluetoothActivity.zUpMotor;
-    public static final int zDownMotor = BluetoothActivity.zDownMotor;
-    public static final int stopMotor = 0;
-	
-	public TouchSwipeControl(BluetoothControllable s, Activity activity) {
-		super(activity);
+	public TouchSwipeControl(BluetoothControllable s, int w, int h) {
+		super(w, h);
 		stage = s;
 		touchX = touchY = firstTouchEvent;
 	}
@@ -54,11 +44,11 @@ public class TouchSwipeControl extends TouchControl {
 			return;
 		int dir = 0, dist = 0;
 		if (Math.abs(x) > Math.abs(y)) {
-			dir = x > 0 ? TouchPanControl.yForwardMotor : TouchPanControl.yBackMotor;
+			dir = x > 0 ? TouchPanControl.xPositive : TouchPanControl.xNegative;
 			dist = (int)(Math.abs(x) * SENSITIVITY);
 		}
 		else {
-			dir = y < 0 ? TouchPanControl.xLeftMotor : TouchPanControl.xRightMotor;
+			dir = y < 0 ? TouchPanControl.yPositive : TouchPanControl.yNegative;
 			dist = (int)(Math.abs(y) * SENSITIVITY);
 		}
 		swipe(dir, dist);

@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
@@ -57,12 +56,6 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	private int addedMargin;
 	
 	private boolean fieldReady;
-	private double touchX, touchY;
-	
-	
-	private static final int MINIMUM_SIZE = 10;
-	private static final int firstTouchEvent = -1;
-	private static final double TOUCH_SENSITIVITY = 0.1;
 	
 	private static final File defaultPictureDir = CameraActivity.mediaStorageDir;
 	
@@ -125,7 +118,6 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		if (!storageDir.exists())
 			storageDir.mkdirs();
 
-		touchX = touchY = firstTouchEvent;
 	}
 	
 	@Override
@@ -147,16 +139,17 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	@Override
 	public void onCameraViewStopped() {
 		super.onCameraViewStopped();
-		if (field != null)
-			field.stop();
 		resetField();
 	}
 	
 	public void resetField() {
 		synchronized(this) {
+			if (record)
+		    	toggleTimelapse(null);
 			if (field != null) {
 				field.resetData();
 				fieldReady = false;
+				realtimeProcessors.remove(field);
 			}
 			if (mMenuItemApply != null)
 				mMenuItemApply.setVisible(true);
@@ -176,26 +169,18 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		for (Rect r: rects)
 			field.addObject(r);
 		field.setCallback(this);
-		field.initiateUpdateThread(interval);
+		field.setInterval(interval);
+		field.initiateUpdateThread();
 		fieldReady = true;
 		selected = null;
+		realtimeProcessors.add(field);
 	}
+	
 	@Override
-	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		super.onCameraFrame(inputFrame);
-		synchronized(this) {
-			if (field == null || !fieldReady)
-				return temporaryDisplay(mRgba);
-			field.processFrame(mRgba);
-			Mat display = field.display();
-			if (selected != null) {
-				if (MathUtils.circleContainsRect(selected, fovCenter, fovRadius))
-					Core.rectangle(display, selected.tl(), selected.br(), Colors.CYAN, 2);
-				else
-					Core.rectangle(display, selected.tl(), selected.br(), Colors.RED, 2);
-			}
-			return display;
-		}
+	protected void drawImageProcessors(Mat mat) {
+		super.drawImageProcessors(mat);
+		if (!fieldReady)
+			temporaryDisplay(mRgba);
 	}
 	
 	@Override
@@ -238,9 +223,9 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	    	}
 	    	super.toggleTimelapse(v);
 	    	if (record)
-    			field.start();
+    			field.startTracking();
 	    	else
-	    		field.stop();
+	    		field.stopTracking();
     	}
     }
 
@@ -273,7 +258,6 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		int action = evt.getActionMasked();
 		int pointers = evt.getPointerCount();
 		if (action == MotionEvent.ACTION_UP) {
-			touchX = touchY = firstTouchEvent;
 			return true;
 		}
 		if (field == null || field.isRunning())
@@ -324,6 +308,8 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		
 	}
 	
+
+	@SuppressWarnings("unused")
 	private static class DetectionParameters {
 		int colorChannel, colorThreshold, noiseThreshold;
 		double debrisThreshold, backgroundThreshold, oblongThreshold;

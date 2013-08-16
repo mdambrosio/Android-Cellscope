@@ -6,6 +6,7 @@ import android.os.Build;
 import android.view.Display;
 
 public class ScreenDimension {
+	@SuppressWarnings("deprecation")
 	public static double getScreenDiagonal(Activity activity) {
 		int width, height;
 		Display display = activity.getWindowManager().getDefaultDisplay();
@@ -21,7 +22,8 @@ public class ScreenDimension {
 		}
 	    return Math.hypot(width, height);
 	}
-	
+
+	@SuppressWarnings("deprecation")
 	public static int getScreenWidth(Activity activity) {
 		Display display = activity.getWindowManager().getDefaultDisplay();
 		if (Build.VERSION.SDK_INT < 13) {
@@ -33,7 +35,8 @@ public class ScreenDimension {
 		    return size.x;	
 		}
 	}
-	
+
+	@SuppressWarnings("deprecation")
 	public static int getScreenHeight(Activity activity) {
 		Display display = activity.getWindowManager().getDefaultDisplay();
 		if (Build.VERSION.SDK_INT < 13) {

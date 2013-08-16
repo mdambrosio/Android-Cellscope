@@ -1,7 +1,5 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
-import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Size;
 
@@ -35,16 +33,11 @@ public class TrackedCameraActivity extends OpenCVCameraActivity implements View.
 	public void initialFrame() {
 		super.initialFrame();
 		field = new TrackedField(mRgba, new Point(cameraView.width / 2, cameraView.height / 2), cameraView.height / 2);
-		field.initiateUpdateThread(250);
+		field.setInterval(250);
+		field.initiateUpdateThread();
+		realtimeProcessors.add(field);
 	}
 	
-	@Override
-	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		super.onCameraFrame(inputFrame);
-		field.processFrame(mRgba);
-		return field.display();
-	}
-
 	public boolean onTouch(View view, MotionEvent evt) {
 		if (field == null)
 			return false;

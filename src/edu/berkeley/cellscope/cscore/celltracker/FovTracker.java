@@ -75,7 +75,7 @@ public class FovTracker implements RealtimeImageProcessor {
 		return tracking;
 	}
 	
-	public void draw(Mat mRgba) {
+	public void displayFrame(Mat mRgba) {
 		MathUtils.set(panCorner1, roiCorner1);
 		MathUtils.add(panCorner1, translation);
 		MathUtils.set(panCorner2, roiCorner2);

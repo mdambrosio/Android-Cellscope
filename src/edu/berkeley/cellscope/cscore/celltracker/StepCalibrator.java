@@ -1,12 +1,12 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
 import java.util.Arrays;
-import java.util.HashMap;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl.BluetoothControllable;
 
 /*
  * Runs x/y motor calibration to determine how many pixels a step is.
@@ -27,8 +27,8 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 public class StepCalibrator implements RealtimeImageProcessor, FovTracker.MotionCallback {
 	private boolean busy;
 	private boolean calibrated;
+	private boolean processSub;
 	private Point xPosRate, xNegRate, yPosRate, yNegRate;
-	private HashMap<Integer, Point> rates;
 	private Point accumulated;
 	private Point[] results;
 	private int currentState;
@@ -38,7 +38,7 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	private FovTracker.MotionCallback tCallback;
 	private int substep;
 	
-	private static int[] DIR_ORDER = new int[]{TouchSwipeControl.xRightMotor, TouchSwipeControl.xLeftMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yBackMotor};
+	private static int[] DIR_ORDER = new int[]{TouchSwipeControl.xPositive, TouchSwipeControl.xNegative, TouchSwipeControl.yPositive, TouchSwipeControl.yNegative};
 	//private static int[] DIR_ORDER = new int[]{TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor};
 	private static int[] STEPS = new int[]{8, 8, 7, 7, 6, 6, 5, 5, 4, 4};
 	private static int REALIGN_STEP_SIZE = 24;
@@ -49,8 +49,20 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	
 	public static final String SUCCESS_MESSAGE = "Calibration successful";
 	public static final String FAILURE_MESSAGE = "Calibration failed";
+
+	public StepCalibrator(BluetoothControllable bt, int w, int h) {
+		TouchSwipeControl ctrl = new TouchSwipeControl(bt, w, h);
+		FovTracker track = new FovTracker(w, h);
+		processSub = true;
+		init(ctrl, track);
+	}
 	
 	public StepCalibrator(TouchSwipeControl s, FovTracker pt) {
+		processSub = false;
+		init(s, pt);
+	}
+	
+	private void init(TouchSwipeControl s, FovTracker pt) {
 		xPosRate = new Point();
         xNegRate = new Point();
         yPosRate = new Point();
@@ -61,7 +73,6 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
         stage = s;
         tracker = pt;
         accumulated = new Point();
-        rates = new HashMap<Integer, Point>(4);
 	}
 	
 	public void start() {
@@ -73,7 +84,6 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 		calibrated = false;
 		tCallback = tracker.callback;
 		tracker.setCallback(this);
-		rates.clear();
 		if (!tracker.isRunning())
 			tracker.start();
 		tracker.resume();
@@ -130,7 +140,13 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	}
 	
 	public void processFrame(Mat mat) {
-		
+		if (processSub)
+			tracker.processFrame(mat);
+	}
+
+	public void displayFrame(Mat mat) {
+		if (processSub)
+			tracker.displayFrame(mat);
 	}
 	
 	public void proceedWithCalibration() {
@@ -160,12 +176,22 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 		MathUtils.multiply(tmp, 0.5);
 		MathUtils.set(yPosRate, tmp);
 		MathUtils.set(yNegRate, MathUtils.multiply(tmp, -1));
-		rates.put(DIR_ORDER[0], results[0]);
-		rates.put(DIR_ORDER[1], results[1]);
-		rates.put(DIR_ORDER[2], results[2]);
-		rates.put(DIR_ORDER[3], results[3]);
 		System.out.println(Arrays.toString(results));
 		callback.calibrationComplete(true);
+	}
+	
+	/*
+	 * Convert a target location in the screen's x-y to the number of steps in the motor's x-y.
+	 */
+	public Point getSteps(Point target) {
+		double a1 = xPosRate.x, a2 = xPosRate.y, b1 = yPosRate.x, b2 = yPosRate.y;
+		double det = (a1 * b2 - b1 * a2);
+		double x1 = target.x, x2 = target.y;
+		double c1 = (x1 * b2) + (-b1 * x2);
+		double c2 = (x1 * -a2) + (b2 * x2);
+		c1 /= det;
+		c2 /= det;
+		return new Point(c1, c2);
 	}
 	
 	public void stop() {

@@ -1,7 +1,5 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
-import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
 import android.os.Message;
@@ -32,20 +30,15 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 	protected void createAddons(int width, int height) {
 		super.createAddons(width, height);
 		touchPan.setEnabled(false);
-		touchSwipe = new TouchSwipeControl(this, this);
+		touchSwipe = new TouchSwipeControl(this, width, height);
 		touchSwipe.setEnabled(true);
 		compoundTouch.addTouchListener(touchSwipe);
     	tracker = new FovTracker(width, height);
     	tracker.setCallback(this);
         calibrator = new StepCalibrator(touchSwipe, tracker);
         calibrator.setCallback(this);
-	}
-	
-	@Override
-	public void onPause() {
-		super.onPause();
-		if (calibrator.isRunning())
-			calibrator.calibrationFailed();
+        realtimeProcessors.add(tracker);
+        realtimeProcessors.add(calibrator);
 	}
 	
 	@Override
@@ -64,15 +57,6 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 			calibrator.calibrationFailed();
 	}
 	
-	@Override
-	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-        super.onCameraFrame(inputFrame);
-        if (tracker.isRunning()) {
-        	tracker.processFrame(mRgba);
-        	tracker.draw(mRgba);
-        }
-        return mRgba;
-    }
 	
 	/* Override this to perform post-calculation operations
 	 * in subclasses.

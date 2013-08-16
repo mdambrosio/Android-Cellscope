@@ -18,10 +18,7 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
 	private MenuItem mMenuItemTrackPan;
 	
 	private FovTracker tracker;
-	private boolean reenableControls;
-	private String preparedMessage;
 	
-	private static final String TAG = "Pan Tracker";
 	protected static Scalar RED = new Scalar(255, 0, 0, 255);
 	protected static Scalar GREEN = new Scalar(0, 255, 0, 255);
 	protected static Scalar BLUE = new Scalar(0, 0, 255, 255);
@@ -48,7 +45,6 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
         super.onCameraFrame(inputFrame);
         if (tracker.isRunning()) {
         	tracker.processFrame(mRgba);
-        	tracker.draw(mRgba);
         }
         //if (preparedMessage != null)
         //	Toast.makeText(getApplicationContext(), preparedMessage, Toast.LENGTH_SHORT).show();
@@ -108,11 +104,12 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
         return true;
     }
 	
+	/*
 	@Override
     public boolean onOptionsItemSelected(MenuItem item) {
 		if (super.onOptionsItemSelected(item))
 			return true;
-		int id = item.getItemId();
+		//int id = item.getItemId();
 		//if (id == R.id.track_pan) {
 		//	if (tracker.isTracking())
 		//		disableTracking();
@@ -122,9 +119,5 @@ public class PanTrackActivity extends OpenCVCameraActivity implements FovTracker
 		//}
 		return false;
     }
-	
-	public void toastMessage(String s) {
-		preparedMessage = s;
-	}
-	
+	*/
 }

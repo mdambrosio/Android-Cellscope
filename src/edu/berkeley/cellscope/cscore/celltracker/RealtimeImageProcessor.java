@@ -10,4 +10,5 @@ public interface RealtimeImageProcessor {
 	public void start();
 	public void stop();
 	public void processFrame(Mat mat);
+	public void displayFrame(Mat mat);
 }

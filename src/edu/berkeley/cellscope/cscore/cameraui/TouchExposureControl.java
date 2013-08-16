@@ -1,7 +1,5 @@
 package edu.berkeley.cellscope.cscore.cameraui;
 
-import edu.berkeley.cellscope.cscore.cameraui.TouchControl.TouchControllable;
-import android.app.Activity;
 
 
 public class TouchExposureControl extends TouchPinchControl {

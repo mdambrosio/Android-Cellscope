@@ -46,7 +46,7 @@ public class TrackedObject {
 	private static final double ROI_SIZE = 4; //Region about each object to check for new positions.
 											//Increase to track objects that accelerate suddenly, but will result in longer processing time.
 											//0 to disable.
-	private static final double MINIMUM_ROI = 1.2; //Relative to own size.
+	private static final double MINIMUM_ROI = 4; //Relative to own size.
 	private static final double MINIMUM_ABSOLUTE_ROI = 4; //In pixels
 	private static final int ROI_VARIABILITY = 4; //Number of steps to average to find the updated ROI. Decrease for larger changes.
 													//Decrease if object being tracked has high acceleration (but smooth).

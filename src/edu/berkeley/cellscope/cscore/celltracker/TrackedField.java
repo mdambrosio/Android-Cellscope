@@ -24,12 +24,12 @@ import org.opencv.imgproc.Imgproc;
 public class TrackedField implements RealtimeImageProcessor {
 	private Mat currentField;
 	private Mat nextFrame;
-	private Mat display;
 	private Point center;
 	private int radius; //radius squared
 	private List<TrackedObject> objects;
 	private List<Long> times;
 	private long startTime, nextTime;
+	private int interval;
 	private boolean tracking;
 	private TrackedCallback callback;
 	private final Object lockUpdate, lockDisplay;
@@ -48,8 +48,6 @@ public class TrackedField implements RealtimeImageProcessor {
 		img.copyTo(currentField);
 		center = fovCenter;
 		radius = fovRadius;
-		display = new Mat(currentField.size(), currentField.type());
-		img.copyTo(display);
 		processImage(currentField);
 		objects = new ArrayList<TrackedObject>();
 		lockDisplay = new Object();
@@ -90,7 +88,7 @@ public class TrackedField implements RealtimeImageProcessor {
 		}
 	}
 	
-	public void initiateUpdateThread(final int interval) {
+	public void initiateUpdateThread() {
 		updateThread = Executors.newSingleThreadScheduledExecutor();
 		Runnable updater = new Runnable() {
 			public void run() {
@@ -98,6 +96,10 @@ public class TrackedField implements RealtimeImageProcessor {
 			}
 		};
 		updateThread.scheduleWithFixedDelay(updater, INITIAL_DELAY, interval, TimeUnit.MILLISECONDS);
+	}
+	
+	public void setInterval(int i) {
+		interval = i;
 	}
 	
 	public void haltUpdateThread() {
@@ -125,7 +127,7 @@ public class TrackedField implements RealtimeImageProcessor {
 		}
 	}
 	
-	public void update(Mat newField) {
+	private void update(Mat newField) {
 		synchronized(lockUpdate) {
 			//newField.copyTo(display);
 			newField.copyTo(currentField);
@@ -209,22 +211,20 @@ public class TrackedField implements RealtimeImageProcessor {
 	}
 	
 	//Return an image with object locations and paths overlaid.
-	public Mat display() {
+	public void displayFrame(Mat mat) {
 		synchronized(lockDisplay) {
-			nextFrame.copyTo(display);
-			Core.circle(display, center, radius, Colors.WHITE);
+			Core.circle(mat, center, radius, Colors.WHITE);
 			for (TrackedObject o: objects) {
 				//if (o.roi != null) {
 				//	Core.rectangle(display, o.roi.tl(), o.roi.br(), GREEN);
 				//}
 				if (!o.isDisabled())
-					o.drawInfo(display);
+					o.drawInfo(mat);
 			}
-			return display;
 		}
 	}
 	
-	public void start() {
+	public void startTracking() {
 		synchronized(lockUpdate) {
 			if (tracking)
 				return;
@@ -237,7 +237,7 @@ public class TrackedField implements RealtimeImageProcessor {
 		}
 	}
 	
-	public void stop() {
+	public void stopTracking() {
 		synchronized(lockUpdate) {
 			if (!tracking)
 				return;
@@ -251,10 +251,9 @@ public class TrackedField implements RealtimeImageProcessor {
 	}
 	
 	public boolean isRunning() {
-		synchronized(lockUpdate) {
-			return tracking;
-		}
+		return updateThread != null;
 	}
+	
 	public void dumpOutputToFile() {
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
@@ -288,6 +287,14 @@ public class TrackedField implements RealtimeImageProcessor {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void stop() {
+		resetData();
+	}
+	
+	public void start() {
+		initiateUpdateThread();
 	}
 	
 	public void resetData() {
