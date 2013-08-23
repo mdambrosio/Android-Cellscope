@@ -117,7 +117,6 @@ public class ViewFieldActivity extends Activity implements TouchSlideControl.Sli
 		center = new Point(imWidth / 2, imHeight /2 );
 		radius = imHeight / 2;
 		
-
 		updateDisplay();
 	}
 	
@@ -215,7 +214,7 @@ public class ViewFieldActivity extends Activity implements TouchSlideControl.Sli
 				resizeRect(r, amount);
 			}
 		}
-		else if( mode == R.id.viewfield_fieldvision) {
+		else if(mode == R.id.viewfield_fieldvision) {
 			radius += amount;
 			if (radius < 0)
 				radius = 0;

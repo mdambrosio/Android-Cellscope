@@ -40,12 +40,9 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	
 	private static int[] DIR_ORDER = new int[]{TouchSwipeControl.xPositive, TouchSwipeControl.xNegative, TouchSwipeControl.yPositive, TouchSwipeControl.yNegative};
 	//private static int[] DIR_ORDER = new int[]{TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor};
-	private static int[] STEPS = new int[]{8, 8, 7, 7, 6, 6, 5, 5, 4, 4};
+	private static int[] STEPS = new int[]{6, 4, 2};
 	private static int REALIGN_STEP_SIZE = 24;
 	private static int REALIGN_STEP = -1;
-	
-	public static final int PROCEED = 0;
-	public static final int FAILED = 1;
 	
 	public static final String SUCCESS_MESSAGE = "Calibration successful";
 	public static final String FAILURE_MESSAGE = "Calibration failed";
@@ -90,6 +87,7 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	}
 	
 	public void onMotionResult(Point result) {
+		System.out.println("motino result");
 		if (tCallback != null) {
 			tCallback.onMotionResult(result);
 		}
@@ -149,7 +147,7 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 			tracker.displayFrame(mat);
 	}
 	
-	public void proceedWithCalibration() {
+	public void continueRunning() {
 		System.out.println("resumed");
 		tracker.resume();
 	}
@@ -167,7 +165,7 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 		tCallback = null;
 		busy = false;
 		calibrated = true;
-		tracker.stop();
+		//tracker.stop();
 		Point tmp = MathUtils.subtract(xPosRate.clone(), xNegRate);
 		MathUtils.multiply(tmp, 0.5);
 		MathUtils.set(xPosRate, tmp);
@@ -213,7 +211,6 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	
 	public static interface CalibrationCallback {
 		public void calibrationComplete(boolean success);
-		public void notifyCalibrator(int message);
 	}
 
 }

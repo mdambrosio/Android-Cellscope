@@ -336,6 +336,10 @@ public class TrackedField implements RealtimeImageProcessor {
 		}
 	}
 	
+	public void continueRunning() {
+		//do nothing
+	}
+	
 	//Reduce the size of a rectangle to fit the matrix.
 	//Useful for Mat.submat(), when the rectangle has potential to go out of bounds.
 	public static void cropRectToMat(Rect rect, Mat mat) {

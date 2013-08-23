@@ -1,3 +1,4 @@
+
 package edu.berkeley.cellscope.cscore.celltracker;
 
 import org.opencv.core.Mat;
@@ -11,4 +12,5 @@ public interface RealtimeImageProcessor {
 	public void stop();
 	public void processFrame(Mat mat);
 	public void displayFrame(Mat mat);
+	public void continueRunning();
 }

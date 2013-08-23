@@ -35,7 +35,7 @@ public class TrackedObject {
 	
 	private static final double TOLERATED_OVERLAP = 0.2;
 	private static final double MATCH_TOLERANCE = 0.00001;
-	private static final double MATCH_THRESHOLD = 0.95;
+	private static final double MATCH_THRESHOLD = 0.85;
 	
 	private static final int STATE_TRACKING = 6;
 	private static final int STATE_WATCHING = 5;
@@ -43,7 +43,7 @@ public class TrackedObject {
 	
 	private static final int AUTO_DISABLE = 12; //number of consecutive frames an object can be lost before it is removed
 	
-	private static final double ROI_SIZE = 4; //Region about each object to check for new positions.
+	private static final double ROI_SIZE = 1.5; //Region about each object to check for new positions.
 											//Increase to track objects that accelerate suddenly, but will result in longer processing time.
 											//0 to disable.
 	private static final double MINIMUM_ROI = 4; //Relative to own size.

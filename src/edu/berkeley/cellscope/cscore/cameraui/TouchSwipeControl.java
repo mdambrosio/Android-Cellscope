@@ -7,7 +7,7 @@ import android.view.MotionEvent;
  */
 
 public class TouchSwipeControl extends TouchControl {
-	private BluetoothControllable stage;
+	protected BluetoothControllable stage;
 	private double touchX, touchY;
 	
 	private static final double SENSITIVITY = 0.1;

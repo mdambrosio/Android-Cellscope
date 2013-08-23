@@ -77,8 +77,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 		int fovX = intent.getIntExtra(ViewFieldActivity.FOV_X_INFO, imWidth / 2);
 		int fovY = intent.getIntExtra(ViewFieldActivity.FOV_Y_INFO, imHeight / 2);
 		fovCenter = new Point(fovX, fovY);
-		fovRadius = intent.getIntExtra(ViewFieldActivity.FOV_RADIUS_INFO, imHeight / 2);
-		
+		fovRadius = intent.getIntExtra(ViewFieldActivity.FOV_RADIUS_INFO, 0);
 		int channels = intent.getIntExtra(CellDetectActivity.CHANNEL_INFO, 0);
 		detection = new DetectionParameters[channels];
 		for (int i = 0; i < channels; i ++) {
@@ -177,10 +176,11 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 	}
 	
 	@Override
-	protected void drawImageProcessors(Mat mat) {
-		super.drawImageProcessors(mat);
+	protected Mat drawImageProcessors(Mat mat) {
+		mRgbaDisplay = super.drawImageProcessors(mat);
 		if (!fieldReady)
-			temporaryDisplay(mRgba);
+			temporaryDisplay(mRgbaDisplay);
+		return mRgbaDisplay;
 	}
 	
 	@Override
@@ -305,7 +305,7 @@ public class CellTrackerActivity extends OpenCVCameraActivity implements Tracked
 				MathUtils.cropRectToRegion(r, imWidth, imHeight);
 			}
 		}
-		
+		System.out.println("detected " + rects.size() + " objects");
 	}
 	
 

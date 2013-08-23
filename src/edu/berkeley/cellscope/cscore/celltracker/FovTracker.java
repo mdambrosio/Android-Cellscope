@@ -36,7 +36,6 @@ public class FovTracker implements RealtimeImageProcessor {
 
 	private PositionCalculation calculation;
 	private ExecutorService calcThread; //Calculations are executed in this thread.
-	private volatile int queuedCalcs;
 	
 	protected int frameCounter;
 	protected boolean firstFrame;
@@ -44,10 +43,9 @@ public class FovTracker implements RealtimeImageProcessor {
 	MotionCallback callback;
 	
 	protected static final int TRACK_INTERVAL = 1; //Minimum number of frames between every update
-	private static final int CALC_CAP = 1; //Maximum number of queued calculations. No real point in having this more than 1.
 	//A larger sample size will give greater accuracy for slow pans, but cannot detect fast pans
 	private static final double SAMPLE_SIZE = 0.2;
-	private static final int WAIT_AFTER_PAUSE = 2; //After resuming from pause, wait this many frames for the camera preview to catch up.
+	private static final int WAIT_AFTER_PAUSE = 3; //After resuming from pause, wait this many frames for the camera preview to catch up.
 	
 	protected static Scalar RED = new Scalar(255, 0, 0, 255);
 	protected static Scalar GREEN = new Scalar(0, 255, 0, 255);
@@ -85,6 +83,10 @@ public class FovTracker implements RealtimeImageProcessor {
     	Core.rectangle(mRgba, panCorner1, panCorner2, BLUE);
 	}
 	
+	public void continueRunning() {
+		
+	}
+	
 	public synchronized void start() {
 		MathUtils.set(translation, 0, 0);
 		tracking = true;
@@ -94,44 +96,53 @@ public class FovTracker implements RealtimeImageProcessor {
         calcThread = Executors.newSingleThreadExecutor();
 	}
 	
-	public synchronized void pause() {
-		paused = true;
-	}
-	
-	public synchronized void resume() {
-		paused = false;
-		wait = WAIT_AFTER_PAUSE;
-	}
-	
-	public synchronized void stop() {
-		tracking = false;
-		calcThread.shutdown();
-		calcThread = null;
-	}
-	
-	public synchronized void processFrame(Mat mRgba) {
-		if (!tracking || paused)
-			return;
-		if (wait > 0) {
-			wait --;
-    	//	currImg.copyTo(lastImg);
-			return;
+	public void pause() {
+		synchronized(this) {
+			paused = true;
 		}
-		frameCounter ++;
-        if (frameCounter >= TRACK_INTERVAL) {
-        	frameCounter = 0;
-			updateCurrentFrame(mRgba);
-	        if (firstFrame) {
-	        	firstFrame = false;
-	        	synchronized (this) {
+	}
+	
+	public void resume() {
+
+		synchronized(this) {
+			paused = false;
+			wait = WAIT_AFTER_PAUSE;
+		}
+	}
+	
+	public void stop() {
+		synchronized(this) {
+			System.out.println("stopped");
+			tracking = false;
+			if (calcThread != null)
+				calcThread.shutdown();
+			calcThread = null;
+		}
+	}
+	
+	public void processFrame(Mat mRgba) {
+		synchronized(this) {
+			if (!tracking || paused)
+				return;
+			if (wait > 0) {
+				wait --;
+	    	//	currImg.copyTo(lastImg);
+				return;
+			}
+			frameCounter ++;
+	        if (frameCounter >= TRACK_INTERVAL) {
+	        	frameCounter = 0;
+				updateCurrentFrame(mRgba);
+		        if (firstFrame) {
+		        	firstFrame = false;
 	        		currImg.copyTo(lastImg);
-	        	}
+		        }
+		        if (!isBusy()){
+		        	//calculation.run();
+		    		calcThread.execute(calculation);
+		        }
 	        }
-	        if (!isBusy()){
-	    		calcThread.execute(calculation);
-	    		updateCalcQueueCount(1);
-	        }
-        }
+		}
 	}
 	
 	public void updateCurrentFrame(Mat mRgba) {
@@ -141,18 +152,19 @@ public class FovTracker implements RealtimeImageProcessor {
 	}
 	
 	public synchronized boolean isBusy() {
-		return queuedCalcs == CALC_CAP;
+		return false;
+		//return queuedCalcs == CALC_CAP;
 	}
 	
-	public synchronized void updateCalcQueueCount(int i) {
-		queuedCalcs += i;
-	}
+	//public synchronized void updateCalcQueueCount(int i) {
+	//	queuedCalcs += i;
+	//}
 	
 	public void setCallback(MotionCallback c) {
 		callback = c;
 	}
 
-	private class PositionCalculation implements Callable<Point>, Runnable {
+	private class PositionCalculation implements Runnable {
 		Mat curr, last, template;
 		
 		public PositionCalculation() {
@@ -161,9 +173,8 @@ public class FovTracker implements RealtimeImageProcessor {
 			template = new Mat();
 		}
 		
-		public Point call() {
+		public void run() {
 			//Compare the newest frame to the frame when the last calculation was run.
-			System.out.println("call");
 			synchronized (FovTracker.this) {
 				currImg.copyTo(curr);
 				lastImg.copyTo(last);
@@ -176,15 +187,10 @@ public class FovTracker implements RealtimeImageProcessor {
         	else {
 	        	MathUtils.set(translation, location);
 	        	MathUtils.subtract(translation, roiCorner1);
-	    		updateCalcQueueCount(-1);
+	    	//	updateCalcQueueCount(-1);
         	}
         	if (callback != null)
         		callback.onMotionResult(MathUtils.set(result, translation));
-            return translation;
-		}
-		
-		public void run() {
-			call();
 		}
 	}
 	

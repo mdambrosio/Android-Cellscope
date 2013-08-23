@@ -64,6 +64,9 @@ public abstract class TouchControl implements View.OnTouchListener {
 	public static interface BluetoothControllable {
 		public boolean controlReady();
 		public BluetoothConnector getBluetooth();
+		
+		public static final int PROCEED = 0;
+		public static final int FAILED = 1;
 	}
 
 }

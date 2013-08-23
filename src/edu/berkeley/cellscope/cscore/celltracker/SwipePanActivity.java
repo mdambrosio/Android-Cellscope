@@ -8,6 +8,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
+import edu.berkeley.cellscope.cscore.cameraui.TouchControl.BluetoothControllable;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 import edu.berkeley.cellscope.cscore.celltracker.StepCalibrator.CalibrationCallback;
 
@@ -25,36 +26,45 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 	protected TouchSwipeControl touchSwipe;
 	private StepCalibrator calibrator;
 	private FovTracker tracker;
+	private StepNavigator navigator;
 	
 	@Override
 	protected void createAddons(int width, int height) {
 		super.createAddons(width, height);
 		touchPan.setEnabled(false);
-		touchSwipe = new TouchSwipeControl(this, width, height);
+		touchSwipe = new NavigationSwipeControl(this, width, height);
 		touchSwipe.setEnabled(true);
 		compoundTouch.addTouchListener(touchSwipe);
     	tracker = new FovTracker(width, height);
     	tracker.setCallback(this);
         calibrator = new StepCalibrator(touchSwipe, tracker);
         calibrator.setCallback(this);
+        TouchSwipeControl navSwipe = new TouchSwipeControl(this, width, height);
+        navigator = new StepNavigator(navSwipe, tracker, calibrator, autofocus);
         realtimeProcessors.add(tracker);
         realtimeProcessors.add(calibrator);
+        realtimeProcessors.add(navigator);
 	}
 	
 	@Override
 	public void readMessage(Message msg) {
 		super.readMessage(msg);
 		byte[] buffer = (byte[])(msg.obj);
-		if (buffer.length > 0 && calibrator.isRunning()) {
-			notifyCalibrator((int)buffer[0]);
+		if (buffer.length > 0) {
+			int message = (int)(buffer[0]);
+			if (calibrator.isRunning()) {
+				//if (message == BluetoothControllable.PROCEED)
+					calibrator.continueRunning();
+				//else if (message == BluetoothControllable.FAILED)
+				//	calibrator.calibrationFailed();
+			}
+			else if (navigator.isRunning()) {
+				//if (message == BluetoothControllable.PROCEED)
+					navigator.continueRunning();
+				//else if (message == BluetoothControllable.FAILED)
+				//	navigator.stop();
+			}
 		}
-	}
-	
-	public void notifyCalibrator(int message) {
-		if (message == StepCalibrator.PROCEED)
-			calibrator.proceedWithCalibration();
-		else if (message == StepCalibrator.FAILED)
-			calibrator.calibrationFailed();
 	}
 	
 	
@@ -127,6 +137,24 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 			toast(StepCalibrator.SUCCESS_MESSAGE);
 		else
 			toast(StepCalibrator.FAILURE_MESSAGE);
+	}
+	
+	private class NavigationSwipeControl extends TouchSwipeControl {
+
+		public NavigationSwipeControl(BluetoothControllable s, int w, int h) {
+			super(s, w, h);
+		}
+		
+		@Override
+		public void swipeStage(double x, double y) {
+			System.out.println("test " + x + " " + y);
+			if (!stage.controlReady() || navigator.isRunning())
+				return;
+			System.out.println("pass");
+			navigator.setTarget((int)x, (int)y);
+			navigator.start();
+		}
+		
 	}
 	
 }

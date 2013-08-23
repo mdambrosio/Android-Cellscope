@@ -41,7 +41,7 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 
-public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, Autofocus.Autofocusable, TouchControl.BluetoothControllable, TouchZoomControl.Zoomable, TouchExposureControl.ManualExposure, BluetoothConnectable {
+public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, Autofocus.AutofocusCallback, TouchControl.BluetoothControllable, TouchZoomControl.Zoomable, TouchExposureControl.ManualExposure, BluetoothConnectable {
 	
 	BluetoothConnector btConnector;
 	private static final String TAG = "OpenCV_Camera";
@@ -49,10 +49,10 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	protected OpenCVCameraView cameraView;
 	protected TextView infoText;
 	protected ImageButton takePicture, toggleRecord;
-	protected Mat mRgba;
+	protected Mat mRgba, mRgbaDisplay;
 	private boolean firstFrame;
     protected MenuItem mMenuItemConnect, mMenuItemPinch;
-	private Autofocus autofocus;
+	protected Autofocus autofocus;
 	protected CompoundTouchListener compoundTouch;
 	protected TouchControl touchPan, touchZoom, touchExposure;
 	protected List<RealtimeImageProcessor> realtimeProcessors;
@@ -72,7 +72,7 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
     TextView bluetoothNameLabel;
 
 	protected static final int COMPRESSION_QUALITY = 90; //0-100
-    private static final long TIMELAPSE_INTERVAL = 5 * 1000; //milliseconds
+    private static final long TIMELAPSE_INTERVAL = 5000; //milliseconds
     private static final int TOAST_DURATION = 750; //milliseconds
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -220,20 +220,24 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		if (record)
 			record();
 		processImage(mRgba);
-		drawImageProcessors(mRgba);
-		return mRgba;
+		return drawImageProcessors(mRgba);
 	}
 	
-	protected void processImage(Mat mRgba) {
+	protected void processImage(Mat mat) {
 		for (RealtimeImageProcessor processor: realtimeProcessors) 
 			if (processor.isRunning())
-				processor.processFrame(mRgba);
+				processor.processFrame(mat);
 	}
 	
-	protected void drawImageProcessors(Mat mat) {
+	protected Mat drawImageProcessors(Mat mat) {
+		if (mRgbaDisplay == null)
+			mRgbaDisplay = mat.clone();
+		else
+			mat.copyTo(mRgbaDisplay);
 		for (RealtimeImageProcessor processor: realtimeProcessors) 
 			if (processor.isRunning())
-				processor.displayFrame(mRgba);
+				processor.displayFrame(mRgbaDisplay);
+		return mRgbaDisplay;
 	}
 	
 	protected void initialFrame() {
@@ -254,6 +258,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 			if (timeElapsed > TIMELAPSE_INTERVAL) {
 				takePhoto();
 				timeElapsed -= TIMELAPSE_INTERVAL;
+				if (timeElapsed < 0)
+					timeElapsed = 0;
 			}
 			currentTime = newTime;
 		}
@@ -330,12 +336,8 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 		byte[] buffer = (byte[])(msg.obj);
 		//System.out.println("message read + " + buffer[0]);
 		if (buffer.length > 0 && autofocus.isRunning()) {
-			notifyAutofocus((int)buffer[0]);
+			autofocus.continueRunning();
 		}
-	}
-	
-	public void notifyAutofocus(int message) {
-		autofocus.run();
 	}
 	
 	@Override

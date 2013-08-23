@@ -22,7 +22,7 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
  */
 public class Autofocus implements RealtimeImageProcessor {
 	private TouchSwipeControl stage;
-	private Autofocusable callback;
+	private AutofocusCallback callback;
 	private boolean busy;
 	private int stepSize, direction;
 	private int currentPosition, targetPosition;
@@ -34,7 +34,7 @@ public class Autofocus implements RealtimeImageProcessor {
 	private final Object lockStatus;
 	
 	private static final int QUICK_INITIAL_STEP = 16;
-	private static final int INITIAL_STEP = 64; //Step size cannot be greater than 127, due to size limitations on byte
+	private static final int INITIAL_STEP = 32; //Step size cannot be greater than 127, due to size limitations on byte
 	private static final int Z_RANGE = 16; //Check 4 levels on either side of the current position
 	private static final int MINIMUM_STEP = 8;
 	private static final double STRICTNESS = 0.9; //0~1. How close to perfect do we stop at? Autofocus will be more likely to fail
@@ -63,7 +63,7 @@ public class Autofocus implements RealtimeImageProcessor {
 		lockStatus = new Object();
 	}
 	
-	public void setCallback(Autofocusable a) {
+	public void setCallback(AutofocusCallback a) {
 		callback = a;
 	}
 	
@@ -79,7 +79,7 @@ public class Autofocus implements RealtimeImageProcessor {
 			passedPeak = false;
 			stepSize = INITIAL_STEP;
 			state = STATE_READY;
-			run();
+			continueRunning();
 		}
 	}
 	
@@ -95,12 +95,12 @@ public class Autofocus implements RealtimeImageProcessor {
 			passedPeak = false;
 			stepSize = QUICK_INITIAL_STEP;
 			state = STATE_READY;
-			run();
+			continueRunning();
 		}
 	}
 	
 	//This is the main method, called whenever the stage finishes moving.
-	public synchronized void run() {
+	public synchronized void continueRunning() {
 		if (!busy)
 			return;
 		if (!stage.bluetoothConnected()) {
@@ -201,7 +201,7 @@ public class Autofocus implements RealtimeImageProcessor {
 		bestScore = lowestNetScore;
 		passedPeak = false;
 		if (stepSize <= MINIMUM_STEP)
-			run();
+			continueRunning();
 		else
 			stage.swipe(direction, stepSize);
 	}
@@ -244,11 +244,11 @@ public class Autofocus implements RealtimeImageProcessor {
 		}
 		//else if (stepSize == INITIAL_STEP && stepsTaken == Z_RANGE)
 		//	passedPeak = true;
-		else if (stepSize <= MINIMUM_STEP && score <= bestScore) {
+		/*else if (stepSize <= MINIMUM_STEP && score < bestScore) {
 			System.out.println("quick complete");
 			calculationComplete();
 			return true;
-		}
+		}*/
 		return false;
 	}
 	
@@ -256,8 +256,7 @@ public class Autofocus implements RealtimeImageProcessor {
 		return;
 	}
 	
-	public static interface Autofocusable {
-		public void notifyAutofocus(int message);
+	public static interface AutofocusCallback {
 		public void focusCallback(boolean success);
 	}
 }
