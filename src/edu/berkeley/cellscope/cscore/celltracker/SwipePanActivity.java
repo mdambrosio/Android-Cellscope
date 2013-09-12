@@ -8,9 +8,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import edu.berkeley.cellscope.cscore.R;
-import edu.berkeley.cellscope.cscore.cameraui.TouchControl.BluetoothControllable;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
-import edu.berkeley.cellscope.cscore.celltracker.StepCalibrator.CalibrationCallback;
 
 /*
  * Class for testing the stepper counter.
@@ -20,11 +18,12 @@ import edu.berkeley.cellscope.cscore.celltracker.StepCalibrator.CalibrationCallb
  * to count down. When the first command is done executing (i.e. no more steps remaining), 
  * the next command will be executed if it has remaining steps.
  */
-public class SwipePanActivity extends OpenCVCameraActivity implements CalibrationCallback, FovTracker.MotionCallback {
+public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCalibrator.CalibrationCallback, StepCalibrator.CalibrationCallback, FovTracker.MotionCallback {
 	private MenuItem mMenuItemCalibrate;
 	
 	protected TouchSwipeControl touchSwipe;
 	private StepCalibrator calibrator;
+	private BacklashCalibrator backlash;
 	private FovTracker tracker;
 	private StepNavigator navigator;
 	
@@ -39,11 +38,14 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
     	tracker.setCallback(this);
         calibrator = new StepCalibrator(touchSwipe, tracker);
         calibrator.setCallback(this);
+        backlash = new BacklashCalibrator(this, width, height);
+        backlash.setCallback(this);
         TouchSwipeControl navSwipe = new TouchSwipeControl(this, width, height);
         navigator = new StepNavigator(navSwipe, tracker, calibrator, autofocus);
         realtimeProcessors.add(tracker);
         realtimeProcessors.add(calibrator);
         realtimeProcessors.add(navigator);
+        realtimeProcessors.add(backlash);
 	}
 	
 	@Override
@@ -64,6 +66,8 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
 				//else if (message == BluetoothControllable.FAILED)
 				//	navigator.stop();
 			}
+			else if (backlash.isRunning())
+				backlash.continueRunning();
 		}
 	}
 	
@@ -129,7 +133,8 @@ public class SwipePanActivity extends OpenCVCameraActivity implements Calibratio
     }
 	
 	public void runStageCalibration() {
-		calibrator.start();
+		//calibrator.start();
+		backlash.start();
 	}
 	
 	public void calibrationComplete(boolean success) {

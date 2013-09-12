@@ -40,8 +40,8 @@ public class StepCalibrator implements RealtimeImageProcessor, FovTracker.Motion
 	
 	private static int[] DIR_ORDER = new int[]{TouchSwipeControl.xPositive, TouchSwipeControl.xNegative, TouchSwipeControl.yPositive, TouchSwipeControl.yNegative};
 	//private static int[] DIR_ORDER = new int[]{TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor, TouchSwipeControl.yForwardMotor};
-	private static int[] STEPS = new int[]{6, 4, 2};
-	private static int REALIGN_STEP_SIZE = 24;
+	private static int[] STEPS = new int[]{1,1,2,2,3,3,4,4,5,5};
+	private static int REALIGN_STEP_SIZE = 32;
 	private static int REALIGN_STEP = -1;
 	
 	public static final String SUCCESS_MESSAGE = "Calibration successful";

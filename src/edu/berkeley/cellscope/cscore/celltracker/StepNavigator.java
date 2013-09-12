@@ -18,7 +18,7 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 	private boolean moving, first;
 	private int direction, steps;
 	
-	private static final int[] STEP_SIZES = new int[]{8, 6, 4, 2};
+	private static final int[] STEP_SIZES = new int[]{6, 3};
 	
 	public StepNavigator(BluetoothControllable bt, int w, int h) {
 		TouchSwipeControl ctrl = new TouchSwipeControl(bt, w, h);
@@ -58,24 +58,26 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 		Point movement = calibrator.getSteps(target);
 		int xSteps = (int) Math.round(Math.abs(movement.x));
 		int ySteps = (int) Math.round(Math.abs(movement.y));
-		int xDir = (movement.x > 0) ? TouchControl.xPositive : TouchControl.xNegative;
-		int yDir = (movement.y > 0) ? TouchControl.yPositive : TouchControl.yNegative;
+		int xDir = (movement.x > 0) ? TouchControl.xNegative : TouchControl.xPositive;
+		int yDir = (movement.y > 0) ? TouchControl.yNegative : TouchControl.yPositive;
 		System.out.println(xSteps + " " + ySteps);
+		if (first) {
+			first = false;
+			return false;
+		}
 		for (int size: STEP_SIZES) {
 			if (xSteps > ySteps && xSteps >= size) {
 				direction = xDir;
 				steps = size;
+				System.out.println("move in " + direction + " for  " + steps + " steps");
 				return false;
 			}
 			else if (ySteps > xSteps && ySteps >= size) {
 				direction = yDir;
 				steps = size;
+				System.out.println("move in " + direction + " for  " + steps + " steps");
 				return false;
 			}
-		}
-		if (first) {
-			first = false;
-			return false;
 		}
 		stop();
 		return true;
@@ -138,7 +140,8 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 		}
 		System.out.println(target);
 		tracker.pause();
-		MathUtils.subtract(target, result);
+		MathUtils.add(target, result);
+		System.out.println(target);
 		if (!setTarget(target))
 			stage.swipe(direction, steps);
 	}

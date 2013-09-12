@@ -1,6 +1,5 @@
 package edu.berkeley.cellscope.cscore.celltracker;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -10,6 +9,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 /*
@@ -22,16 +22,17 @@ import org.opencv.imgproc.Imgproc;
  * result. It is advisable to 
  */
 public class FovTracker implements RealtimeImageProcessor {
-	private final Mat currImg, lastImg;
-	private final int width, height;
+	private Mat currImg, lastImg;
+	private int width, height;
 	
-	private final Rect roi; //area in center of screen used as cross-correlation template
-	private final Point roiCorner1, roiCorner2; //defines corners of Rect roi
-	private final Point translation; //gives the position of the current frame, relative to the last frame
-	private final Point panCorner1, panCorner2;
-	private final Point result;
-	
+	private Rect roi; //area in center of screen used as cross-correlation template
+	private Point roiCorner1, roiCorner2; //defines corners of Rect roi
+	private Point translation; //gives the position of the current frame, relative to the last frame
+	private Point panCorner1, panCorner2;
+	private Point result;
+	private boolean busy;
 	private boolean tracking, paused;
+	private int waitDuration;
 	private int wait;
 
 	private PositionCalculation calculation;
@@ -45,28 +46,41 @@ public class FovTracker implements RealtimeImageProcessor {
 	protected static final int TRACK_INTERVAL = 1; //Minimum number of frames between every update
 	//A larger sample size will give greater accuracy for slow pans, but cannot detect fast pans
 	private static final double SAMPLE_SIZE = 0.2;
-	private static final int WAIT_AFTER_PAUSE = 3; //After resuming from pause, wait this many frames for the camera preview to catch up.
+	private static final int WAIT_AFTER_PAUSE = 2; //After resuming from pause, wait this many frames for the camera preview to catch up.
 	
 	protected static Scalar RED = new Scalar(255, 0, 0, 255);
 	protected static Scalar GREEN = new Scalar(0, 255, 0, 255);
 	protected static Scalar BLUE = new Scalar(0, 0, 255, 255);
 	
+	public FovTracker(int w, int h, Rect r) {
+		init(w, h, r);
+	}
 	
 	public FovTracker(int w, int h) {
+        int sampleDimen = (w < h) ? (int)(w * SAMPLE_SIZE) : (int)(h * SAMPLE_SIZE);
+        Point corner = new Point(w / 2 - sampleDimen / 2, h / 2 - sampleDimen / 2);
+        Rect r = new Rect(corner, new Size(sampleDimen, sampleDimen));
+        init(w, h, r);
+	}
+	
+	private void init(int w, int h, Rect r) {
     	currImg = new Mat();
     	lastImg = new Mat();
         width = w;
         height = h;
-        int sampleDimen = (w < h) ? (int)(w * SAMPLE_SIZE) : (int)(h * SAMPLE_SIZE);
-        roiCorner1 = new Point(width / 2 - sampleDimen / 2, height / 2 - sampleDimen / 2);
-        roiCorner2 = new Point(roiCorner1.x + sampleDimen, roiCorner1.y + sampleDimen);
-        roi = new Rect(roiCorner1, roiCorner2);
+        roi = r;
+        roiCorner1 = roi.tl();
+        roiCorner2 = roi.br();
         translation = new Point();
         result = new Point();
         panCorner1 = new Point();
         panCorner2 = new Point();
-
+        waitDuration = WAIT_AFTER_PAUSE;
         calculation = new PositionCalculation();
+	}
+	
+	public void setPause(int i) {
+		waitDuration = i;
 	}
 	
 	public boolean isRunning() {
@@ -106,7 +120,7 @@ public class FovTracker implements RealtimeImageProcessor {
 
 		synchronized(this) {
 			paused = false;
-			wait = WAIT_AFTER_PAUSE;
+			wait = waitDuration;
 		}
 	}
 	
@@ -139,6 +153,7 @@ public class FovTracker implements RealtimeImageProcessor {
 		        }
 		        if (!isBusy()){
 		        	//calculation.run();
+		        	setBusy(true);
 		    		calcThread.execute(calculation);
 		        }
 	        }
@@ -152,8 +167,12 @@ public class FovTracker implements RealtimeImageProcessor {
 	}
 	
 	public synchronized boolean isBusy() {
-		return false;
+		return busy;
 		//return queuedCalcs == CALC_CAP;
+	}
+	
+	public synchronized void setBusy(boolean b) {
+		busy = b;
 	}
 	
 	//public synchronized void updateCalcQueueCount(int i) {
@@ -187,6 +206,7 @@ public class FovTracker implements RealtimeImageProcessor {
         	else {
 	        	MathUtils.set(translation, location);
 	        	MathUtils.subtract(translation, roiCorner1);
+	        	setBusy(false);
 	    	//	updateCalcQueueCount(-1);
         	}
         	if (callback != null)

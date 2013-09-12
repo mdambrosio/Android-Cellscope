@@ -45,12 +45,12 @@ public class Autofocus implements RealtimeImageProcessor {
 	private static final int STATE_READY = 0; //At rest, preparing for direct movement
 	private static final int STATE_MOVING = 1; //Currently in direct movement
 	private static final int STATE_STEPPING = 2; //In movement, stopping at intervals for analysis
-	private static final int STARTING_DIRECTION = TouchSwipeControl.zPositive;
-	private static final int OPPOSITE_DIRECTION = TouchSwipeControl.zNegative;
+	private static final int STARTING_DIRECTION = TouchSwipeControl.zNegative;
+	private static final int OPPOSITE_DIRECTION = TouchSwipeControl.zPositive;
 	
 	private static final int NO_CALCULATION = -1;
 	
-	private static final int SCORE_PEAK_SIZE = 2;
+	private static final int SCORE_PEAK_SIZE = 4;
 	
 	private static final Size BLUR = new Size(3, 3);
 	
