@@ -7,43 +7,37 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchControl.BluetoothControllable;
 import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 
-public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionCallback {
+public class StepNavigator implements RealtimeImageProcessor {
 	private StepCalibrator calibrator;
 	private TouchSwipeControl stage;
 	private Autofocus autofocus;
-	private FovTracker tracker;
 	private boolean processSub;
-	private FovTracker.MotionCallback tCallback;
 	private Point target;
-	private boolean moving, first;
-	private int direction, steps;
-	
-	private static final int[] STEP_SIZES = new int[]{6, 3};
+	private boolean moving;
+	private boolean yMoved;
+	private int xDirection, yDirection, xSteps, ySteps;
 	
 	public StepNavigator(BluetoothControllable bt, int w, int h) {
 		TouchSwipeControl ctrl = new TouchSwipeControl(bt, w, h);
-		FovTracker track = new FovTracker(w, h);
-		StepCalibrator calib = new StepCalibrator(ctrl, track);
+		StepCalibrator calib = new StepCalibrator(ctrl, w, h);
 		Autofocus focus = new Autofocus(ctrl);
 		processSub = true;
-		init(ctrl, track, calib, focus);
+		init(ctrl, calib, focus);
 	}
 	
-	public StepNavigator(TouchSwipeControl ctrl, FovTracker track, StepCalibrator calib, Autofocus focus) {
+	public StepNavigator(TouchSwipeControl ctrl, StepCalibrator calib, Autofocus focus) {
 		processSub = false;
-		init(ctrl, track, calib, focus);
+		init(ctrl, calib, focus);
 	}
 	
-	private void init(TouchSwipeControl ctrl, FovTracker track, StepCalibrator calib, Autofocus focus) {
+	private void init(TouchSwipeControl ctrl, StepCalibrator calib, Autofocus focus) {
 		stage = ctrl;
-		tracker = track;
 		calibrator = calib;
 		autofocus = focus;
 		target = new Point();
 	}
 	
 	public void proceed() {
-		tracker.resume();
 	}
 	
 	public void setTarget(int x, int y) {
@@ -55,31 +49,17 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 	
 	private boolean setTarget(Point pt) {
 		MathUtils.set(target, pt.x, pt.y);
-		Point movement = calibrator.getSteps(target);
-		int xSteps = (int) Math.round(Math.abs(movement.x));
-		int ySteps = (int) Math.round(Math.abs(movement.y));
-		int xDir = (movement.x > 0) ? TouchControl.xNegative : TouchControl.xPositive;
-		int yDir = (movement.y > 0) ? TouchControl.yNegative : TouchControl.yPositive;
-		System.out.println(xSteps + " " + ySteps);
-		if (first) {
-			first = false;
-			return false;
-		}
-		for (int size: STEP_SIZES) {
-			if (xSteps > ySteps && xSteps >= size) {
-				direction = xDir;
-				steps = size;
-				System.out.println("move in " + direction + " for  " + steps + " steps");
-				return false;
-			}
-			else if (ySteps > xSteps && ySteps >= size) {
-				direction = yDir;
-				steps = size;
-				System.out.println("move in " + direction + " for  " + steps + " steps");
-				return false;
-			}
-		}
-		stop();
+		Point movement = calibrator.getRequiredSteps(target);
+		xSteps = (int) Math.round(Math.abs(movement.x));
+		ySteps = (int) Math.round(Math.abs(movement.y));
+		xDirection = (movement.x > 0) ? TouchControl.xNegative : TouchControl.xPositive;
+		yDirection = (movement.y > 0) ? TouchControl.yNegative : TouchControl.yPositive;
+		if (xSteps > 0 && stage.backlashOccurs(xDirection))
+			xSteps += calibrator.xBacklash;
+		if (ySteps > 0 && stage.backlashOccurs(yDirection))
+			ySteps += calibrator.yBacklash;
+		System.out.println(xDirection + " " + xSteps);
+		System.out.println(yDirection + " " + ySteps);
 		return true;
 	}
 	
@@ -89,18 +69,15 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 			return;
 		System.out.println("pass");
 		moving = true;
-		first = true;
-		tCallback = tracker.callback;
-		tracker.setCallback(this);
-		if (!tracker.isRunning())
-			tracker.start();
-		tracker.resume();
+		yMoved = false;
+		if (xSteps > 0)
+			stage.swipe(xDirection, xSteps);
+		else
+			continueRunning();
 	}
 	
 	public void stop() {
 		moving = false;
-		tracker.setCallback(tCallback);
-		tracker.stop();
 	}
 	
 	public boolean isRunning() {
@@ -111,8 +88,6 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 		if (processSub) {
 			if (autofocus.isRunning())
 				autofocus.processFrame(mat);
-			if (tracker.isRunning())
-				tracker.processFrame(mat);
 			if (calibrator.isRunning())
 				calibrator.processFrame(mat);
 		}
@@ -122,28 +97,18 @@ public class StepNavigator implements RealtimeImageProcessor, FovTracker.MotionC
 		if (processSub) {
 			if (autofocus.isRunning())
 				autofocus.displayFrame(mat);
-			if (tracker.isRunning())
-				tracker.displayFrame(mat);
 			if (calibrator.isRunning())
 				calibrator.displayFrame(mat);
 		}
 	}
-	
-	public void continueRunning() {
-		tracker.resume();
-	}
-	
 
-	public void onMotionResult(Point result) {
-		if (tCallback != null) {
-			tCallback.onMotionResult(result);
+	public void continueRunning() {
+		if (!yMoved && ySteps > 0) {
+			yMoved = true;
+			stage.swipe(yDirection, ySteps);
 		}
-		System.out.println(target);
-		tracker.pause();
-		MathUtils.add(target, result);
-		System.out.println(target);
-		if (!setTarget(target))
-			stage.swipe(direction, steps);
+		else
+			stop();
 	}
 	
 }

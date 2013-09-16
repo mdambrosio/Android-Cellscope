@@ -9,6 +9,7 @@ import android.view.MotionEvent;
 public class TouchSwipeControl extends TouchControl {
 	protected BluetoothControllable stage;
 	private double touchX, touchY;
+	private int lastX, lastY;
 	
 	private static final double SENSITIVITY = 0.1;
 
@@ -16,6 +17,7 @@ public class TouchSwipeControl extends TouchControl {
 		super(w, h);
 		stage = s;
 		touchX = touchY = firstTouchEvent;
+		lastX = lastY = stopMotor;
 	}
 	
 	@Override
@@ -63,10 +65,24 @@ public class TouchSwipeControl extends TouchControl {
 		byte[] buffer2 = new byte[1];
 		buffer2[0] = (byte)dist;
 		bt.write(buffer2);
+		if (dir == xPositive || dir == xNegative)
+			lastX = dir;
+		else if (dir == yPositive || dir == yNegative)
+			lastY = dir;
+			
 	}
 	
 	public boolean bluetoothConnected() {
 		return stage.controlReady();
+	}
+	
+	public boolean backlashOccurs(int dir) {
+		System.out.println(lastX + " " + lastY + " " + dir);
+		if (dir == xPositive || dir == xNegative)
+			return lastX != dir;
+		if (dir == yPositive || dir == yNegative)
+			return lastY != dir;
+		return false;
 	}
 	
 }

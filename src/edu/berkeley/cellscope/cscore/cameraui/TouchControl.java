@@ -29,7 +29,7 @@ public abstract class TouchControl implements View.OnTouchListener {
     public static final int yPositive = xRightMotor;
     public static final int yNegative = xLeftMotor;
     public static final int zPositive = zUpMotor;
-    public static final int zNegative =  zDownMotor;
+    public static final int zNegative = zDownMotor;
     public static final int stopMotor = 0;
     
 	public TouchControl(Activity activity) {

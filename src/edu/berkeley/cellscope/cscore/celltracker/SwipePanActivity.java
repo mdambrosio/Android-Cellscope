@@ -18,13 +18,11 @@ import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
  * to count down. When the first command is done executing (i.e. no more steps remaining), 
  * the next command will be executed if it has remaining steps.
  */
-public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCalibrator.CalibrationCallback, StepCalibrator.CalibrationCallback, FovTracker.MotionCallback {
+public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibrator.CalibrationCallback, FovTracker.MotionCallback {
 	private MenuItem mMenuItemCalibrate;
 	
 	protected TouchSwipeControl touchSwipe;
 	private StepCalibrator calibrator;
-	private BacklashCalibrator backlash;
-	private FovTracker tracker;
 	private StepNavigator navigator;
 	
 	@Override
@@ -34,18 +32,12 @@ public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCa
 		touchSwipe = new NavigationSwipeControl(this, width, height);
 		touchSwipe.setEnabled(true);
 		compoundTouch.addTouchListener(touchSwipe);
-    	tracker = new FovTracker(width, height);
-    	tracker.setCallback(this);
-        calibrator = new StepCalibrator(touchSwipe, tracker);
-        calibrator.setCallback(this);
-        backlash = new BacklashCalibrator(this, width, height);
-        backlash.setCallback(this);
         TouchSwipeControl navSwipe = new TouchSwipeControl(this, width, height);
-        navigator = new StepNavigator(navSwipe, tracker, calibrator, autofocus);
-        realtimeProcessors.add(tracker);
+        calibrator = new StepCalibrator(navSwipe, width, height);
+        calibrator.setCallback(this);
+        navigator = new StepNavigator(navSwipe, calibrator, autofocus);
         realtimeProcessors.add(calibrator);
         realtimeProcessors.add(navigator);
-        realtimeProcessors.add(backlash);
 	}
 	
 	@Override
@@ -66,8 +58,6 @@ public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCa
 				//else if (message == BluetoothControllable.FAILED)
 				//	navigator.stop();
 			}
-			else if (backlash.isRunning())
-				backlash.continueRunning();
 		}
 	}
 	
@@ -133,8 +123,7 @@ public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCa
     }
 	
 	public void runStageCalibration() {
-		//calibrator.start();
-		backlash.start();
+		calibrator.start();
 	}
 	
 	public void calibrationComplete(boolean success) {
@@ -144,6 +133,8 @@ public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCa
 			toast(StepCalibrator.FAILURE_MESSAGE);
 	}
 	
+	/* Redirects all input to StepNavigator instead of carrying out the stage motions itself.
+	 */
 	private class NavigationSwipeControl extends TouchSwipeControl {
 
 		public NavigationSwipeControl(BluetoothControllable s, int w, int h) {
@@ -158,6 +149,11 @@ public class SwipePanActivity extends OpenCVCameraActivity implements BacklashCa
 			System.out.println("pass");
 			navigator.setTarget((int)x, (int)y);
 			navigator.start();
+		}
+		
+		@Override
+		public void swipe(int dir, int steps) {
+			return;
 		}
 		
 	}
