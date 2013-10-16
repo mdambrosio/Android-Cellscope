@@ -38,8 +38,8 @@ public class StepCalibrator implements RealtimeImageProcessor {
 	private static final int[] RESET_DIR = new int[]{TouchControl.xNegative, TouchControl.xPositive, TouchControl.yNegative, TouchControl.yPositive};
 	
 	private static final int REQUIRED_BACKLASH_MOVES = 6;
-	private static final int STEP_SIZE = 3;
-	private static final int REQUIRED_STEP_MOVES = 6;
+	private static final int STRIDE_SIZE = 3;
+	private static final int REQUIRED_STRIDES = 6;
 	
 	private static final double TRACKER_SIZE = 0.05;
 	private static final double TRACKER_SPACING = 0.07;
@@ -136,18 +136,18 @@ public class StepCalibrator implements RealtimeImageProcessor {
 			else
 				moves = 0;
 			if (moves == REQUIRED_BACKLASH_MOVES) {
-				backlashResults[currentDir] -= moves * STEP_SIZE;
+				backlashResults[currentDir] -= moves * STRIDE_SIZE;
 				moves = 0;
 				toNextStep();
-				stage.swipe(MOVE_DIR[currentDir], STEP_SIZE);
+				stage.swipe(MOVE_DIR[currentDir], STRIDE_SIZE);
 			}
 			else {
 				continueCalibration = false;
-				backlashResults[currentDir] += STEP_SIZE;
+				backlashResults[currentDir] += STRIDE_SIZE;
 				if (backlashResults[currentDir] >= BACKLASH_LIMIT && moves == 0)
 					calibrationFailed();
 				else
-					stage.swipe(MOVE_DIR[currentDir], STEP_SIZE);
+					stage.swipe(MOVE_DIR[currentDir], STRIDE_SIZE);
 			}
 		}
 		else if (currentState == STATE_STEP) {
@@ -156,15 +156,15 @@ public class StepCalibrator implements RealtimeImageProcessor {
 				MathUtils.add(stepResults[currentDir], trackerResults[i].movement);
 			System.out.println(stepResults[currentDir]);
 			moves ++;
-			if (moves == REQUIRED_STEP_MOVES) {
+			if (moves == REQUIRED_STRIDES) {
 				moves = 0;
 				if (toNextStep())
 					calibrationComplete();
 				else
-					stage.swipe(MOVE_DIR[currentDir], STEP_SIZE);
+					stage.swipe(MOVE_DIR[currentDir], STRIDE_SIZE);
 			}
 			else
-				stage.swipe(MOVE_DIR[currentDir], STEP_SIZE);
+				stage.swipe(MOVE_DIR[currentDir], STRIDE_SIZE);
 		}
 	}
 	
@@ -212,7 +212,7 @@ public class StepCalibrator implements RealtimeImageProcessor {
 		System.out.println("x - " + xPosStep + " " + xNegStep);
 		System.out.println("y - " + yPosStep + " " + yNegStep);
 		for (int i = 0; i < stepResults.length; i ++)
-			MathUtils.divide(stepResults[i], TRACKER_COUNT * REQUIRED_STEP_MOVES * STEP_SIZE);
+			MathUtils.divide(stepResults[i], TRACKER_COUNT * REQUIRED_STRIDES * STRIDE_SIZE);
 		xPosBacklash = backlashResults[0];
 		xNegBacklash = backlashResults[1];
 		yPosBacklash = backlashResults[2];
@@ -293,7 +293,7 @@ public class StepCalibrator implements RealtimeImageProcessor {
 	/*
 	 * Convert a target location in the screen's x-y to the number of steps in the motor's x-y.
 	 */
-	public Point getRequiredSteps(Point target) {
+	public Point getRequiredStrides(Point target) {
 		if (!calibrated)
 			return new Point(0, 0);
 		double a1 = xStep.x, a2 = xStep.y, b1 = yStep.x, b2 = yStep.y;

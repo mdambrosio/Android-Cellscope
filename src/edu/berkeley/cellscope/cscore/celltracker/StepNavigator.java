@@ -49,7 +49,7 @@ public class StepNavigator implements RealtimeImageProcessor {
 	
 	private boolean setTarget(Point pt) {
 		MathUtils.set(target, pt.x, pt.y);
-		Point movement = calibrator.getRequiredSteps(target);
+		Point movement = calibrator.getRequiredStrides(target);
 		xSteps = (int) Math.round(Math.abs(movement.x));
 		ySteps = (int) Math.round(Math.abs(movement.y));
 		xDirection = (movement.x > 0) ? TouchControl.xNegative : TouchControl.xPositive;
