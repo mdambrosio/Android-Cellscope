@@ -69,7 +69,20 @@ public class TouchSwipeControl extends TouchControl {
 			lastX = dir;
 		else if (dir == yPositive || dir == yNegative)
 			lastY = dir;
-			
+	}
+	
+	public void swipeX(int steps) {
+		if (steps > 0)
+			swipe(TouchControl.xPositive, steps);
+		else if (steps < 0)
+			swipe(TouchControl.xNegative, -steps);
+	}
+	
+	public void swipeY(int steps) {
+		if (steps > 0)
+			swipe(TouchControl.yPositive, steps);
+		else if (steps < 0)
+			swipe(TouchControl.yNegative, -steps);
 	}
 	
 	public boolean bluetoothConnected() {
@@ -77,7 +90,6 @@ public class TouchSwipeControl extends TouchControl {
 	}
 	
 	public boolean backlashOccurs(int dir) {
-		System.out.println(lastX + " " + lastY + " " + dir);
 		if (dir == xPositive || dir == xNegative)
 			return lastX != dir;
 		if (dir == yPositive || dir == yNegative)

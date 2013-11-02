@@ -15,7 +15,7 @@ public class StepCalibrator implements RealtimeImageProcessor {
 	private boolean calibrated;
 	private int xPosBacklash, xNegBacklash, yPosBacklash, yNegBacklash;
 	private Point xPosStep, xNegStep, yPosStep, yNegStep;
-	public int xBacklash, yBacklash;
+	private int xBacklash, yBacklash;			//backlash experienced on the stepper motor, in number of steps
 	private Point xStep, yStep;
 	private int[] backlashResults;
 	private Point[] stepResults;
@@ -38,8 +38,8 @@ public class StepCalibrator implements RealtimeImageProcessor {
 	private static final int[] RESET_DIR = new int[]{TouchControl.xNegative, TouchControl.xPositive, TouchControl.yNegative, TouchControl.yPositive};
 	
 	private static final int REQUIRED_BACKLASH_MOVES = 6;
-	private static final int STRIDE_SIZE = 3;
-	private static final int REQUIRED_STRIDES = 6;
+	public static final int STRIDE_SIZE = 3;
+	public static final int REQUIRED_STRIDES = 6;
 	
 	private static final double TRACKER_SIZE = 0.05;
 	private static final double TRACKER_SPACING = 0.07;
@@ -293,7 +293,7 @@ public class StepCalibrator implements RealtimeImageProcessor {
 	/*
 	 * Convert a target location in the screen's x-y to the number of steps in the motor's x-y.
 	 */
-	public Point getRequiredStrides(Point target) {
+	public Point getRequiredSteps(Point target) {
 		if (!calibrated)
 			return new Point(0, 0);
 		double a1 = xStep.x, a2 = xStep.y, b1 = yStep.x, b2 = yStep.y;
@@ -303,21 +303,33 @@ public class StepCalibrator implements RealtimeImageProcessor {
 		double c2 = (x1 * -a2) + (b2 * x2);
 		c1 /= det;
 		c2 /= det;
-		/*int xDir = (c1 > 0) ? TouchSwipeControl.xPositive : TouchSwipeControl.xNegative;
-		int yDir = (c2 > 0) ? TouchSwipeControl.yPositive : TouchSwipeControl.yNegative;
-		if (stage.backlashOccurs(xDir)) {
-			if (c1 > 0)
-				c1 += xBacklash;
-			else if (c1 < 0)
-				c1 -= xBacklash;
-		}
-		if (stage.backlashOccurs(yDir)) {
-			if (c2 > 0)
-				c2 += yBacklash;
-			else if (c1 < 0)
-				c2 -= yBacklash;
-		}*/
 		return new Point(c1, c2);
 	}
-
+	
+	public TouchSwipeControl getStageController() {
+		return stage;
+	}
+	
+	/** Adds steps to account for backlash in either direction. */
+	public Point adjustBacklash(Point steps) {
+		if (steps.x > 0) {
+			boolean backlash = stage.backlashOccurs(TouchControl.xPositive);
+			if (backlash)
+				steps.x += xBacklash;
+		} else if (steps.x < 0) {
+			boolean backlash = stage.backlashOccurs(TouchControl.xNegative);
+			if (backlash)
+				steps.x -= xBacklash;
+		}
+		if (steps.y > 0) {
+			boolean backlash = stage.backlashOccurs(TouchControl.yPositive);
+			if (backlash)
+				steps.y += yBacklash;
+		} else if (steps.y < 0) {
+			boolean backlash = stage.backlashOccurs(TouchControl.yNegative);
+			if (backlash)
+				steps.y -= yBacklash;
+		}
+		return steps;
+	}
 }

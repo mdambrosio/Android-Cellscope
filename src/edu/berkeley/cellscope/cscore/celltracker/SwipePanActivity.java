@@ -24,6 +24,8 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
 	protected TouchSwipeControl touchSwipe;
 	private StepCalibrator calibrator;
 	private StepNavigator navigator;
+	private FovTracker positionTracker;
+	protected Autofocus autofocus;
 	
 	@Override
 	protected void createAddons(int width, int height) {
@@ -32,10 +34,14 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
 		touchSwipe = new NavigationSwipeControl(this, width, height);
 		touchSwipe.setEnabled(true);
 		compoundTouch.addTouchListener(touchSwipe);
-        TouchSwipeControl navSwipe = new TouchSwipeControl(this, width, height);
-        calibrator = new StepCalibrator(navSwipe, width, height);
+        TouchSwipeControl swipeDriver = new TouchSwipeControl(this, width, height);
+	    autofocus = new Autofocus(swipeDriver);
+		autofocus.setCallback(this);
+		realtimeProcessors.add(autofocus);
+        calibrator = new StepCalibrator(swipeDriver, width, height);
         calibrator.setCallback(this);
-        navigator = new StepNavigator(navSwipe, calibrator, autofocus);
+        positionTracker = new FovTracker(width, height);
+        navigator = new StepNavigator(calibrator, autofocus, positionTracker);
         realtimeProcessors.add(calibrator);
         realtimeProcessors.add(navigator);
 	}
@@ -45,18 +51,21 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
 		super.readMessage(msg);
 		byte[] buffer = (byte[])(msg.obj);
 		if (buffer.length > 0) {
-			int message = (int)(buffer[0]);
+//			int message = (int)(buffer[0]);
 			if (calibrator.isRunning()) {
-				//if (message == BluetoothControllable.PROCEED)
+//				if (message == BluetoothControllable.PROCEED)
 					calibrator.continueRunning();
-				//else if (message == BluetoothControllable.FAILED)
-				//	calibrator.calibrationFailed();
+//				else if (message == BluetoothControllable.FAILED)
+//					calibrator.calibrationFailed();
 			}
 			else if (navigator.isRunning()) {
-				//if (message == BluetoothControllable.PROCEED)
+//				if (message == BluetoothControllable.PROCEED)
 					navigator.continueRunning();
-				//else if (message == BluetoothControllable.FAILED)
-				//	navigator.stop();
+//				else if (message == BluetoothControllable.FAILED)
+//					navigator.stop();
+			}
+			else if (autofocus.isRunning()) {
+				autofocus.continueRunning();
 			}
 		}
 	}
@@ -119,6 +128,10 @@ public class SwipePanActivity extends OpenCVCameraActivity implements StepCalibr
 			runStageCalibration();
 			return true;
 		}
+       	else if (id == R.id.autofocus) {
+       		autofocus.start();
+       		return true;
+       	}
 		return false;
     }
 	

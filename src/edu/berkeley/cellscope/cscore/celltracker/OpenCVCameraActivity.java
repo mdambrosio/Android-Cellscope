@@ -38,7 +38,6 @@ import edu.berkeley.cellscope.cscore.cameraui.PinchSelectActivity;
 import edu.berkeley.cellscope.cscore.cameraui.TouchControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchExposureControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchPanControl;
-import edu.berkeley.cellscope.cscore.cameraui.TouchSwipeControl;
 import edu.berkeley.cellscope.cscore.cameraui.TouchZoomControl;
 
 public class OpenCVCameraActivity extends Activity implements CvCameraViewListener2, Autofocus.AutofocusCallback, TouchControl.BluetoothControllable, TouchZoomControl.Zoomable, TouchExposureControl.ManualExposure, BluetoothConnectable {
@@ -52,7 +51,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	protected Mat mRgba, mRgbaDisplay;
 	private boolean firstFrame;
     protected MenuItem mMenuItemConnect, mMenuItemPinch;
-	protected Autofocus autofocus;
 	protected CompoundTouchListener compoundTouch;
 	protected TouchControl touchPan, touchZoom, touchExposure;
 	protected List<RealtimeImageProcessor> realtimeProcessors;
@@ -134,9 +132,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	    compoundTouch.addTouchListener(touchZoom);
 	    compoundTouch.addTouchListener(touchExposure);
 	    realtimeProcessors.clear();
-	    autofocus = new Autofocus(new TouchSwipeControl(this, width, height));
-		autofocus.setCallback(this);
-		realtimeProcessors.add(autofocus);
 	}
 	
     @Override
@@ -333,11 +328,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
 	
 	
 	public void readMessage(Message msg) {
-		byte[] buffer = (byte[])(msg.obj);
-		//System.out.println("message read + " + buffer[0]);
-		if (buffer.length > 0 && autofocus.isRunning()) {
-			autofocus.continueRunning();
-		}
 	}
 	
 	@Override
@@ -364,8 +354,6 @@ public class OpenCVCameraActivity extends Activity implements CvCameraViewListen
        		Intent intent = new Intent(this, PinchSelectActivity.class);
     		startActivityForResult(intent, REQUEST_PINCH_CONTROL);
        	}
-       	else if (id == R.id.autofocus)
-       		autofocus.start();
         return false;
     }
     
